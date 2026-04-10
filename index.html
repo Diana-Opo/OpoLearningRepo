@@ -119,12 +119,12 @@
       <span>Dashboard</span>
     </a>
 
-    <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
+    <a class="nav-item" data-page="livechats" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
       <span>Live Chats</span>
-      <span class="nav-badge">14</span>
+      <span class="nav-badge" id="nav-livechats-badge">14</span>
     </a>
 
     <a class="nav-item" data-page="agents" onclick="navClick(this);return false;" href="#">
@@ -395,6 +395,52 @@
 
 
       <!-- ══════════════════════════════════════════
+           PAGE: LIVE CHATS
+      ══════════════════════════════════════════ -->
+      <div id="page-livechats" class="page-section hidden">
+
+        <div class="section-header">
+          <div>
+            <div class="section-title">Live Chats</div>
+            <div class="section-sub" id="lc-sub">5 in queue · 9 ongoing</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <div class="lc-stat-pill blue"><span id="lc-queue-count">5</span> Queued</div>
+            <div class="lc-stat-pill green"><span id="lc-active-count">9</span> Active</div>
+          </div>
+        </div>
+
+        <div class="lc-columns">
+
+          <!-- QUEUE SECTION -->
+          <div class="lc-section">
+            <div class="lc-section-head">
+              <div class="lc-section-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Queue
+              </div>
+              <span class="lc-section-badge yellow" id="lc-queue-badge">5</span>
+            </div>
+            <div id="lc-queue-list" class="lc-list"></div>
+          </div>
+
+          <!-- CHATTING SECTION -->
+          <div class="lc-section">
+            <div class="lc-section-head">
+              <div class="lc-section-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Chatting
+              </div>
+              <span class="lc-section-badge green" id="lc-active-badge">9</span>
+            </div>
+            <div id="lc-active-list" class="lc-list"></div>
+          </div>
+
+        </div>
+      </div><!-- /page-livechats -->
+
+
+      <!-- ══════════════════════════════════════════
            PAGE: AGENT MANAGEMENT
       ══════════════════════════════════════════ -->
       <div id="page-agents" class="page-section hidden">
@@ -493,6 +539,46 @@
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeEditModal()">Cancel</button>
       <button class="btn-primary" style="width:auto;padding:11px 28px;margin-top:0" onclick="saveAgent()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SUPERVISE PANEL
+═══════════════════════════════════════════════ -->
+<div id="supervise-overlay" class="modal-overlay hidden" onclick="closeSuperviseOnBackdrop(event)">
+  <div class="supervise-card">
+    <div class="supervise-header">
+      <div class="supervise-header-info">
+        <div class="supervise-client-avatar" id="sv-client-avatar">DM</div>
+        <div>
+          <div class="supervise-title" id="sv-client-name">Diana M.</div>
+          <div class="supervise-meta" id="sv-meta">Agent: Lena Williams · WebTrader · 12m ongoing</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="lc-stat-pill green" style="font-size:12px">
+          <span class="pulse-dot"></span> Live
+        </span>
+        <button class="modal-close" onclick="closeSupervisePanel()">✕</button>
+      </div>
+    </div>
+
+    <div class="supervise-body">
+      <div class="chat-transcript" id="sv-transcript"></div>
+    </div>
+
+    <div class="supervise-note-area">
+      <div class="supervise-note-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Private note to agent — only you and the agent can see this
+      </div>
+      <div class="supervise-note-input-row">
+        <textarea id="sv-note-input" class="supervise-textarea" placeholder="Type a coaching note or instruction for the agent…" rows="2"></textarea>
+        <button class="btn-send-note" onclick="sendManagerNote()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 </div>
