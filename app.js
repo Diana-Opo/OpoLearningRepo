@@ -117,7 +117,7 @@ function handleLogout() {
 // ────────────────────────────────────────────────────────
 //  PAGE SWITCHING
 // ────────────────────────────────────────────────────────
-const PAGE_TITLES = { dashboard:'Dashboard', agents:'Agent Management', livechats:'Live Chats', issues:'Platform Issues', tickets:'Tickets', reports:'Reports', settings:'Settings', notifications:'Notifications' };
+const PAGE_TITLES = { dashboard:'Dashboard', agents:'Agent Management', livechats:'Live Chats', issues:'Platform Issues', tickets:'Tickets', reports:'Reports', settings:'Settings', notifications:'Notifications', profile:'My Profile' };
 
 function showPage(pageId) {
   document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
@@ -131,6 +131,7 @@ function showPage(pageId) {
   if (pageId === 'tickets')       renderTicketList(currentTicketFilter);
   if (pageId === 'reports')       initReports();
   if (pageId === 'settings')      initSettings();
+  if (pageId === 'profile')       initProfile();
   if (pageId === 'notifications') renderNotifPage();
   if (pageId === 'dashboard')     initDashboardOverview();
 }
@@ -1045,12 +1046,20 @@ function closeSuperviseOnBackdrop(e) {
 //  PLATFORM ISSUES DATA
 // ────────────────────────────────────────────────────────
 const PLATFORM_META = {
-  mt4:       { label:'MT4',        icon:'💻', cls:'mt4'       },
-  webtrader: { label:'WebTrader',  icon:'🌐', cls:'webtrader' },
-  mobile:    { label:'Mobile App', icon:'📱', cls:'mobile'    },
-  web:       { label:'Web Portal', icon:'🖥️', cls:'web'       },
-  payment:   { label:'Payments',   icon:'💳', cls:'payment'   },
-  email:     { label:'Email / SMS',icon:'📧', cls:'email'     },
+  mt4:         { label:'MT4 Platform',  icon:'💻', cls:'mt4'         },
+  mt5:         { label:'MT5 Platform',  icon:'🖥️', cls:'mt5'         },
+  ctrader:     { label:'cTrader',       icon:'📊', cls:'ctrader'     },
+  opotrade:    { label:'OpoTrade',      icon:'💹', cls:'opotrade'    },
+  tradingview: { label:'TradingView',   icon:'📈', cls:'tradingview' },
+  webterminal: { label:'Web Terminal',  icon:'🌐', cls:'webterminal' },
+  socialtrade: { label:'SocialTrade',   icon:'👥', cls:'socialtrade' },
+  portal:      { label:'Portal',        icon:'🔗', cls:'portal'      },
+  payment:     { label:'Payment',       icon:'💳', cls:'payment'     },
+  mobile:      { label:'Mobile App',    icon:'📱', cls:'mobile'      },
+  email:       { label:'Email/SMS',     icon:'📧', cls:'email'       },
+  // legacy keys kept for existing data
+  webtrader:   { label:'WebTrader',     icon:'🌐', cls:'webterminal' },
+  web:         { label:'Web Portal',    icon:'🔗', cls:'portal'      },
 };
 
 const SEVERITY_ORDER = { critical:0, high:1, medium:2, resolved:3 };
@@ -1192,45 +1201,51 @@ function filterIssues(btn, filter) {
   renderIssues(filter);
 }
 
+function ensureIssueFields() {
+  platformIssues.forEach((i, idx) => {
+    if (!i.priority)  i.priority  = (i.severity === 'resolved') ? 'medium' : i.severity;
+    if (!i.status)    i.status    = (i.severity === 'resolved') ? 'resolved' : 'inprogress';
+    if (!i.createdAt) i.createdAt = platformIssues.length - idx;
+  });
+}
+
+function issueStatusLabel(s) {
+  return s === 'todo' ? 'To Do'
+    : s === 'inprogress' ? 'In Progress'
+    : s === 'pending'   ? 'Pending'
+    : s === 'postponed' ? 'Postponed'
+    : 'Resolved';
+}
+
 function renderIssues(filter) {
-  const filtered = filter === 'all'
-    ? platformIssues
-    : platformIssues.filter(i => i.severity === filter);
+  ensureIssueFields();
 
-  // Update counts
-  document.getElementById('pi-count-all').textContent      = platformIssues.length;
-  document.getElementById('pi-count-critical').textContent = platformIssues.filter(i=>i.severity==='critical').length;
-  document.getElementById('pi-count-high').textContent     = platformIssues.filter(i=>i.severity==='high').length;
-  document.getElementById('pi-count-medium').textContent   = platformIssues.filter(i=>i.severity==='medium').length;
-  document.getElementById('pi-count-resolved').textContent = platformIssues.filter(i=>i.severity==='resolved').length;
+  const filtered = filter === 'all' ? platformIssues
+    : platformIssues.filter(i => i.status === filter);
 
-  const active = platformIssues.filter(i => i.severity !== 'resolved').length;
+  // Tab counts
+  const statusKeys = ['todo','inprogress','pending','postponed','resolved'];
+  document.getElementById('pi-count-all').textContent = platformIssues.length;
+  statusKeys.forEach(k => {
+    const el = document.getElementById('pi-count-' + k);
+    if (el) el.textContent = platformIssues.filter(i => i.status === k).length;
+  });
+
+  const active = platformIssues.filter(i => i.status !== 'resolved').length;
   document.getElementById('pi-sub').textContent =
-    `${active} active issue${active!==1?'s':''} · ${platformIssues.filter(i=>i.severity==='resolved').length} resolved`;
+    `${active} active issue${active!==1?'s':''} · ${platformIssues.filter(i=>i.status==='resolved').length} resolved`;
 
   const navBadge = document.getElementById('nav-issues-badge');
   if (navBadge) navBadge.textContent = active;
 
-  // Stat pills
-  const pills = document.getElementById('pi-stat-pills');
-  const counts = {critical:0,high:0,medium:0,resolved:0};
-  platformIssues.forEach(i => counts[i.severity]++);
-  const pillDefs = [
-    { key:'critical', label:'Critical', bg:'#fee2e2', color:  'var(--red)'    },
-    { key:'high',     label:'High',     bg:'#ffedd5', color:'var(--orange)'   },
-    { key:'medium',   label:'Medium',   bg:'#fef3c7', color:'#b45309'         },
-    { key:'resolved', label:'Resolved', bg:'#d1fae5', color:'#059669'         },
-  ];
-  pills.innerHTML = pillDefs.map(p =>
-    `<div style="background:${p.bg};color:${p.color};padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700">
-      ${counts[p.key]} ${p.label}
-    </div>`
-  ).join('');
+  // Stat cards (by status)
+  statusKeys.forEach(k => {
+    const el = document.getElementById('pi-sc-' + k);
+    if (el) el.textContent = platformIssues.filter(i => i.status === k).length;
+  });
 
-  // Sort: active first by severity, then resolved
-  const sorted = [...filtered].sort((a,b) =>
-    (SEVERITY_ORDER[a.severity]??99) - (SEVERITY_ORDER[b.severity]??99)
-  );
+  // Sort: most recently created first
+  const sorted = [...filtered].sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
 
   const grid = document.getElementById('pi-grid');
   if (sorted.length === 0) {
@@ -1239,27 +1254,31 @@ function renderIssues(filter) {
   }
 
   grid.innerHTML = sorted.map(issue => {
-    const pm   = PLATFORM_META[issue.platform];
+    const pm   = PLATFORM_META[issue.platform] || { label: issue.platform, icon:'🔧', cls:'portal' };
     const last = issue.timeline[issue.timeline.length - 1];
-    const lastActivity = `Last update: ${last.time} · ${last.author}`;
+    const sLabel = issueStatusLabel(issue.status);
+    const pLabel = (issue.priority||'medium').charAt(0).toUpperCase() + (issue.priority||'medium').slice(1);
     return `
-    <div class="pi-card ${issue.severity}">
+    <div class="pi-card ${issue.priority||'medium'}">
       <div class="pi-card-header">
         <div class="pi-platform-icon ${pm.cls}" title="${pm.label}">${pm.icon}</div>
         <div class="pi-card-header-info">
           <div class="pi-card-title">${escHtml(issue.title)}</div>
           <div class="pi-card-platform">${pm.label} · ${escHtml(issue.reportedAt)}</div>
         </div>
-        <span class="pi-status-badge ${issue.severity}">${issue.severity.charAt(0).toUpperCase()+issue.severity.slice(1)}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+          <span class="pi-status-badge ${issue.status}">${sLabel}</span>
+          <span class="pi-priority-badge ${issue.priority||'medium'}">${pLabel}</span>
+        </div>
       </div>
       <div class="pi-card-body">
         <div class="pi-meta-row">
           <span class="pi-meta-tag">${issue.impact.clients} clients affected</span>
-          <span class="pi-meta-tag ${issue.severity!=='resolved'?'orange':''}">${issue.impact.tickets} tickets</span>
+          <span class="pi-meta-tag ${issue.status!=='resolved'?'orange':''}">${issue.impact.tickets} tickets</span>
           <span class="pi-meta-tag">⏱ ${issue.impact.downtime}</span>
         </div>
         <div class="pi-summary">${escHtml(issue.summary)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${escHtml(lastActivity)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Last update: ${escHtml(last.time)} · ${escHtml(last.author)}</div>
         <button class="btn-details" onclick="openIssueModal('${issue.id}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           More Details
@@ -1275,6 +1294,8 @@ function renderIssues(filter) {
 function openIssueModal(id) {
   const issue = platformIssues.find(i => i.id === id);
   if (!issue) return;
+  currentModalIssueId = id;
+  if (!issue.comments) issue.comments = [];
 
   const pm = PLATFORM_META[issue.platform];
 
@@ -1285,9 +1306,8 @@ function openIssueModal(id) {
   document.getElementById('id-title').textContent       = issue.title;
   document.getElementById('id-platform-meta').textContent =
     `${pm.label} · Reported ${issue.reportedAt} by ${issue.reportedBy}`;
-  const badge = document.getElementById('id-status-badge');
-  badge.textContent = issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1);
-  badge.className   = `pi-status-badge ${issue.severity}`;
+  document.getElementById('id-priority-select').value = issue.priority || 'medium';
+  document.getElementById('id-status-select').value   = issue.status  || 'todo';
 
   // Description
   document.getElementById('id-description').textContent = issue.description;
@@ -1312,15 +1332,239 @@ function openIssueModal(id) {
     </div>
   `).join('');
 
+  // Comments
+  renderIssueComments(issue);
+  document.getElementById('id-comment-input').value = '';
+
   document.getElementById('issue-modal-overlay').classList.remove('hidden');
+}
+
+let currentModalIssueId = null;
+
+function renderIssueComments(issue) {
+  const list = document.getElementById('id-comments-list');
+  if (!issue.comments || issue.comments.length === 0) {
+    list.innerHTML = `<div class="id-no-comments">No comments yet. Be the first to comment.</div>`;
+    return;
+  }
+  list.innerHTML = issue.comments.map(c => {
+    const initials = c.author.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `
+      <div class="id-comment-item">
+        <div class="id-comment-meta">
+          <div class="id-comment-avatar">${escHtml(initials)}</div>
+          <span class="id-comment-author">${escHtml(c.author)}</span>
+          <span class="id-comment-time">${escHtml(c.time)}</span>
+        </div>
+        <div class="id-comment-text">${escHtml(c.text)}</div>
+      </div>`;
+  }).join('');
+}
+
+function addIssueComment() {
+  const input = document.getElementById('id-comment-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  const issue = platformIssues.find(i => i.id === currentModalIssueId);
+  if (!issue) return;
+  if (!issue.comments) issue.comments = [];
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  issue.comments.push({ author: currentUser.name || 'Manager', time, text });
+  input.value = '';
+  renderIssueComments(issue);
+}
+
+function changeIssuePriority(newPriority) {
+  if (!newPriority) return;
+  const issue = platformIssues.find(i => i.id === currentModalIssueId);
+  if (!issue) return;
+  const oldLabel = (issue.priority||'medium').charAt(0).toUpperCase() + (issue.priority||'medium').slice(1);
+  issue.priority = newPriority;
+  const newLabel = newPriority.charAt(0).toUpperCase() + newPriority.slice(1);
+
+  const now  = new Date();
+  const time = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  const text = `Priority changed from "${oldLabel}" to "${newLabel}".`;
+  issue.timeline.push({ time, author: currentUser.name || 'Manager', color: 'orange', text });
+  document.getElementById('id-timeline').innerHTML += `
+    <div class="id-timeline-item">
+      <div class="id-tl-dot orange"></div>
+      <div class="id-tl-content">
+        <div class="id-tl-time">${time}</div>
+        <div class="id-tl-author">${escHtml(currentUser.name || 'Manager')}</div>
+        <div class="id-tl-text">${escHtml(text)}</div>
+      </div>
+    </div>`;
+  renderIssues(currentIssueFilter);
+}
+
+function changeIssueStatus(newStatus) {
+  if (!newStatus) return;
+  const issue = platformIssues.find(i => i.id === currentModalIssueId);
+  if (!issue) return;
+  const oldLabel = issueStatusLabel(issue.status);
+  issue.status = newStatus;
+  const newLabel = issueStatusLabel(newStatus);
+
+  // Add timeline entry
+  const now   = new Date();
+  const time  = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  const color = newStatus === 'resolved' ? 'green' : newStatus === 'inprogress' ? 'blue' : 'orange';
+  const text  = `Status changed from "${oldLabel}" to "${newLabel}".`;
+  issue.timeline.push({ time, author: currentUser.name || 'Manager', color, text });
+  document.getElementById('id-timeline').innerHTML += `
+    <div class="id-timeline-item">
+      <div class="id-tl-dot ${color}"></div>
+      <div class="id-tl-content">
+        <div class="id-tl-time">${time}</div>
+        <div class="id-tl-author">${escHtml(currentUser.name || 'Manager')}</div>
+        <div class="id-tl-text">${escHtml(text)}</div>
+      </div>
+    </div>`;
+
+  renderIssues(currentIssueFilter);
 }
 
 function closeIssueModal() {
   document.getElementById('issue-modal-overlay').classList.add('hidden');
+  currentModalIssueId = null;
 }
 
 function closeIssueModalOnBackdrop(e) {
   if (e.target === document.getElementById('issue-modal-overlay')) closeIssueModal();
+}
+
+function piFilterBySeverity(sev) {
+  const tab = document.querySelector(`#pi-filter-bar .filter-tab[onclick*="${sev}"]`);
+  if (tab) filterIssues(tab, sev);
+}
+
+function piFilterByStatus(status) {
+  const tab = document.querySelector(`#pi-filter-bar .filter-tab[onclick*="'${status}'"]`);
+  if (tab) filterIssues(tab, status);
+}
+
+function exportIssuesToExcel() {
+  ensureIssueFields();
+  const now     = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+  const statusColor = { todo:'#f1f5f9', inprogress:'#dbeafe', pending:'#fef3c7', postponed:'#f3e8ff', resolved:'#d1fae5' };
+  const priorityColor = { critical:'#fee2e2', high:'#ffedd5', medium:'#fffbeb' };
+
+  const rows = platformIssues.map(issue => {
+    const pm = PLATFORM_META[issue.platform] || { label: issue.platform };
+    const comments = (issue.comments||[]).map(c => `[${c.author} @ ${c.time}]: ${c.text}`).join(' | ');
+    const timeline = issue.timeline.map(t => `[${t.time} ${t.author}]: ${t.text}`).join(' | ');
+    const sc = statusColor[issue.status]   || '#ffffff';
+    const pc = priorityColor[issue.priority] || '#ffffff';
+    return `
+      <tr>
+        <td style="background:${sc};font-weight:600;color:#1e293b;white-space:nowrap">${escHtml(issueStatusLabel(issue.status))}</td>
+        <td style="background:${pc};font-weight:600;color:#1e293b;white-space:nowrap">${escHtml((issue.priority||'medium').charAt(0).toUpperCase()+(issue.priority||'medium').slice(1))}</td>
+        <td style="font-weight:600">${escHtml(issue.title)}</td>
+        <td>${escHtml(pm.label)}</td>
+        <td>${escHtml(issue.reportedAt)}</td>
+        <td>${escHtml(issue.reportedBy)}</td>
+        <td style="text-align:center">${issue.impact.clients}</td>
+        <td style="text-align:center">${issue.impact.tickets}</td>
+        <td style="text-align:center">${escHtml(issue.impact.downtime)}</td>
+        <td style="max-width:300px">${escHtml(issue.description||'')}</td>
+        <td style="max-width:300px;color:#475569;font-size:12px">${escHtml(comments)}</td>
+        <td style="max-width:300px;color:#475569;font-size:12px">${escHtml(timeline)}</td>
+      </tr>`;
+  }).join('');
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <head><meta charset="UTF-8">
+    <style>
+      body { font-family: Calibri, Arial, sans-serif; font-size: 13px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #cbd5e1; padding: 7px 11px; vertical-align: top; }
+      th { background: #1e3a5f; color: #ffffff; font-weight: 700; white-space: nowrap; }
+      tr:hover td { background: #f8fafc; }
+      .hdr-title { font-size: 20px; font-weight: 800; color: #1e3a5f; margin-bottom: 4px; }
+      .hdr-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+    </style>
+    </head><body>
+    <div class="hdr-title">ForexDesk — Platform Issues Report</div>
+    <div class="hdr-sub">Exported on ${dateStr} &nbsp;|&nbsp; Total issues: ${platformIssues.length}</div>
+    <table>
+      <thead><tr>
+        <th>Status</th><th>Priority</th><th>Title</th><th>Platform</th>
+        <th>Reported At</th><th>Reported By</th>
+        <th>Clients Affected</th><th>Tickets</th><th>Downtime</th>
+        <th>Description</th><th>Comments</th><th>Timeline</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </body></html>`;
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `platform-issues-${now.toISOString().slice(0,10)}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function openNewIssueModal() {
+  document.getElementById('ni-title').value       = '';
+  document.getElementById('ni-platform').value    = '';
+  document.getElementById('ni-priority').value    = '';
+  document.getElementById('ni-status').value      = 'todo';
+  document.getElementById('ni-summary').value     = '';
+  document.getElementById('ni-description').value = '';
+  document.getElementById('ni-reporter').value    = currentUser.name || 'Manager';
+  ['ni-title-err','ni-platform-err','ni-priority-err','ni-summary-err'].forEach(id => hideErr(id));
+  document.getElementById('new-issue-overlay').classList.remove('hidden');
+}
+
+function closeNewIssueModal() {
+  document.getElementById('new-issue-overlay').classList.add('hidden');
+}
+
+function closeNewIssueModalOnBackdrop(e) {
+  if (e.target === document.getElementById('new-issue-overlay')) closeNewIssueModal();
+}
+
+function saveNewIssue() {
+  const title    = document.getElementById('ni-title').value.trim();
+  const platform = document.getElementById('ni-platform').value;
+  const priority = document.getElementById('ni-priority').value;
+  const status   = document.getElementById('ni-status').value || 'todo';
+  const summary  = document.getElementById('ni-summary').value.trim();
+  const desc     = document.getElementById('ni-description').value.trim();
+  let ok = true;
+  ['ni-title-err','ni-platform-err','ni-priority-err','ni-summary-err'].forEach(id => hideErr(id));
+  if (!title)    { showErr('ni-title-err',    'Please enter a title.');     ok = false; }
+  if (!platform) { showErr('ni-platform-err', 'Please select a platform.'); ok = false; }
+  if (!priority) { showErr('ni-priority-err', 'Please select a priority.'); ok = false; }
+  if (!summary)  { showErr('ni-summary-err',  'Please enter a summary.');   ok = false; }
+  if (!ok) return;
+
+  const now     = new Date();
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  const newId   = 'i' + (platformIssues.length + 1 + Date.now() % 1000);
+  const tColor  = priority === 'critical' ? 'red' : priority === 'high' ? 'orange' : 'yellow';
+
+  platformIssues.unshift({
+    id: newId, platform, severity: priority, priority, status,
+    title, summary,
+    description: desc || summary,
+    reportedAt: 'Today, ' + timeStr,
+    reportedBy: currentUser.name || 'Manager',
+    createdAt: Date.now(),
+    impact: { clients: 0, tickets: 0, downtime: 'TBD' },
+    timeline: [{ time: timeStr, author: currentUser.name || 'Manager', color: tColor, text: `Issue reported. Status: ${issueStatusLabel(status)}.` }],
+    comments: []
+  });
+
+  closeNewIssueModal();
+  renderIssues(currentIssueFilter);
 }
 
 // ────────────────────────────────────────────────────────
@@ -2019,6 +2263,118 @@ function applyLanguage(lang, btn) {
     const card = document.getElementById('lang-' + lang);
     if (card) card.classList.add('active');
   }
+}
+
+// ────────────────────────────────────────────────────────
+//  PROFILE PAGE
+// ────────────────────────────────────────────────────────
+const PROFILE_AVATAR_OPTIONS = [
+  { gender:'male',   color:'#1a56db' },
+  { gender:'male',   color:'#8b5cf6' },
+  { gender:'male',   color:'#10b981' },
+  { gender:'male',   color:'#f59e0b' },
+  { gender:'male',   color:'#ef4444' },
+  { gender:'male',   color:'#06b6d4' },
+  { gender:'female', color:'#ec4899' },
+  { gender:'female', color:'#8b5cf6' },
+  { gender:'female', color:'#10b981' },
+  { gender:'female', color:'#f97316' },
+  { gender:'female', color:'#6366f1' },
+  { gender:'female', color:'#0ea5e9' },
+];
+
+function initProfile() {
+  // Populate name & email
+  document.getElementById('profile-name').value  = currentUser.name  || '';
+  document.getElementById('profile-email').value = currentUser.email || '';
+
+  // Shift
+  const shift = currentUser.shift || 'day';
+  document.getElementById('shift-' + shift).checked = true;
+  updateShiftUI(shift);
+
+  // Avatar grid
+  const grid = document.getElementById('profile-avatar-grid');
+  grid.innerHTML = PROFILE_AVATAR_OPTIONS.map((opt, i) => `
+    <div class="profile-avatar-option ${currentUser.avatarIdx === i ? 'selected' : ''}"
+         onclick="selectAvatar(${i})" title="${opt.gender} · ${opt.color}">
+      ${avatarSVG(opt.gender, opt.color)}
+    </div>`).join('');
+
+  // Preview
+  renderProfilePreview();
+}
+
+function renderProfilePreview() {
+  const idx = currentUser.avatarIdx ?? 0;
+  const opt = PROFILE_AVATAR_OPTIONS[idx];
+  const preview = document.getElementById('profile-avatar-preview');
+  preview.innerHTML = avatarSVG(opt.gender, opt.color);
+}
+
+function selectAvatar(idx) {
+  currentUser.avatarIdx = idx;
+  document.querySelectorAll('.profile-avatar-option').forEach((el, i) =>
+    el.classList.toggle('selected', i === idx));
+  renderProfilePreview();
+  // Update sidebar/header avatar to SVG
+  updateHeaderAvatarSVG();
+}
+
+function selectShift(val) {
+  currentUser.shift = val;
+  updateShiftUI(val);
+}
+
+function updateShiftUI(val) {
+  ['day','night'].forEach(s => {
+    document.getElementById('shift-' + s + '-box')
+      .classList.toggle('active', s === val);
+  });
+}
+
+function updateHeaderAvatarSVG() {
+  const idx = currentUser.avatarIdx ?? 0;
+  const opt = PROFILE_AVATAR_OPTIONS[idx];
+  const svg = avatarSVG(opt.gender, opt.color);
+  ['header-avatar','sidebar-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = svg; el.textContent = ''; }
+  });
+}
+
+function saveProfile() {
+  const name  = document.getElementById('profile-name').value.trim();
+  const email = document.getElementById('profile-email').value.trim();
+  hideErr('profile-name-err'); hideErr('profile-email-err');
+  let ok = true;
+  if (!name)               { showErr('profile-name-err',  'Please enter your name.');    ok = false; }
+  if (!email || !email.includes('@')) { showErr('profile-email-err', 'Please enter a valid email.'); ok = false; }
+  if (!ok) return;
+
+  currentUser.name  = name;
+  currentUser.email = email;
+
+  // Update sidebar / header text
+  document.getElementById('header-name').textContent    = name;
+  document.getElementById('sidebar-name').textContent   = name;
+  document.getElementById('greeting-name').textContent  = name.split(' ')[0];
+
+  // If no SVG avatar chosen yet, fall back to initials
+  if (currentUser.avatarIdx == null) {
+    const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('header-avatar').textContent  = initials;
+    document.getElementById('sidebar-avatar').textContent = initials;
+  } else {
+    updateHeaderAvatarSVG();
+  }
+
+  // Brief success feedback
+  const btn = document.querySelector('#page-profile .btn-primary');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Saved';
+  btn.style.background = '#10b981';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
 }
 
 function initSettings() {

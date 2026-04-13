@@ -157,13 +157,6 @@
       <span class="nav-badge yellow" id="nav-tickets-badge">7</span>
     </a>
 
-    <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-      <span data-i18n="nav_performance">Performance</span>
-    </a>
-
     <a class="nav-item" data-page="reports" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"/>
@@ -175,11 +168,11 @@
 
     <div class="sidebar-divider"></div>
 
-    <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
+    <a class="nav-item" data-page="profile" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
       </svg>
-      <span data-i18n="nav_escalations">Escalations</span>
+      <span>Profile</span>
     </a>
 
     <a class="nav-item" data-page="settings" onclick="navClick(this);return false;" href="#">
@@ -554,16 +547,49 @@
             <div class="section-title">Platform Issues</div>
             <div class="section-sub" id="pi-sub">Loading…</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap" id="pi-stat-pills"></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn-outline" style="width:auto;padding:10px 22px;font-size:14px" onclick="exportIssuesToExcel()">↓ Export Excel</button>
+            <button class="btn-primary" style="width:auto;padding:10px 22px;font-size:14px;margin-top:0" onclick="openNewIssueModal()">+ New Issue</button>
+          </div>
         </div>
 
-        <!-- Filter bar -->
+        <!-- Stat cards — by status -->
+        <div class="pi-stat-cards">
+          <div class="pi-stat-card todo" onclick="piFilterByStatus('todo')">
+            <div class="pi-stat-card-emoji">📋</div>
+            <div class="pi-stat-card-val" id="pi-sc-todo">0</div>
+            <div class="pi-stat-card-lbl">To Do</div>
+          </div>
+          <div class="pi-stat-card inprogress" onclick="piFilterByStatus('inprogress')">
+            <div class="pi-stat-card-emoji">🔄</div>
+            <div class="pi-stat-card-val" id="pi-sc-inprogress">0</div>
+            <div class="pi-stat-card-lbl">In Progress</div>
+          </div>
+          <div class="pi-stat-card pending" onclick="piFilterByStatus('pending')">
+            <div class="pi-stat-card-emoji">⏸</div>
+            <div class="pi-stat-card-val" id="pi-sc-pending">0</div>
+            <div class="pi-stat-card-lbl">Pending</div>
+          </div>
+          <div class="pi-stat-card postponed" onclick="piFilterByStatus('postponed')">
+            <div class="pi-stat-card-emoji">📅</div>
+            <div class="pi-stat-card-val" id="pi-sc-postponed">0</div>
+            <div class="pi-stat-card-lbl">Postponed</div>
+          </div>
+          <div class="pi-stat-card resolved" onclick="piFilterByStatus('resolved')">
+            <div class="pi-stat-card-emoji">✅</div>
+            <div class="pi-stat-card-val" id="pi-sc-resolved">0</div>
+            <div class="pi-stat-card-lbl">Resolved</div>
+          </div>
+        </div>
+
+        <!-- Filter bar — by status -->
         <div class="filter-bar" id="pi-filter-bar">
           <button class="filter-tab active" onclick="filterIssues(this,'all')">All <span class="tab-count" id="pi-count-all">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'critical')">🔴 Critical <span class="tab-count" id="pi-count-critical">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'high')">🟠 High <span class="tab-count" id="pi-count-high">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'medium')">🟡 Medium <span class="tab-count" id="pi-count-medium">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'resolved')">🟢 Resolved <span class="tab-count" id="pi-count-resolved">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'todo')">📋 To Do <span class="tab-count" id="pi-count-todo">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'inprogress')">🔄 In Progress <span class="tab-count" id="pi-count-inprogress">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'pending')">⏸ Pending <span class="tab-count" id="pi-count-pending">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'postponed')">📅 Postponed <span class="tab-count" id="pi-count-postponed">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'resolved')">✅ Resolved <span class="tab-count" id="pi-count-resolved">0</span></button>
         </div>
 
         <!-- Issues grid (populated by JS) -->
@@ -765,6 +791,76 @@
         <div id="agent-grid" class="agent-grid"></div>
 
       </div><!-- /page-agents -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: PROFILE
+      ══════════════════════════════════════════ -->
+      <div id="page-profile" class="page-section hidden">
+
+        <div class="section-header">
+          <div>
+            <div class="section-title">My Profile</div>
+            <div class="section-sub">Manage your account information and preferences</div>
+          </div>
+        </div>
+
+        <div class="profile-layout">
+
+          <!-- Avatar picker -->
+          <div class="profile-card">
+            <div class="profile-card-title">Avatar</div>
+            <div class="profile-avatar-preview" id="profile-avatar-preview"></div>
+            <div class="profile-avatar-grid" id="profile-avatar-grid"></div>
+          </div>
+
+          <!-- Info + shift -->
+          <div style="display:flex;flex-direction:column;gap:20px;flex:1">
+
+            <div class="profile-card">
+              <div class="profile-card-title">Personal Information</div>
+              <div class="form-group" style="margin-bottom:16px">
+                <label>Full Name</label>
+                <input id="profile-name" type="text" placeholder="Your full name" />
+                <div class="input-error" id="profile-name-err">Please enter your name.</div>
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label>Email Address</label>
+                <input id="profile-email" type="email" placeholder="you@forexdesk.io" />
+                <div class="input-error" id="profile-email-err">Please enter a valid email.</div>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="profile-card-title">Work Shift</div>
+              <div class="profile-shift-row">
+                <label class="profile-shift-option" id="shift-day-label">
+                  <input type="radio" name="profile-shift" value="day" id="shift-day" onchange="selectShift('day')" />
+                  <div class="profile-shift-box" id="shift-day-box">
+                    <span class="profile-shift-icon">☀️</span>
+                    <span class="profile-shift-name">Day Shift</span>
+                    <span class="profile-shift-time">06:00 – 18:00</span>
+                  </div>
+                </label>
+                <label class="profile-shift-option" id="shift-night-label">
+                  <input type="radio" name="profile-shift" value="night" id="shift-night" onchange="selectShift('night')" />
+                  <div class="profile-shift-box" id="shift-night-box">
+                    <span class="profile-shift-icon">🌙</span>
+                    <span class="profile-shift-name">Night Shift</span>
+                    <span class="profile-shift-time">18:00 – 06:00</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn-primary" style="width:auto;padding:11px 32px;font-size:15px;margin-top:0" onclick="saveProfile()">Save Changes</button>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /page-profile -->
 
 
       <!-- ══════════════════════════════════════════
@@ -1012,13 +1108,33 @@
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="id-platform-meta"></div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="pi-status-badge" id="id-status-badge">Critical</span>
-        <button class="modal-close" onclick="closeIssueModal()">✕</button>
-      </div>
+      <button class="modal-close" onclick="closeIssueModal()">✕</button>
     </div>
 
     <div class="issue-detail-body">
+
+      <!-- Priority & Status bar -->
+      <div class="id-fields-bar">
+        <div class="id-field-group">
+          <span class="id-field-label">Priority</span>
+          <select class="id-field-select priority" id="id-priority-select" onchange="changeIssuePriority(this.value)">
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🟡 Medium</option>
+          </select>
+        </div>
+        <div class="id-field-sep"></div>
+        <div class="id-field-group">
+          <span class="id-field-label">Status</span>
+          <select class="id-field-select status" id="id-status-select" onchange="changeIssueStatus(this.value)">
+            <option value="todo">📋 To Do</option>
+            <option value="inprogress">🔄 In Progress</option>
+            <option value="pending">⏸ Pending</option>
+            <option value="postponed">📅 Postponed</option>
+            <option value="resolved">✅ Resolved</option>
+          </select>
+        </div>
+      </div>
 
       <!-- Description -->
       <div class="id-section">
@@ -1032,7 +1148,7 @@
       <!-- Impact row -->
       <div class="id-impact-row" id="id-impact-row"></div>
 
-      <!-- Timeline / comments -->
+      <!-- Resolution Timeline -->
       <div class="id-section">
         <div class="id-section-title">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -1041,6 +1157,103 @@
         <div class="id-timeline" id="id-timeline"></div>
       </div>
 
+      <!-- Comments -->
+      <div class="id-section">
+        <div class="id-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Comments
+        </div>
+        <div class="id-comments-list" id="id-comments-list"></div>
+        <div class="id-comment-input-wrap">
+          <textarea id="id-comment-input" class="id-comment-textarea" placeholder="Add a comment…" rows="2"></textarea>
+          <button class="id-comment-btn" onclick="addIssueComment()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Post
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     NEW ISSUE MODAL
+═══════════════════════════════════════════════ -->
+<div id="new-issue-overlay" class="modal-overlay hidden" onclick="closeNewIssueModalOnBackdrop(event)">
+  <div class="new-issue-card">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;background:#fee2e2;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px">🔴</div>
+        <div>
+          <h2 class="modal-title">Report New Issue</h2>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:1px">All fields marked * are required</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeNewIssueModal()">✕</button>
+    </div>
+    <div class="new-issue-body">
+      <div class="form-group">
+        <label>Title *</label>
+        <input id="ni-title" type="text" placeholder="Brief description of the issue" />
+        <div class="input-error" id="ni-title-err">Please enter a title.</div>
+      </div>
+      <div class="form-group">
+        <label>Platform *</label>
+        <select id="ni-platform">
+          <option value="">Select platform…</option>
+          <option value="mt4">MT4 Platform</option>
+          <option value="mt5">MT5 Platform</option>
+          <option value="ctrader">cTrader</option>
+          <option value="opotrade">OpoTrade</option>
+          <option value="tradingview">TradingView</option>
+          <option value="webterminal">Web Terminal</option>
+          <option value="socialtrade">SocialTrade</option>
+          <option value="portal">Portal</option>
+          <option value="payment">Payment</option>
+          <option value="mobile">Mobile App</option>
+          <option value="email">Email / SMS</option>
+        </select>
+        <div class="input-error" id="ni-platform-err">Please select a platform.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label>Priority *</label>
+          <select id="ni-priority">
+            <option value="">Select priority…</option>
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🟡 Medium</option>
+          </select>
+          <div class="input-error" id="ni-priority-err">Please select a priority.</div>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="ni-status">
+            <option value="todo">📋 To Do</option>
+            <option value="inprogress">🔄 In Progress</option>
+            <option value="resolved">✅ Resolved</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Summary *</label>
+        <input id="ni-summary" type="text" placeholder="One-line summary of the issue" />
+        <div class="input-error" id="ni-summary-err">Please enter a summary.</div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="ni-description" class="id-comment-textarea" placeholder="Detailed description, affected clients, steps to reproduce…" rows="4" style="width:100%"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Reported By</label>
+        <input id="ni-reporter" type="text" readonly style="background:#f8fafc;color:var(--text-muted)" />
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px">
+        <button class="btn-outline" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="closeNewIssueModal()">Cancel</button>
+        <button class="btn-primary" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="saveNewIssue()">Submit Issue</button>
+      </div>
     </div>
   </div>
 </div>
