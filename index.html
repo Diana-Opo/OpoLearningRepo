@@ -202,12 +202,17 @@
     <!-- HEADER -->
     <header id="header">
       <div class="header-page-title" id="header-title">Dashboard</div>
-      <div class="header-search">
+      <div class="header-search" id="header-search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input type="text" placeholder="Search chats, tickets, agents…" />
+        <input type="text" id="global-search-input" placeholder="Search anything…" autocomplete="off"
+               oninput="handleGlobalSearch(this.value)"
+               onfocus="handleGlobalSearch(this.value)"
+               onkeydown="searchKeyNav(event)" />
+        <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()" style="display:none">✕</button>
       </div>
+      <div class="search-dropdown hidden" id="search-dropdown"></div>
       <div class="header-actions">
         <div class="notif-wrap" id="notif-wrap">
           <div class="icon-btn" id="notif-btn" title="Notifications" onclick="toggleNotifDropdown(event)">
@@ -237,8 +242,8 @@
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
-        <div class="header-avatar" id="header-avatar">JD</div>
-        <div class="header-name" id="header-name">Jane Doe</div>
+        <div class="header-avatar" id="header-avatar" onclick="goToProfile()" style="cursor:pointer" title="My Profile">JD</div>
+        <div class="header-name" id="header-name" onclick="goToProfile()" style="cursor:pointer" title="My Profile">Jane Doe</div>
       </div>
     </header>
 
@@ -801,40 +806,68 @@
         <div class="section-header">
           <div>
             <div class="section-title">My Profile</div>
-            <div class="section-sub">Manage your account information and preferences</div>
+            <div class="section-sub" id="profile-header-sub">Manage your account information and preferences</div>
           </div>
         </div>
 
         <div class="profile-layout">
 
-          <!-- Avatar picker -->
-          <div class="profile-card">
-            <div class="profile-card-title">Avatar</div>
-            <div class="profile-avatar-preview" id="profile-avatar-preview"></div>
-            <div class="profile-avatar-grid" id="profile-avatar-grid"></div>
+          <!-- LEFT: Avatar -->
+          <div class="profile-left-col">
+            <div class="profile-card">
+              <div class="profile-card-title">Profile Picture</div>
+
+              <!-- Big preview -->
+              <div class="profile-avatar-big" id="profile-avatar-preview"></div>
+              <div class="profile-avatar-name" id="profile-avatar-name">—</div>
+              <div class="profile-avatar-email" id="profile-avatar-email">—</div>
+
+              <!-- Actions -->
+              <div class="profile-avatar-actions">
+                <button class="profile-avatar-btn upload" onclick="document.getElementById('profile-upload-input').click()">📁 Upload</button>
+                <button class="profile-avatar-btn change" onclick="toggleAvatarPicker()">✏️ Choose</button>
+                <button class="profile-avatar-btn remove" onclick="removeAvatar()">🗑 Remove</button>
+              </div>
+              <input type="file" id="profile-upload-input" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style="display:none" onchange="handleAvatarUpload(event)" />
+
+              <!-- Picker (hidden by default) -->
+              <div class="profile-avatar-picker" id="profile-avatar-picker" style="display:none">
+                <div class="profile-picker-label">👤 Male</div>
+                <div class="profile-avatar-grid" id="profile-avatar-grid-male"></div>
+                <div class="profile-picker-label" style="margin-top:12px">👤 Female</div>
+                <div class="profile-avatar-grid" id="profile-avatar-grid-female"></div>
+              </div>
+            </div>
           </div>
 
-          <!-- Info + shift -->
-          <div style="display:flex;flex-direction:column;gap:20px;flex:1">
+          <!-- RIGHT: Info, shift, password -->
+          <div class="profile-right-col">
 
+            <!-- Personal info -->
             <div class="profile-card">
               <div class="profile-card-title">Personal Information</div>
-              <div class="form-group" style="margin-bottom:16px">
-                <label>Full Name</label>
-                <input id="profile-name" type="text" placeholder="Your full name" />
-                <div class="input-error" id="profile-name-err">Please enter your name.</div>
+              <div class="profile-fields-row">
+                <div class="form-group" style="flex:1;margin-bottom:0">
+                  <label>Display Name</label>
+                  <input id="profile-name" type="text" placeholder="Your full name" />
+                  <div class="input-error" id="profile-name-err">Please enter your name.</div>
+                </div>
+                <div class="form-group" style="flex:1;margin-bottom:0">
+                  <label>Email Address</label>
+                  <input id="profile-email" type="email" placeholder="you@forexdesk.io" />
+                  <div class="input-error" id="profile-email-err">Please enter a valid email.</div>
+                </div>
               </div>
-              <div class="form-group" style="margin-bottom:0">
-                <label>Email Address</label>
-                <input id="profile-email" type="email" placeholder="you@forexdesk.io" />
-                <div class="input-error" id="profile-email-err">Please enter a valid email.</div>
+              <div style="display:flex;justify-content:flex-end;margin-top:18px">
+                <button class="profile-save-btn" onclick="saveProfileInfo()">Save Info</button>
               </div>
             </div>
 
+            <!-- Work shift -->
             <div class="profile-card">
               <div class="profile-card-title">Work Shift</div>
               <div class="profile-shift-row">
-                <label class="profile-shift-option" id="shift-day-label">
+                <label class="profile-shift-option">
                   <input type="radio" name="profile-shift" value="day" id="shift-day" onchange="selectShift('day')" />
                   <div class="profile-shift-box" id="shift-day-box">
                     <span class="profile-shift-icon">☀️</span>
@@ -842,7 +875,7 @@
                     <span class="profile-shift-time">06:00 – 18:00</span>
                   </div>
                 </label>
-                <label class="profile-shift-option" id="shift-night-label">
+                <label class="profile-shift-option">
                   <input type="radio" name="profile-shift" value="night" id="shift-night" onchange="selectShift('night')" />
                   <div class="profile-shift-box" id="shift-night-box">
                     <span class="profile-shift-icon">🌙</span>
@@ -851,10 +884,49 @@
                   </div>
                 </label>
               </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:18px">
+                <button class="profile-save-btn" onclick="saveProfileShift()">Save Shift</button>
+              </div>
             </div>
 
-            <div style="display:flex;justify-content:flex-end">
-              <button class="btn-primary" style="width:auto;padding:11px 32px;font-size:15px;margin-top:0" onclick="saveProfile()">Save Changes</button>
+            <!-- Password -->
+            <div class="profile-card">
+              <div class="profile-card-title">Password &amp; Security</div>
+              <div class="profile-fields-row">
+                <div class="form-group" style="flex:1;margin-bottom:0">
+                  <label>New Password</label>
+                  <div class="pass-input-wrap">
+                    <input id="profile-new-pass" type="password" placeholder="e.g. MyPass@123" oninput="updatePassStrength(this.value)" />
+                    <button type="button" class="pass-toggle-btn" onclick="togglePassVisibility('profile-new-pass', this)" tabindex="-1">
+                      <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
+                  <div class="input-error" id="profile-pass-err"></div>
+                  <div class="pass-hint">
+                    <span class="pass-hint-icon">ℹ️</span>
+                    Min. 8 characters with at least one letter, one number, and one special character (e.g. <code>@  #  $  !  %</code>)
+                  </div>
+                  <div class="pass-strength-bar" id="pass-strength-bar">
+                    <div class="pass-strength-fill" id="pass-strength-fill"></div>
+                  </div>
+                  <div class="pass-strength-label" id="pass-strength-label"></div>
+                </div>
+                <div class="form-group" style="flex:1;margin-bottom:0">
+                  <label>Confirm Password</label>
+                  <div class="pass-input-wrap">
+                    <input id="profile-confirm-pass" type="password" placeholder="Repeat new password" />
+                    <button type="button" class="pass-toggle-btn" onclick="togglePassVisibility('profile-confirm-pass', this)" tabindex="-1">
+                      <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
+                  <div class="input-error" id="profile-confirm-err">Passwords do not match.</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;flex-wrap:wrap;gap:10px">
+                <button class="profile-reset-btn" onclick="resetPassword()">📧 Send Reset Link</button>
+                <button class="profile-save-btn" onclick="savePassword()">Set Password</button>
+              </div>
+              <div class="profile-msg" id="profile-pass-msg" style="display:none"></div>
             </div>
 
           </div>
@@ -1031,7 +1103,7 @@
 <!-- ═══════════════════════════════════════════════
      EDIT / ADD AGENT MODAL
 ═══════════════════════════════════════════════ -->
-<div id="modal-overlay" class="modal-overlay hidden" onclick="closeModalOnBackdrop(event)">
+<div id="modal-overlay" class="modal-overlay hidden">
   <div class="modal-card" id="modal-card">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-title">Edit Agent</h2>
@@ -1097,7 +1169,7 @@
 <!-- ═══════════════════════════════════════════════
      ISSUE DETAILS MODAL
 ═══════════════════════════════════════════════ -->
-<div id="issue-modal-overlay" class="modal-overlay hidden" onclick="closeIssueModalOnBackdrop(event)">
+<div id="issue-modal-overlay" class="modal-overlay hidden">
   <div class="issue-detail-card">
 
     <div class="modal-header">
@@ -1136,6 +1208,22 @@
         </div>
       </div>
 
+      <!-- Comments -->
+      <div class="id-section">
+        <div class="id-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Comments
+        </div>
+        <div class="id-comment-input-wrap">
+          <textarea id="id-comment-input" class="id-comment-textarea" placeholder="Add a comment…" rows="2"></textarea>
+          <button class="id-comment-btn" onclick="addIssueComment()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Post
+          </button>
+        </div>
+        <div class="id-comments-list" id="id-comments-list"></div>
+      </div>
+
       <!-- Description -->
       <div class="id-section">
         <div class="id-section-title">
@@ -1157,22 +1245,10 @@
         <div class="id-timeline" id="id-timeline"></div>
       </div>
 
-      <!-- Comments -->
-      <div class="id-section">
-        <div class="id-section-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Comments
-        </div>
-        <div class="id-comments-list" id="id-comments-list"></div>
-        <div class="id-comment-input-wrap">
-          <textarea id="id-comment-input" class="id-comment-textarea" placeholder="Add a comment…" rows="2"></textarea>
-          <button class="id-comment-btn" onclick="addIssueComment()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Post
-          </button>
-        </div>
-      </div>
+    </div>
 
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeIssueModal()">Close</button>
     </div>
   </div>
 </div>
@@ -1181,7 +1257,7 @@
 <!-- ═══════════════════════════════════════════════
      NEW ISSUE MODAL
 ═══════════════════════════════════════════════ -->
-<div id="new-issue-overlay" class="modal-overlay hidden" onclick="closeNewIssueModalOnBackdrop(event)">
+<div id="new-issue-overlay" class="modal-overlay hidden">
   <div class="new-issue-card">
     <div class="modal-header">
       <div style="display:flex;align-items:center;gap:10px">
@@ -1262,7 +1338,7 @@
 <!-- ═══════════════════════════════════════════════
      SUPERVISE PANEL
 ═══════════════════════════════════════════════ -->
-<div id="supervise-overlay" class="modal-overlay hidden" onclick="closeSuperviseOnBackdrop(event)">
+<div id="supervise-overlay" class="modal-overlay hidden">
   <div class="supervise-card">
     <div class="supervise-header">
       <div class="supervise-header-info">
@@ -1295,6 +1371,9 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeSupervisePanel()">Close</button>
     </div>
   </div>
 </div>

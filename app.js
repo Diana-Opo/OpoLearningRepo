@@ -320,9 +320,6 @@ function closeEditModal() {
   document.getElementById('modal-overlay').classList.add('hidden');
 }
 
-function closeModalOnBackdrop(e) {
-  if (e.target === document.getElementById('modal-overlay')) closeEditModal();
-}
 
 function saveAgent() {
   const name   = document.getElementById('modal-name').value.trim();
@@ -1038,9 +1035,6 @@ function closeSupervisePanel() {
   supervisingChatId = null;
 }
 
-function closeSuperviseOnBackdrop(e) {
-  if (e.target === document.getElementById('supervise-overlay')) closeSupervisePanel();
-}
 
 // ────────────────────────────────────────────────────────
 //  PLATFORM ISSUES DATA
@@ -1431,9 +1425,6 @@ function closeIssueModal() {
   currentModalIssueId = null;
 }
 
-function closeIssueModalOnBackdrop(e) {
-  if (e.target === document.getElementById('issue-modal-overlay')) closeIssueModal();
-}
 
 function piFilterBySeverity(sev) {
   const tab = document.querySelector(`#pi-filter-bar .filter-tab[onclick*="${sev}"]`);
@@ -1527,9 +1518,6 @@ function closeNewIssueModal() {
   document.getElementById('new-issue-overlay').classList.add('hidden');
 }
 
-function closeNewIssueModalOnBackdrop(e) {
-  if (e.target === document.getElementById('new-issue-overlay')) closeNewIssueModal();
-}
 
 function saveNewIssue() {
   const title    = document.getElementById('ni-title').value.trim();
@@ -2268,57 +2256,109 @@ function applyLanguage(lang, btn) {
 // ────────────────────────────────────────────────────────
 //  PROFILE PAGE
 // ────────────────────────────────────────────────────────
-const PROFILE_AVATAR_OPTIONS = [
-  { gender:'male',   color:'#1a56db' },
-  { gender:'male',   color:'#8b5cf6' },
-  { gender:'male',   color:'#10b981' },
-  { gender:'male',   color:'#f59e0b' },
-  { gender:'male',   color:'#ef4444' },
-  { gender:'male',   color:'#06b6d4' },
-  { gender:'female', color:'#ec4899' },
-  { gender:'female', color:'#8b5cf6' },
-  { gender:'female', color:'#10b981' },
-  { gender:'female', color:'#f97316' },
-  { gender:'female', color:'#6366f1' },
-  { gender:'female', color:'#0ea5e9' },
-];
+const PROFILE_MALE_COLORS   = ['#1a56db','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'];
+const PROFILE_FEMALE_COLORS = ['#ec4899','#8b5cf6','#10b981','#f97316','#6366f1','#0ea5e9'];
+
+function goToProfile() {
+  const navEl = document.querySelector('.nav-item[data-page="profile"]');
+  if (navEl) navClick(navEl);
+}
 
 function initProfile() {
-  // Populate name & email
   document.getElementById('profile-name').value  = currentUser.name  || '';
   document.getElementById('profile-email').value = currentUser.email || '';
 
-  // Shift
   const shift = currentUser.shift || 'day';
   document.getElementById('shift-' + shift).checked = true;
   updateShiftUI(shift);
 
-  // Avatar grid
-  const grid = document.getElementById('profile-avatar-grid');
-  grid.innerHTML = PROFILE_AVATAR_OPTIONS.map((opt, i) => `
-    <div class="profile-avatar-option ${currentUser.avatarIdx === i ? 'selected' : ''}"
-         onclick="selectAvatar(${i})" title="${opt.gender} · ${opt.color}">
-      ${avatarSVG(opt.gender, opt.color)}
-    </div>`).join('');
+  // Build avatar grids
+  document.getElementById('profile-avatar-grid-male').innerHTML =
+    PROFILE_MALE_COLORS.map((c, i) => avatarOptionHTML('male', c, i)).join('');
+  document.getElementById('profile-avatar-grid-female').innerHTML =
+    PROFILE_FEMALE_COLORS.map((c, i) => avatarOptionHTML('female', c, i + PROFILE_MALE_COLORS.length)).join('');
 
-  // Preview
   renderProfilePreview();
+  syncAvatarSelection();
+}
+
+function avatarOptionHTML(gender, color, idx) {
+  const sel = currentUser.avatarIdx === idx ? 'selected' : '';
+  return `<div class="profile-avatar-option ${sel}" onclick="selectAvatar(${idx},'${gender}','${color}')">${avatarSVG(gender, color)}</div>`;
 }
 
 function renderProfilePreview() {
-  const idx = currentUser.avatarIdx ?? 0;
-  const opt = PROFILE_AVATAR_OPTIONS[idx];
   const preview = document.getElementById('profile-avatar-preview');
-  preview.innerHTML = avatarSVG(opt.gender, opt.color);
+  const nameEl  = document.getElementById('profile-avatar-name');
+  const emailEl = document.getElementById('profile-avatar-email');
+  if (currentUser.avatarCustom) {
+    preview.innerHTML = `<img src="${currentUser.avatarCustom}" style="width:100%;height:100%;object-fit:cover;display:block" />`;
+    preview.classList.remove('initials');
+  } else if (currentUser.avatarIdx != null) {
+    const { gender, color } = resolveAvatar(currentUser.avatarIdx);
+    preview.innerHTML = avatarSVG(gender, color);
+    preview.classList.remove('initials');
+  } else {
+    const initials = (currentUser.name || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    preview.innerHTML = `<span class="profile-initials-text">${initials}</span>`;
+    preview.classList.add('initials');
+  }
+  nameEl.textContent  = currentUser.name  || '—';
+  emailEl.textContent = currentUser.email || '—';
 }
 
-function selectAvatar(idx) {
-  currentUser.avatarIdx = idx;
+function handleAvatarUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    currentUser.avatarCustom = e.target.result;
+    currentUser.avatarIdx    = null; // clear preset selection
+    syncAvatarSelection();
+    renderProfilePreview();
+    updateHeaderAvatarImage();
+    document.getElementById('profile-avatar-picker').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  // reset so same file can be re-selected
+  event.target.value = '';
+}
+
+function resolveAvatar(idx) {
+  if (idx < PROFILE_MALE_COLORS.length)
+    return { gender:'male',   color: PROFILE_MALE_COLORS[idx] };
+  return { gender:'female', color: PROFILE_FEMALE_COLORS[idx - PROFILE_MALE_COLORS.length] };
+}
+
+function syncAvatarSelection() {
   document.querySelectorAll('.profile-avatar-option').forEach((el, i) =>
-    el.classList.toggle('selected', i === idx));
+    el.classList.toggle('selected', i === currentUser.avatarIdx));
+}
+
+function toggleAvatarPicker() {
+  const picker = document.getElementById('profile-avatar-picker');
+  picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+function selectAvatar(idx, gender, color) {
+  currentUser.avatarIdx    = idx;
+  currentUser.avatarCustom = null;
+  syncAvatarSelection();
   renderProfilePreview();
-  // Update sidebar/header avatar to SVG
   updateHeaderAvatarSVG();
+  document.getElementById('profile-avatar-picker').style.display = 'none';
+}
+
+function removeAvatar() {
+  currentUser.avatarIdx    = null;
+  currentUser.avatarCustom = null;
+  syncAvatarSelection();
+  renderProfilePreview();
+  const initials = (currentUser.name || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  ['header-avatar','sidebar-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = initials; el.innerHTML = initials; }
+  });
 }
 
 function selectShift(val) {
@@ -2327,54 +2367,141 @@ function selectShift(val) {
 }
 
 function updateShiftUI(val) {
-  ['day','night'].forEach(s => {
-    document.getElementById('shift-' + s + '-box')
-      .classList.toggle('active', s === val);
-  });
+  ['day','night'].forEach(s =>
+    document.getElementById('shift-' + s + '-box').classList.toggle('active', s === val));
 }
 
 function updateHeaderAvatarSVG() {
-  const idx = currentUser.avatarIdx ?? 0;
-  const opt = PROFILE_AVATAR_OPTIONS[idx];
-  const svg = avatarSVG(opt.gender, opt.color);
+  if (currentUser.avatarIdx == null) return;
+  const { gender, color } = resolveAvatar(currentUser.avatarIdx);
+  const svg = avatarSVG(gender, color);
   ['header-avatar','sidebar-avatar'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.innerHTML = svg; el.textContent = ''; }
+    if (el) el.innerHTML = svg;
   });
 }
 
-function saveProfile() {
+function updateHeaderAvatarImage() {
+  if (!currentUser.avatarCustom) return;
+  ['header-avatar','sidebar-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<img src="${currentUser.avatarCustom}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" />`;
+  });
+}
+
+function profileSaveFeedback(btnEl, msg) {
+  const orig = btnEl.textContent;
+  btnEl.textContent = '✓ ' + msg;
+  btnEl.style.background = '#10b981';
+  btnEl.style.borderColor = '#10b981';
+  btnEl.style.color = '#fff';
+  setTimeout(() => {
+    btnEl.textContent = orig;
+    btnEl.style.background = '';
+    btnEl.style.borderColor = '';
+    btnEl.style.color = '';
+  }, 2200);
+}
+
+function saveProfileInfo() {
   const name  = document.getElementById('profile-name').value.trim();
   const email = document.getElementById('profile-email').value.trim();
   hideErr('profile-name-err'); hideErr('profile-email-err');
   let ok = true;
-  if (!name)               { showErr('profile-name-err',  'Please enter your name.');    ok = false; }
-  if (!email || !email.includes('@')) { showErr('profile-email-err', 'Please enter a valid email.'); ok = false; }
+  if (name.length < 3)                         { showErr('profile-name-err',  'Display name must be at least 3 characters.'); ok = false; }
+  if (!email || !email.includes('@') || !email.slice(email.indexOf('@')).includes('.'))
+                                               { showErr('profile-email-err', 'Enter a valid email (must include @ and .).'); ok = false; }
   if (!ok) return;
 
   currentUser.name  = name;
   currentUser.email = email;
+  document.getElementById('header-name').textContent   = name;
+  document.getElementById('sidebar-name').textContent  = name;
+  document.getElementById('greeting-name').textContent = name.split(' ')[0];
+  renderProfilePreview();
+  if (currentUser.avatarCustom)       updateHeaderAvatarImage();
+  else if (currentUser.avatarIdx != null) updateHeaderAvatarSVG();
 
-  // Update sidebar / header text
-  document.getElementById('header-name').textContent    = name;
-  document.getElementById('sidebar-name').textContent   = name;
-  document.getElementById('greeting-name').textContent  = name.split(' ')[0];
+  profileSaveFeedback(document.querySelector('#page-profile .profile-card:nth-child(1) .profile-save-btn'), 'Saved');
+}
 
-  // If no SVG avatar chosen yet, fall back to initials
-  if (currentUser.avatarIdx == null) {
-    const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-    document.getElementById('header-avatar').textContent  = initials;
-    document.getElementById('sidebar-avatar').textContent = initials;
-  } else {
-    updateHeaderAvatarSVG();
+function saveProfileShift() {
+  const val = document.querySelector('input[name="profile-shift"]:checked')?.value || 'day';
+  currentUser.shift = val;
+  profileSaveFeedback(document.querySelector('#page-profile .profile-card:nth-child(2) .profile-save-btn'), 'Saved');
+}
+
+function passwordValid(p) {
+  return p.length >= 8 &&
+    /[a-zA-Z]/.test(p) &&
+    /[0-9]/.test(p) &&
+    /[@#$!%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(p);
+}
+
+function togglePassVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  // swap icon: eye vs eye-off
+  btn.innerHTML = isHidden
+    ? `<svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+    : `<svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
+
+function updatePassStrength(p) {
+  const fill  = document.getElementById('pass-strength-fill');
+  const label = document.getElementById('pass-strength-label');
+  if (!fill || !label) return;
+  let score = 0;
+  if (p.length >= 8)                                                         score++;
+  if (/[a-zA-Z]/.test(p))                                                   score++;
+  if (/[0-9]/.test(p))                                                       score++;
+  if (/[@#$!%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(p))                    score++;
+  if (p.length >= 12)                                                        score++;
+  const levels = [
+    { pct:0,   cls:'',       lbl:'' },
+    { pct:20,  cls:'weak',   lbl:'Weak' },
+    { pct:40,  cls:'weak',   lbl:'Weak' },
+    { pct:60,  cls:'fair',   lbl:'Fair' },
+    { pct:80,  cls:'good',   lbl:'Good' },
+    { pct:100, cls:'strong', lbl:'Strong' },
+  ];
+  const lvl = levels[score];
+  fill.style.width    = lvl.pct + '%';
+  fill.className      = 'pass-strength-fill ' + lvl.cls;
+  label.textContent   = lvl.lbl;
+  label.className     = 'pass-strength-label ' + lvl.cls;
+}
+
+function savePassword() {
+  const np = document.getElementById('profile-new-pass').value;
+  const cp = document.getElementById('profile-confirm-pass').value;
+  hideErr('profile-pass-err'); hideErr('profile-confirm-err');
+  const msg = document.getElementById('profile-pass-msg');
+  msg.style.display = 'none';
+  let ok = true;
+  if (!passwordValid(np)) {
+    showErr('profile-pass-err', 'Min. 8 characters with letter, number, and special character (e.g. @#$!).');
+    ok = false;
   }
+  if (np !== cp) { showErr('profile-confirm-err', 'Passwords do not match.'); ok = false; }
+  if (!ok) return;
+  currentUser.password = np;
+  document.getElementById('profile-new-pass').value    = '';
+  document.getElementById('profile-confirm-pass').value = '';
+  msg.textContent    = '✓ Password updated successfully.';
+  msg.className      = 'profile-msg success';
+  msg.style.display  = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
 
-  // Brief success feedback
-  const btn = document.querySelector('#page-profile .btn-primary');
-  const orig = btn.textContent;
-  btn.textContent = '✓ Saved';
-  btn.style.background = '#10b981';
-  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+function resetPassword() {
+  const email = currentUser.email || document.getElementById('profile-email').value.trim();
+  const msg   = document.getElementById('profile-pass-msg');
+  msg.textContent   = `📧 Reset link sent to ${email || 'your email'}.`;
+  msg.className     = 'profile-msg info';
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 4000);
 }
 
 function initSettings() {
@@ -2438,6 +2565,221 @@ function render7DayChart() {
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${bars}${vals}${texts}</svg>`;
 }
+
+// ────────────────────────────────────────────────────────
+//  GLOBAL SEARCH
+// ────────────────────────────────────────────────────────
+const SEARCH_INDEX = [
+  // Dashboard
+  { icon:'📊', title:'Dashboard',              crumb:'Dashboard',                           page:'dashboard' },
+  { icon:'📈', title:'Performance Overview',   crumb:'Dashboard → Performance Overview',    page:'dashboard' },
+  { icon:'💬', title:'Total Chats',            crumb:'Dashboard → Performance Overview',    page:'dashboard' },
+  { icon:'😊', title:'Satisfaction Rate',      crumb:'Dashboard → Performance Overview',    page:'dashboard' },
+  { icon:'⏱', title:'Response Time',          crumb:'Dashboard → Performance Overview',    page:'dashboard' },
+  { icon:'⚡', title:'Efficiency',             crumb:'Dashboard → Performance Overview',    page:'dashboard' },
+  { icon:'🟢', title:'Customers Online',       crumb:'Dashboard → Real-time Overview',      page:'dashboard' },
+  { icon:'💬', title:'Ongoing Chats',          crumb:'Dashboard → Real-time Overview',      page:'dashboard' },
+  { icon:'👥', title:'Logged-in Agents',       crumb:'Dashboard → Real-time Overview',      page:'dashboard' },
+  { icon:'📅', title:'Last 7-day Chart',       crumb:'Dashboard → Last 7 Days',             page:'dashboard' },
+  { icon:'👤', title:'Agent Status Board',     crumb:'Dashboard → Agent Status Board',      page:'dashboard' },
+  { icon:'🐛', title:'Platform Issues Tracker',crumb:'Dashboard → Platform Issues Tracker', page:'dashboard' },
+  { icon:'📥', title:'Export Report',          crumb:'Dashboard → Export Report',           page:'dashboard' },
+  // Live Chats
+  { icon:'💬', title:'Live Chats',             crumb:'Live Chats',                          page:'livechats' },
+  { icon:'💬', title:'Active Chats',           crumb:'Live Chats → Chatting',               page:'livechats' },
+  { icon:'⏳', title:'Chat Queue',             crumb:'Live Chats → Queue',                  page:'livechats' },
+  // Agent Management
+  { icon:'👥', title:'Agent Management',       crumb:'Agent Management',                    page:'agents' },
+  { icon:'➕', title:'Add New Agent',          crumb:'Agent Management → Add Agent',        page:'agents' },
+  { icon:'🔍', title:'Agent Status',           crumb:'Agent Management → Agent Status',     page:'agents' },
+  { icon:'☀️', title:'Day Shift Agents',       crumb:'Agent Management → Shifts',           page:'agents' },
+  { icon:'🌙', title:'Night Shift Agents',     crumb:'Agent Management → Shifts',           page:'agents' },
+  // Platform Issues
+  { icon:'🐛', title:'Platform Issues',        crumb:'Platform Issues',                     page:'issues' },
+  { icon:'📋', title:'To Do Issues',           crumb:'Platform Issues → To Do',             page:'issues', action:()=>{ showPage('issues'); setTimeout(()=>piFilterByStatus('todo'),100); } },
+  { icon:'🔄', title:'In Progress Issues',     crumb:'Platform Issues → In Progress',       page:'issues', action:()=>{ showPage('issues'); setTimeout(()=>piFilterByStatus('inprogress'),100); } },
+  { icon:'⏸', title:'Pending Issues',         crumb:'Platform Issues → Pending',           page:'issues', action:()=>{ showPage('issues'); setTimeout(()=>piFilterByStatus('pending'),100); } },
+  { icon:'📅', title:'Postponed Issues',       crumb:'Platform Issues → Postponed',         page:'issues', action:()=>{ showPage('issues'); setTimeout(()=>piFilterByStatus('postponed'),100); } },
+  { icon:'✅', title:'Resolved Issues',        crumb:'Platform Issues → Resolved',          page:'issues', action:()=>{ showPage('issues'); setTimeout(()=>piFilterByStatus('resolved'),100); } },
+  { icon:'➕', title:'New Issue',             crumb:'Platform Issues → New Issue',          page:'issues', action:()=>{ showPage('issues'); setTimeout(openNewIssueModal,100); } },
+  { icon:'📤', title:'Export Issues to Excel', crumb:'Platform Issues → Export Excel',      page:'issues' },
+  // Tickets
+  { icon:'🎫', title:'Tickets',               crumb:'Tickets',                              page:'tickets' },
+  // Reports
+  { icon:'📊', title:'Reports',               crumb:'Reports',                              page:'reports' },
+  // Profile
+  { icon:'👤', title:'My Profile',            crumb:'Profile',                              page:'profile' },
+  { icon:'✏️', title:'Display Name',          crumb:'Profile → Personal Information',       page:'profile' },
+  { icon:'📧', title:'Email Address',         crumb:'Profile → Personal Information',       page:'profile' },
+  { icon:'☀️', title:'Day Shift',             crumb:'Profile → Work Shift',                 page:'profile' },
+  { icon:'🌙', title:'Night Shift',           crumb:'Profile → Work Shift',                 page:'profile' },
+  { icon:'🔒', title:'Password & Security',   crumb:'Profile → Password',                  page:'profile' },
+  { icon:'🖼', title:'Upload Avatar',         crumb:'Profile → Profile Picture',            page:'profile' },
+  { icon:'🖼', title:'Profile Picture',       crumb:'Profile → Avatar',                    page:'profile' },
+  // Settings
+  { icon:'⚙️', title:'Settings',             crumb:'Settings',                             page:'settings' },
+  { icon:'🌐', title:'Language',              crumb:'Settings → Language',                  page:'settings' },
+  { icon:'🎨', title:'Theme',                 crumb:'Settings → Theme',                     page:'settings' },
+  // Notifications
+  { icon:'🔔', title:'Notifications',         crumb:'Notifications',                        page:'notifications' },
+];
+
+let searchFocusedIdx = -1;
+
+function buildDynamicSearchEntries(q) {
+  const results = [];
+  const lq = q.toLowerCase();
+  // Agents
+  agents.forEach(a => {
+    const text = `${a.name} ${a.email} ${a.shift} ${a.status}`;
+    if (text.toLowerCase().includes(lq)) {
+      results.push({ icon:'👤', title: a.name, crumb:`Agent Management → ${a.email}`, page:'agents' });
+    }
+  });
+  // Platform issues
+  ensureIssueFields();
+  platformIssues.forEach(issue => {
+    const pm = PLATFORM_META[issue.platform] || { label: issue.platform };
+    const text = `${issue.title} ${issue.summary || ''} ${pm.label} ${issue.reportedBy || ''}`;
+    if (text.toLowerCase().includes(lq)) {
+      const iid = issue.id;
+      results.push({ icon:'🐛', title: issue.title, crumb:`Platform Issues → ${pm.label}`, page:'issues',
+        action: () => { showPage('issues'); setTimeout(() => openIssueModal(iid), 150); } });
+    }
+  });
+  // Tickets
+  if (typeof tickets !== 'undefined') {
+    tickets.forEach(t => {
+      const text = `${t.subject} ${t.client?.name || ''} ${t.status}`;
+      if (text.toLowerCase().includes(lq)) {
+        results.push({ icon:'🎫', title: t.subject, crumb:`Tickets → ${t.client?.name || ''}`, page:'tickets' });
+      }
+    });
+  }
+  return results;
+}
+
+function highlight(text, q) {
+  if (!q) return escHtml(text);
+  const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+  return escHtml(text).replace(re, '<mark>$1</mark>');
+}
+
+function handleGlobalSearch(q) {
+  const dropdown = document.getElementById('search-dropdown');
+  const clearBtn = document.getElementById('search-clear-btn');
+  clearBtn.style.display = q ? 'block' : 'none';
+  searchFocusedIdx = -1;
+
+  if (!q || q.trim().length < 1) {
+    dropdown.classList.add('hidden');
+    return;
+  }
+  const lq = q.trim().toLowerCase();
+
+  // Static index matches
+  const staticMatches = SEARCH_INDEX.filter(e =>
+    e.title.toLowerCase().includes(lq) || (e.crumb || '').toLowerCase().includes(lq));
+
+  // Dynamic matches
+  const dynamicMatches = buildDynamicSearchEntries(lq);
+
+  const all = [...staticMatches, ...dynamicMatches];
+
+  if (all.length === 0) {
+    dropdown.innerHTML = `<div class="search-no-results">No results for "<strong>${escHtml(q)}</strong>"</div>`;
+    dropdown.classList.remove('hidden');
+    return;
+  }
+
+  // Group by page
+  const groups = {};
+  all.forEach(r => {
+    if (!groups[r.page]) groups[r.page] = [];
+    groups[r.page].push(r);
+  });
+
+  const pageLabels = { dashboard:'Dashboard', agents:'Agent Management', livechats:'Live Chats',
+    issues:'Platform Issues', tickets:'Tickets', reports:'Reports',
+    settings:'Settings', profile:'Profile', notifications:'Notifications' };
+
+  let html = '';
+  let itemIdx = 0;
+  Object.entries(groups).forEach(([page, items]) => {
+    html += `<div class="search-section-label">${pageLabels[page] || page}</div>`;
+    items.forEach(item => {
+      html += `<div class="search-result-item" data-idx="${itemIdx}" onclick="searchNavigate(${itemIdx})">
+        <div class="search-result-icon">${item.icon}</div>
+        <div class="search-result-body">
+          <div class="search-result-title">${highlight(item.title, q.trim())}</div>
+          <div class="search-result-crumb">${escHtml(item.crumb)}</div>
+        </div>
+      </div>`;
+      itemIdx++;
+    });
+  });
+
+  // Store flattened for keyboard nav
+  window._searchResults = all;
+  dropdown.innerHTML = html;
+  dropdown.classList.remove('hidden');
+}
+
+function searchNavigate(idx) {
+  const results = window._searchResults || [];
+  const item = results[idx];
+  if (!item) return;
+  closeSearch();
+  if (item.action) {
+    item.action();
+  } else {
+    showPage(item.page);
+    const navEl = document.querySelector(`.nav-item[data-page="${item.page}"]`);
+    if (navEl) navClick(navEl);
+  }
+}
+
+function searchKeyNav(e) {
+  const dropdown = document.getElementById('search-dropdown');
+  if (dropdown.classList.contains('hidden')) return;
+  const items = dropdown.querySelectorAll('.search-result-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    searchFocusedIdx = Math.min(searchFocusedIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    searchFocusedIdx = Math.max(searchFocusedIdx - 1, 0);
+  } else if (e.key === 'Enter') {
+    if (searchFocusedIdx >= 0) { e.preventDefault(); searchNavigate(searchFocusedIdx); return; }
+  } else if (e.key === 'Escape') {
+    closeSearch(); return;
+  } else return;
+  items.forEach((el, i) => el.classList.toggle('focused', i === searchFocusedIdx));
+  items[searchFocusedIdx]?.scrollIntoView({ block:'nearest' });
+}
+
+function clearSearch() {
+  const inp = document.getElementById('global-search-input');
+  inp.value = '';
+  closeSearch();
+  inp.focus();
+}
+
+function closeSearch() {
+  document.getElementById('search-dropdown').classList.add('hidden');
+  document.getElementById('search-clear-btn').style.display = 'none';
+  searchFocusedIdx = -1;
+}
+
+// Close on outside click
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('header-search-wrap');
+  const drop = document.getElementById('search-dropdown');
+  if (wrap && drop && !wrap.contains(e.target) && !drop.contains(e.target)) {
+    closeSearch();
+  }
+});
 
 // ────────────────────────────────────────────────────────
 //  EXPORT REPORT
