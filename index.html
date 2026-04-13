@@ -109,21 +109,21 @@
       </div>
     </div>
 
-    <div class="sidebar-section-label">Overview</div>
+    <div class="sidebar-section-label" data-i18n="nav_overview">Overview</div>
 
     <a class="nav-item active" data-page="dashboard" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
         <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
       </svg>
-      <span>Dashboard</span>
+      <span data-i18n="nav_dashboard">Dashboard</span>
     </a>
 
     <a class="nav-item" data-page="livechats" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
-      <span>Live Chats</span>
+      <span data-i18n="nav_livechats">Live Chats</span>
       <span class="nav-badge" id="nav-livechats-badge">14</span>
     </a>
 
@@ -133,44 +133,44 @@
         <circle cx="9" cy="7" r="4"/>
         <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>
-      <span>Agent Management</span>
+      <span data-i18n="nav_agents">Agent Management</span>
     </a>
 
-    <div class="sidebar-section-label">Operations</div>
+    <div class="sidebar-section-label" data-i18n="nav_operations">Operations</div>
 
-    <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
+    <a class="nav-item" data-page="issues" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/>
         <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
-      <span>Platform Issues</span>
-      <span class="nav-badge red">3</span>
+      <span data-i18n="nav_issues">Platform Issues</span>
+      <span class="nav-badge red" id="nav-issues-badge">3</span>
     </a>
 
-    <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
+    <a class="nav-item" data-page="tickets" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
         <polyline points="14 2 14 8 20 8"/>
         <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
       </svg>
-      <span>Tickets</span>
-      <span class="nav-badge yellow">7</span>
+      <span data-i18n="nav_tickets">Tickets</span>
+      <span class="nav-badge yellow" id="nav-tickets-badge">7</span>
     </a>
 
     <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
-      <span>Performance</span>
+      <span data-i18n="nav_performance">Performance</span>
     </a>
 
-    <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
+    <a class="nav-item" data-page="reports" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="20" x2="18" y2="10"/>
         <line x1="12" y1="20" x2="12" y2="4"/>
         <line x1="6"  y1="20" x2="6"  y2="14"/>
       </svg>
-      <span>Reports</span>
+      <span data-i18n="nav_reports">Reports</span>
     </a>
 
     <div class="sidebar-divider"></div>
@@ -179,22 +179,22 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
       </svg>
-      <span>Escalations</span>
+      <span data-i18n="nav_escalations">Escalations</span>
     </a>
 
-    <a class="nav-item" data-page="" onclick="navClick(this);return false;" href="#">
+    <a class="nav-item" data-page="settings" onclick="navClick(this);return false;" href="#">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
       </svg>
-      <span>Settings</span>
+      <span data-i18n="nav_settings">Settings</span>
     </a>
 
     <div class="sidebar-user" onclick="handleLogout()">
       <div class="avatar" id="sidebar-avatar">JD</div>
       <div class="user-info">
         <div class="name" id="sidebar-name">Jane Doe</div>
-        <div class="role">Support Manager</div>
+        <div class="role" data-i18n="role_label">Support Manager</div>
       </div>
       <svg class="logout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -216,12 +216,26 @@
         <input type="text" placeholder="Search chats, tickets, agents…" />
       </div>
       <div class="header-actions">
-        <div class="icon-btn" title="Notifications">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span class="notif-dot"></span>
+        <div class="notif-wrap" id="notif-wrap">
+          <div class="icon-btn" id="notif-btn" title="Notifications" onclick="toggleNotifDropdown(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="notif-dot" id="notif-dot"></span>
+          </div>
+          <!-- Notification dropdown -->
+          <div class="notif-dropdown hidden" id="notif-dropdown">
+            <div class="notif-dd-header">
+              <span class="notif-dd-title">Notifications</span>
+              <span class="notif-unread-count" id="notif-unread-count"></span>
+              <button class="notif-mark-all-btn" onclick="markAllRead(); event.stopPropagation();">Mark all read</button>
+            </div>
+            <div id="notif-dd-list"></div>
+            <div class="notif-dd-footer">
+              <a href="#" onclick="showNotifPage(); return false;">View All Notifications →</a>
+            </div>
+          </div>
         </div>
         <div class="icon-btn" title="Help">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -248,89 +262,180 @@
             <div class="section-title">Good morning, <span id="greeting-name">Jane</span> 👋</div>
             <div class="section-sub" id="today-date"></div>
           </div>
-          <button class="btn-outline">↓ Export Report</button>
+          <button class="btn-outline" onclick="exportDashboardReport()">↓ Export Report</button>
+        </div>
+
+        <!-- REAL-TIME OVERVIEW -->
+        <div class="rt-overview">
+          <div class="rt-live-badge"><span class="rt-pulse-dot"></span>Live</div>
+          <div class="rt-items">
+            <div class="rt-item">
+              <div class="rt-item-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div>
+                <div class="rt-item-val" id="rt-customers">38</div>
+                <div class="rt-item-lbl">Customers Online</div>
+              </div>
+            </div>
+            <div class="rt-sep"></div>
+            <div class="rt-item">
+              <div class="rt-item-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div>
+                <div class="rt-item-val" id="rt-ongoing">14</div>
+                <div class="rt-item-lbl">Ongoing Chats</div>
+              </div>
+            </div>
+            <div class="rt-sep"></div>
+            <div class="rt-item">
+              <div class="rt-item-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+              </div>
+              <div>
+                <div class="rt-item-val" id="rt-agents">8</div>
+                <div class="rt-item-lbl">Logged-in Agents</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-top">
-              <div class="stat-icon blue">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <div class="stat-icon-name">
+                <div class="stat-icon blue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <span class="stat-label">Active Chats</span>
               </div>
               <span class="stat-delta up">↑ 12%</span>
             </div>
             <div class="stat-value" id="stat-active">14</div>
-            <div class="stat-label">Active Chats</div>
           </div>
           <div class="stat-card">
             <div class="stat-top">
-              <div class="stat-icon green">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <div class="stat-icon-name">
+                <div class="stat-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <span class="stat-label">Agents Online</span>
               </div>
               <span class="stat-delta up">↑ 2</span>
             </div>
             <div class="stat-value">8</div>
-            <div class="stat-label">Agents Online</div>
           </div>
           <div class="stat-card">
             <div class="stat-top">
-              <div class="stat-icon yellow">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <div class="stat-icon-name">
+                <div class="stat-icon yellow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <span class="stat-label">Avg. First Response</span>
               </div>
               <span class="stat-delta warn">1m 42s avg</span>
             </div>
             <div class="stat-value">1:42</div>
-            <div class="stat-label">Avg. First Response</div>
           </div>
           <div class="stat-card">
             <div class="stat-top">
-              <div class="stat-icon purple">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <div class="stat-icon-name">
+                <div class="stat-icon purple">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span class="stat-label">CSAT Score</span>
               </div>
               <span class="stat-delta up">↑ 3%</span>
             </div>
             <div class="stat-value">94%</div>
-            <div class="stat-label">CSAT Score</div>
           </div>
         </div>
 
-        <div class="widget-grid">
-          <!-- CHAT QUEUE -->
-          <div class="card">
-            <div class="card-header">
-              <div><div class="card-title">Live Chat Queue</div><div class="card-sub">Clients waiting for a response</div></div>
-              <a class="card-action" href="#">View all</a>
+        <!-- PERFORMANCE OVERVIEW -->
+        <div class="card perf-overview-card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Performance Overview</div>
+              <div class="card-sub" id="perf-period-label">Last week · —</div>
             </div>
-            <div class="card-body">
-              <div class="queue-list">
-                <div class="queue-item">
-                  <div class="queue-avatar">MK</div>
-                  <div class="queue-info"><div class="queue-name">Michael K.</div><div class="queue-msg">My EUR/USD trade hasn't executed — been 10 mins</div></div>
-                  <div class="queue-right"><div class="queue-time">09:14</div><div class="queue-wait urgent">8m wait</div></div>
+            <span class="perf-monday-badge">↻ Updated every Monday</span>
+          </div>
+          <div class="perf-kpi-grid">
+
+            <div class="perf-kpi-item">
+              <div class="kpi-header">
+                <div class="kpi-icon-name">
+                  <div class="kpi-icon-wrap blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  </div>
+                  <span class="kpi-label">Total Chats</span>
                 </div>
-                <div class="queue-item">
-                  <div class="queue-avatar">SR</div>
-                  <div class="queue-info"><div class="queue-name">Sofia R.</div><div class="queue-msg">How do I withdraw to my bank account?</div></div>
-                  <div class="queue-right"><div class="queue-time">09:20</div><div class="queue-wait normal">2m wait</div></div>
-                </div>
-                <div class="queue-item">
-                  <div class="queue-avatar">AL</div>
-                  <div class="queue-info"><div class="queue-name">Ahmed L.</div><div class="queue-msg">Leverage settings not applying on MT4</div></div>
-                  <div class="queue-right"><div class="queue-time">09:22</div><div class="queue-wait normal">1m wait</div></div>
-                </div>
-                <div class="queue-item">
-                  <div class="queue-avatar">YP</div>
-                  <div class="queue-info"><div class="queue-name">Yuki P.</div><div class="queue-msg">Platform showing wrong balance after swap</div></div>
-                  <div class="queue-right"><div class="queue-time">09:23</div><div class="queue-wait urgent">5m wait</div></div>
-                </div>
-                <div class="queue-item">
-                  <div class="queue-avatar">CT</div>
-                  <div class="queue-info"><div class="queue-name">Carlos T.</div><div class="queue-msg">Can't login since password reset this morning</div></div>
-                  <div class="queue-right"><div class="queue-time">09:25</div><div class="queue-wait normal">30s wait</div></div>
-                </div>
+                <span class="kpi-trend up">↑ 8%</span>
               </div>
+              <div class="kpi-value">427</div>
+              <div class="kpi-tip">Chat volume is growing. Ensure sufficient agent coverage during peak hours.</div>
+            </div>
+
+            <div class="perf-kpi-item">
+              <div class="kpi-header">
+                <div class="kpi-icon-name">
+                  <div class="kpi-icon-wrap green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                  </div>
+                  <span class="kpi-label">Satisfaction</span>
+                </div>
+                <span class="kpi-trend up">↑ 3%</span>
+              </div>
+              <div class="kpi-value">94%</div>
+              <div class="kpi-tip">CSAT is above target. Maintain response quality and empathy in conversations.</div>
+            </div>
+
+            <div class="perf-kpi-item">
+              <div class="kpi-header">
+                <div class="kpi-icon-name">
+                  <div class="kpi-icon-wrap yellow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
+                  <span class="kpi-label">Response Time</span>
+                </div>
+                <span class="kpi-trend down good">↓ 12%</span>
+              </div>
+              <div class="kpi-value">1m 38s</div>
+              <div class="kpi-tip">Response time improved. Keep encouraging quick first replies from agents.</div>
+            </div>
+
+            <div class="perf-kpi-item">
+              <div class="kpi-header">
+                <div class="kpi-icon-name">
+                  <div class="kpi-icon-wrap purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  </div>
+                  <span class="kpi-label">Efficiency</span>
+                </div>
+                <span class="kpi-trend up">↑ 5%</span>
+              </div>
+              <div class="kpi-value">87%</div>
+              <div class="kpi-tip">Team efficiency is up. Review first-contact resolution to push it further.</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- LAST 7 DAYS CHART -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Last 7 Days — Total Chats</div>
+              <div class="card-sub" id="chart-7days-period"></div>
             </div>
           </div>
+          <div class="card-body">
+            <div id="chats-7day-chart"></div>
+          </div>
+        </div>
+
+        <div class="widget-grid" style="margin-bottom:20px">
 
           <!-- AGENT STATUS TABLE (dashboard snapshot) -->
           <div class="card">
@@ -352,14 +457,12 @@
               </table>
             </div>
           </div>
-        </div>
 
-        <div class="widget-grid">
           <!-- PLATFORM ISSUES -->
           <div class="card">
             <div class="card-header">
               <div><div class="card-title">Platform Issues Tracker</div><div class="card-sub">Active incidents &amp; recent resolutions</div></div>
-              <a class="card-action" href="#">Report Issue</a>
+              <a class="card-action" href="#" onclick="navToIssues();return false;">View All</a>
             </div>
             <div class="card-body">
               <div class="issue-list">
@@ -372,23 +475,6 @@
             </div>
           </div>
 
-          <!-- PERFORMANCE -->
-          <div class="card">
-            <div class="card-header">
-              <div><div class="card-title">Today's Performance</div><div class="card-sub">Team KPIs vs. targets</div></div>
-              <a class="card-action" href="#">Full Report</a>
-            </div>
-            <div class="card-body">
-              <div class="perf-rows">
-                <div class="perf-row"><div class="perf-row-header"><span class="perf-row-label">SLA Compliance</span><span class="perf-row-value">91% <span style="color:#94a3b8">/ 95% target</span></span></div><div class="perf-bar-track"><div class="perf-bar-fill" style="width:91%;background:#f59e0b"></div></div></div>
-                <div class="perf-row"><div class="perf-row-header"><span class="perf-row-label">CSAT Score</span><span class="perf-row-value">94% <span style="color:#94a3b8">/ 90% target</span></span></div><div class="perf-bar-track"><div class="perf-bar-fill" style="width:94%;background:#10b981"></div></div></div>
-                <div class="perf-row"><div class="perf-row-header"><span class="perf-row-label">First Contact Resolution</span><span class="perf-row-value">78% <span style="color:#94a3b8">/ 85% target</span></span></div><div class="perf-bar-track"><div class="perf-bar-fill" style="width:78%;background:#f97316"></div></div></div>
-                <div class="perf-row"><div class="perf-row-header"><span class="perf-row-label">Chats Handled Today</span><span class="perf-row-value">63 <span style="color:#94a3b8">/ ~80 expected</span></span></div><div class="perf-bar-track"><div class="perf-bar-fill" style="width:79%;background:#1a56db"></div></div></div>
-                <div class="perf-row"><div class="perf-row-header"><span class="perf-row-label">Escalation Rate</span><span class="perf-row-value">6% <span style="color:#94a3b8">/ &lt;8% target</span></span></div><div class="perf-bar-track"><div class="perf-bar-fill" style="width:25%;background:#10b981"></div></div></div>
-                <div class="perf-row"><div class="perf-row-header"><span class="perf-row-label">Avg. Handle Time</span><span class="perf-row-value">4m 32s <span style="color:#94a3b8">/ 5m target</span></span></div><div class="perf-bar-track"><div class="perf-bar-fill" style="width:90%;background:#8b5cf6"></div></div></div>
-              </div>
-            </div>
-          </div>
         </div>
 
       </div><!-- /page-dashboard -->
@@ -404,40 +490,248 @@
             <div class="section-title">Live Chats</div>
             <div class="section-sub" id="lc-sub">5 in queue · 9 ongoing</div>
           </div>
-          <div style="display:flex;gap:10px">
-            <div class="lc-stat-pill blue"><span id="lc-queue-count">5</span> Queued</div>
-            <div class="lc-stat-pill green"><span id="lc-active-count">9</span> Active</div>
-          </div>
         </div>
 
         <div class="lc-columns">
 
-          <!-- QUEUE SECTION -->
-          <div class="lc-section">
-            <div class="lc-section-head">
-              <div class="lc-section-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Queue
+          <!-- LEFT: CHATTING -->
+          <div class="lc-col">
+            <div class="lc-col-stat-card green">
+              <div class="lc-col-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
-              <span class="lc-section-badge yellow" id="lc-queue-badge">5</span>
+              <div>
+                <div class="lc-col-stat-value" id="lc-active-count">9</div>
+                <div class="lc-col-stat-label">Active Chats</div>
+              </div>
             </div>
-            <div id="lc-queue-list" class="lc-list"></div>
+            <div class="lc-section">
+              <div class="lc-section-head">
+                <div class="lc-section-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  Chatting
+                </div>
+                <span class="lc-section-badge green" id="lc-active-badge">9</span>
+              </div>
+              <div id="lc-active-list" class="lc-list"></div>
+            </div>
           </div>
 
-          <!-- CHATTING SECTION -->
-          <div class="lc-section">
-            <div class="lc-section-head">
-              <div class="lc-section-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                Chatting
+          <!-- RIGHT: QUEUE -->
+          <div class="lc-col">
+            <div class="lc-col-stat-card yellow">
+              <div class="lc-col-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
-              <span class="lc-section-badge green" id="lc-active-badge">9</span>
+              <div>
+                <div class="lc-col-stat-value" id="lc-queue-count">5</div>
+                <div class="lc-col-stat-label">In Queue</div>
+              </div>
             </div>
-            <div id="lc-active-list" class="lc-list"></div>
+            <div class="lc-section">
+              <div class="lc-section-head">
+                <div class="lc-section-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Queue
+                </div>
+                <span class="lc-section-badge yellow" id="lc-queue-badge">5</span>
+              </div>
+              <div id="lc-queue-list" class="lc-list"></div>
+            </div>
           </div>
 
         </div>
       </div><!-- /page-livechats -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: PLATFORM ISSUES
+      ══════════════════════════════════════════ -->
+      <div id="page-issues" class="page-section hidden">
+
+        <div class="section-header">
+          <div>
+            <div class="section-title">Platform Issues</div>
+            <div class="section-sub" id="pi-sub">Loading…</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="pi-stat-pills"></div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="filter-bar" id="pi-filter-bar">
+          <button class="filter-tab active" onclick="filterIssues(this,'all')">All <span class="tab-count" id="pi-count-all">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'critical')">🔴 Critical <span class="tab-count" id="pi-count-critical">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'high')">🟠 High <span class="tab-count" id="pi-count-high">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'medium')">🟡 Medium <span class="tab-count" id="pi-count-medium">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'resolved')">🟢 Resolved <span class="tab-count" id="pi-count-resolved">0</span></button>
+        </div>
+
+        <!-- Issues grid (populated by JS) -->
+        <div id="pi-grid" class="pi-grid"></div>
+
+      </div><!-- /page-issues -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: TICKETS
+      ══════════════════════════════════════════ -->
+      <div id="page-tickets" class="page-section hidden">
+        <div class="tickets-layout">
+
+          <!-- LEFT: ticket list panel -->
+          <div class="tkt-list-panel">
+            <div class="tkt-panel-header">
+              <div class="tkt-panel-title">All Tickets</div>
+              <span class="tkt-total-badge" id="tkt-total-badge">13</span>
+            </div>
+
+            <!-- Status tabs -->
+            <div class="tkt-tabs">
+              <button class="tkt-tab active" onclick="filterTickets(this,'open')">Open <span class="tkt-tab-count" id="tkt-count-open">5</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'pending')">Pending <span class="tkt-tab-count" id="tkt-count-pending">3</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'hold')">On Hold <span class="tkt-tab-count" id="tkt-count-hold">2</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'solved')">Solved <span class="tkt-tab-count" id="tkt-count-solved">2</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'closed')">Closed <span class="tkt-tab-count" id="tkt-count-closed">1</span></button>
+            </div>
+
+            <!-- Ticket rows (populated by JS) -->
+            <div class="tkt-list" id="tkt-list"></div>
+          </div>
+
+          <!-- RIGHT: ticket detail panel -->
+          <div class="tkt-detail-panel" id="tkt-detail-panel">
+            <div class="tkt-empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <p>Select a ticket to view details</p>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /page-tickets -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: REPORTS
+      ══════════════════════════════════════════ -->
+      <div id="page-reports" class="page-section hidden">
+
+        <!-- Sub-navigation -->
+        <div class="rpt-subnav">
+          <button class="rpt-subnav-btn active" onclick="showReportTab(this,'total-chats')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Total Chats
+          </button>
+          <button class="rpt-subnav-btn" onclick="showReportTab(this,'satisfaction')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            Chat Satisfaction
+          </button>
+          <button class="rpt-subnav-btn" onclick="showReportTab(this,'agent-perf')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Agent Performance
+          </button>
+        </div>
+
+        <!-- ── 1. TOTAL CHATS ── -->
+        <div id="rpt-total-chats" class="rpt-section">
+          <div class="rpt-filter-bar">
+            <div class="rpt-date-pills" id="tc-date-pills">
+              <button class="rpt-date-pill active" data-period="today"        onclick="setRptPeriod(this,'tc')">Today</button>
+              <button class="rpt-date-pill"         data-period="yesterday"   onclick="setRptPeriod(this,'tc')">Yesterday</button>
+              <button class="rpt-date-pill"         data-period="last7"       onclick="setRptPeriod(this,'tc')">Last 7 Days</button>
+              <button class="rpt-date-pill"         data-period="curMonth"    onclick="setRptPeriod(this,'tc')">Current Month</button>
+              <button class="rpt-date-pill"         data-period="lastMonth"   onclick="setRptPeriod(this,'tc')">Last Month</button>
+              <button class="rpt-date-pill"         data-period="curYear"     onclick="setRptPeriod(this,'tc')">Current Year</button>
+              <button class="rpt-date-pill"         data-period="total"       onclick="setRptPeriod(this,'tc')">Total</button>
+            </div>
+            <select class="rpt-agent-select" id="tc-agent-select" onchange="renderTotalChats()">
+              <option value="">All Agents</option>
+            </select>
+          </div>
+          <div class="rpt-kpi-row" id="tc-kpis"></div>
+          <div class="rpt-chart-card">
+            <div class="rpt-chart-card-header">
+              <div class="rpt-chart-card-title" id="tc-chart-title">Chats Today</div>
+              <div class="rpt-chart-card-sub"   id="tc-chart-sub"></div>
+            </div>
+            <div class="rpt-bar-wrap" id="tc-chart"></div>
+          </div>
+        </div>
+
+        <!-- ── 2. CHAT SATISFACTION ── -->
+        <div id="rpt-satisfaction" class="rpt-section hidden">
+          <div class="rpt-filter-bar">
+            <div class="rpt-date-pills" id="cs-date-pills">
+              <button class="rpt-date-pill active" data-period="today"      onclick="setRptPeriod(this,'cs')">Today</button>
+              <button class="rpt-date-pill"         data-period="yesterday" onclick="setRptPeriod(this,'cs')">Yesterday</button>
+              <button class="rpt-date-pill"         data-period="last7"     onclick="setRptPeriod(this,'cs')">Last 7 Days</button>
+              <button class="rpt-date-pill"         data-period="curMonth"  onclick="setRptPeriod(this,'cs')">Current Month</button>
+              <button class="rpt-date-pill"         data-period="lastMonth" onclick="setRptPeriod(this,'cs')">Last Month</button>
+              <button class="rpt-date-pill"         data-period="curYear"   onclick="setRptPeriod(this,'cs')">Current Year</button>
+              <button class="rpt-date-pill"         data-period="total"     onclick="setRptPeriod(this,'cs')">Total</button>
+            </div>
+            <select class="rpt-agent-select" id="cs-agent-select" onchange="renderSatisfaction()">
+              <option value="">All Agents</option>
+            </select>
+          </div>
+          <div class="rpt-csat-layout">
+            <div class="rpt-donut-card">
+              <div class="rpt-donut-wrap" id="cs-donut"></div>
+              <div class="rpt-donut-legend" id="cs-legend"></div>
+            </div>
+            <div class="rpt-csat-kpis" id="cs-kpis"></div>
+          </div>
+          <div class="rpt-chart-card">
+            <div class="rpt-chart-card-header">
+              <div class="rpt-chart-card-title" id="cs-chart-title">Satisfaction Trend</div>
+              <div class="rpt-chart-card-sub"   id="cs-chart-sub"></div>
+            </div>
+            <div class="rpt-bar-wrap" id="cs-chart"></div>
+          </div>
+        </div>
+
+        <!-- ── 3. AGENT PERFORMANCE ── -->
+        <div id="rpt-agent-perf" class="rpt-section hidden">
+          <div class="rpt-filter-bar" style="justify-content:flex-start">
+            <div class="rpt-date-pills" id="ap-date-pills">
+              <button class="rpt-date-pill active" data-period="today"      onclick="setRptPeriod(this,'ap')">Today</button>
+              <button class="rpt-date-pill"         data-period="yesterday" onclick="setRptPeriod(this,'ap')">Yesterday</button>
+              <button class="rpt-date-pill"         data-period="last7"     onclick="setRptPeriod(this,'ap')">Last 7 Days</button>
+              <button class="rpt-date-pill"         data-period="curMonth"  onclick="setRptPeriod(this,'ap')">Current Month</button>
+              <button class="rpt-date-pill"         data-period="lastMonth" onclick="setRptPeriod(this,'ap')">Last Month</button>
+              <button class="rpt-date-pill"         data-period="curYear"   onclick="setRptPeriod(this,'ap')">Current Year</button>
+              <button class="rpt-date-pill"         data-period="total"     onclick="setRptPeriod(this,'ap')">Total</button>
+            </div>
+          </div>
+          <div class="rpt-chart-card" style="padding:0;overflow:hidden">
+            <table class="rpt-perf-table" id="rpt-perf-table">
+              <thead>
+                <tr>
+                  <th class="rpt-th" onclick="sortPerfTable('name')">
+                    Agent <span class="sort-icon" id="sort-icon-name"></span>
+                  </th>
+                  <th class="rpt-th sortable" onclick="sortPerfTable('totalChats')">
+                    Total Chats <span class="sort-icon" id="sort-icon-totalChats">↓</span>
+                  </th>
+                  <th class="rpt-th sortable" onclick="sortPerfTable('satisfaction')">
+                    Chat Satisfaction <span class="sort-icon" id="sort-icon-satisfaction"></span>
+                  </th>
+                  <th class="rpt-th sortable" onclick="sortPerfTable('firstResponse')">
+                    First Response <span class="sort-icon" id="sort-icon-firstResponse"></span>
+                  </th>
+                  <th class="rpt-th sortable" onclick="sortPerfTable('efficiency')">
+                    Efficiency <span class="sort-icon" id="sort-icon-efficiency"></span>
+                  </th>
+                  <th class="rpt-th sortable" onclick="sortPerfTable('chattingTime')">
+                    Avg Chat Time <span class="sort-icon" id="sort-icon-chattingTime"></span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="rpt-perf-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /page-reports -->
 
 
       <!-- ══════════════════════════════════════════
@@ -471,6 +765,167 @@
         <div id="agent-grid" class="agent-grid"></div>
 
       </div><!-- /page-agents -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: SETTINGS
+      ══════════════════════════════════════════ -->
+      <div id="page-settings" class="page-section hidden">
+
+        <div class="section-header">
+          <div>
+            <div class="section-title" data-i18n="settings_title">Settings</div>
+            <div class="section-sub" data-i18n="settings_sub">Manage your preferences and configurations</div>
+          </div>
+        </div>
+
+        <div class="settings-wrap">
+
+          <!-- Notifications -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div>
+                <h2 class="settings-section-title" data-i18n="notif_title">Notification Settings</h2>
+                <p class="settings-section-sub" data-i18n="notif_sub">Choose which events trigger notifications</p>
+              </div>
+            </div>
+            <div class="settings-toggle-list">
+              <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                  <div class="settings-toggle-label" data-i18n="notif_new_chat">New chat assigned to an agent</div>
+                  <div class="settings-toggle-desc" data-i18n="notif_new_chat_desc">Alert when a queued chat is picked up</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-new-chat" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                  <div class="settings-toggle-label" data-i18n="notif_agent_offline">Agent goes offline during shift</div>
+                  <div class="settings-toggle-desc" data-i18n="notif_agent_offline_desc">Alert when an active agent drops offline</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-agent-offline" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                  <div class="settings-toggle-label" data-i18n="notif_platform_issue">New platform issue reported</div>
+                  <div class="settings-toggle-desc" data-i18n="notif_platform_issue_desc">Alert for newly opened platform incidents</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-platform-issue" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                  <div class="settings-toggle-label" data-i18n="notif_new_ticket">New ticket received</div>
+                  <div class="settings-toggle-desc" data-i18n="notif_new_ticket_desc">Alert for each new client support ticket</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-new-ticket" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                  <div class="settings-toggle-label" data-i18n="notif_queue_alert">Chat queue exceeds 10 clients</div>
+                  <div class="settings-toggle-desc" data-i18n="notif_queue_alert_desc">Alert when waiting queue is critically long</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-queue" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                  <div class="settings-toggle-label" data-i18n="notif_perf_drop">Agent satisfaction drops below 85%</div>
+                  <div class="settings-toggle-desc" data-i18n="notif_perf_drop_desc">Alert when CSAT score falls under threshold</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-perf">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                  <div class="settings-toggle-label" data-i18n="notif_sla">Ticket SLA breach detected</div>
+                  <div class="settings-toggle-desc" data-i18n="notif_sla_desc">Alert when a ticket exceeds its response SLA</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="notif-sla" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Language -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              </div>
+              <div>
+                <h2 class="settings-section-title" data-i18n="lang_title">Language &amp; Region</h2>
+                <p class="settings-section-sub" data-i18n="lang_sub">Select your preferred display language</p>
+              </div>
+            </div>
+            <div class="lang-options">
+              <button class="lang-card active" id="lang-en" onclick="applyLanguage('en', this)">
+                <div class="lang-flag">🇬🇧</div>
+                <div class="lang-name">English</div>
+                <div class="lang-native">English</div>
+                <div class="lang-check">✓</div>
+              </button>
+              <button class="lang-card" id="lang-ar" onclick="applyLanguage('ar', this)">
+                <div class="lang-flag">🇸🇦</div>
+                <div class="lang-name">Arabic</div>
+                <div class="lang-native">العربية</div>
+                <div class="lang-check">✓</div>
+              </button>
+              <button class="lang-card" id="lang-fa" onclick="applyLanguage('fa', this)">
+                <div class="lang-flag">🇮🇷</div>
+                <div class="lang-name">Persian</div>
+                <div class="lang-native">فارسی</div>
+                <div class="lang-check">✓</div>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /page-settings -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: ALL NOTIFICATIONS
+      ══════════════════════════════════════════ -->
+      <div id="page-notifications" class="page-section hidden">
+
+        <div class="section-header">
+          <div>
+            <button class="btn-back" onclick="goBack()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Back
+            </button>
+            <div class="section-title" style="margin-top:6px">All Notifications</div>
+            <div class="section-sub" id="notif-page-sub">3 unread</div>
+          </div>
+          <button class="btn-outline" onclick="markAllRead()">Mark All as Read</button>
+        </div>
+
+        <div class="notif-page-card">
+          <div id="notif-page-list"></div>
+        </div>
+
+      </div><!-- /page-notifications -->
+
 
     </div><!-- /page-content -->
   </div><!-- /main-area -->
@@ -542,6 +997,54 @@
     </div>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════
+     ISSUE DETAILS MODAL
+═══════════════════════════════════════════════ -->
+<div id="issue-modal-overlay" class="modal-overlay hidden" onclick="closeIssueModalOnBackdrop(event)">
+  <div class="issue-detail-card">
+
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="pi-platform-icon" id="id-platform-icon"></div>
+        <div>
+          <h2 class="modal-title" id="id-title">Issue Title</h2>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="id-platform-meta"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="pi-status-badge" id="id-status-badge">Critical</span>
+        <button class="modal-close" onclick="closeIssueModal()">✕</button>
+      </div>
+    </div>
+
+    <div class="issue-detail-body">
+
+      <!-- Description -->
+      <div class="id-section">
+        <div class="id-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Description
+        </div>
+        <p class="id-description" id="id-description"></p>
+      </div>
+
+      <!-- Impact row -->
+      <div class="id-impact-row" id="id-impact-row"></div>
+
+      <!-- Timeline / comments -->
+      <div class="id-section">
+        <div class="id-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Resolution Timeline
+        </div>
+        <div class="id-timeline" id="id-timeline"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
 <!-- ═══════════════════════════════════════════════
      SUPERVISE PANEL
