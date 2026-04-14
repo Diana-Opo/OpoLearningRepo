@@ -3146,25 +3146,21 @@ html[dir="rtl"] .nav-badge  { margin-left: 0; margin-right: auto; }
 
 /* ── PLATFORM ISSUES — STAT CARDS ──────────────────────── */
 .pi-stat-cards {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
 }
 .pi-stat-card {
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 14px 20px;
+  padding: 18px 20px;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   cursor: pointer;
   border-top: 3px solid transparent;
   transition: box-shadow var(--transition), transform var(--transition);
-  min-width: 130px;
 }
 .pi-stat-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 .pi-stat-card.critical   { border-top-color: var(--red); }
@@ -3175,19 +3171,20 @@ html[dir="rtl"] .nav-badge  { margin-left: 0; margin-right: auto; }
 .pi-stat-card.pending    { border-top-color: #f59e0b; }
 .pi-stat-card.postponed  { border-top-color: #a855f7; }
 .pi-stat-card.resolved   { border-top-color: var(--green); }
-.pi-stat-card-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
-.pi-stat-card-text { display: flex; flex-direction: column; }
+.pi-stat-card-top {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.pi-stat-card-emoji { font-size: 20px; line-height: 1; flex-shrink: 0; }
 .pi-stat-card-lbl {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 .pi-stat-card-val {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
   color: var(--text-primary);
-  line-height: 1.1;
-  margin-top: 2px;
+  line-height: 1;
 }
 
 /* ── ISSUE MODAL — FIELDS BAR ───────────────────────────── */
@@ -3449,12 +3446,19 @@ html[dir="rtl"] .nav-badge  { margin-left: 0; margin-right: auto; }
   .rt-sep { margin: 0 16px; }
   .dash-charts-row,
   .rpt-charts-row { flex-direction: column; }
+  /* PI stat cards: 3 cols on medium screens */
+  .pi-stat-cards { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 600px) {
   .perf-kpi-grid { grid-template-columns: 1fr; }
-  .rt-overview { flex-wrap: wrap; }
-  .rt-items { flex-wrap: wrap; gap: 12px; }
+  /* rt-overview: stack Live badge above items */
+  .rt-overview { flex-direction: column; align-items: stretch; gap: 14px; padding: 14px 16px; }
+  .rt-live-badge { align-self: flex-start; }
+  .rt-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .rt-sep { display: none; }
+  .rt-item { gap: 10px; }
+  /* PI stat cards: 2 cols on mobile */
+  .pi-stat-cards { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -3590,6 +3594,15 @@ html[dir="rtl"] .nav-badge  { margin-left: 0; margin-right: auto; }
 
   /* Lc stat value: smaller on tiny screens */
   .lc-col-stat-value { font-size: 32px; }
+
+  /* Dashboard: tighter rt-item on very small screens */
+  .rt-item-icon { width: 32px; height: 32px; }
+  .rt-item-val  { font-size: 20px; }
+
+  /* PI stat cards: keep 2-col but tighter */
+  .pi-stat-cards { gap: 10px; }
+  .pi-stat-card  { padding: 14px 14px; }
+  .pi-stat-card-val { font-size: 24px; }
 }
 
 /* ══════════════════════════════════════════════════════════════════
