@@ -67,12 +67,23 @@ function cycleTheme() {
 }
 
 function _syncThemeUI() {
+  const isDark = currentTheme === 'dark';
+  // Main header icons
   const lightEl = document.getElementById('theme-icon-light');
   const darkEl  = document.getElementById('theme-icon-dark');
-  if (lightEl) lightEl.style.display = currentTheme === 'light' ? '' : 'none';
-  if (darkEl)  darkEl.style.display  = currentTheme === 'dark'  ? '' : 'none';
+  if (lightEl) lightEl.style.display = isDark ? 'none' : '';
+  if (darkEl)  darkEl.style.display  = isDark ? '' : 'none';
+  // Auth page icons
+  const aLight = document.getElementById('auth-theme-icon-light');
+  const aDark  = document.getElementById('auth-theme-icon-dark');
+  if (aLight) aLight.style.display = isDark ? 'none' : '';
+  if (aDark)  aDark.style.display  = isDark ? '' : 'none';
+  // Tooltips
+  const title = isDark ? 'Switch to Light mode' : 'Switch to Dark mode';
   const btn = document.getElementById('theme-toggle-btn');
-  if (btn) btn.title = currentTheme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode';
+  if (btn) btn.title = title;
+  const aBtn = document.getElementById('auth-theme-btn');
+  if (aBtn) aBtn.title = title;
   document.querySelectorAll('.theme-option').forEach(b =>
     b.classList.toggle('active', b.dataset.theme === currentTheme)
   );
@@ -117,8 +128,8 @@ function handleLogin(e) {
   const pass  = document.getElementById('login-password').value;
   let ok = true;
   hideErr('login-email-err'); hideErr('login-pass-err');
-  if (!email || !email.includes('@')) { showErr('login-email-err','Please enter a valid email address.'); ok=false; }
-  if (!pass) { showErr('login-pass-err','Please enter your password.'); ok=false; }
+  if (!emailValid(email)) { showErr('login-email-err','Please enter a valid email address (e.g. you@company.com).'); ok=false; }
+  if (!passwordValid(pass)) { showErr('login-pass-err','Password must be 6+ characters with a letter, number, and special character (e.g. @#$!).'); ok=false; }
   if (ok) {
     const localPart = email.split('@')[0].replace(/[._]/g,' ');
     const name = localPart.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ') || 'User';
@@ -134,8 +145,8 @@ function handleSignup(e) {
   let ok = true;
   hideErr('su-name-err'); hideErr('su-email-err'); hideErr('su-pass-err');
   if (!name)              { showErr('su-name-err','Please enter your full name.'); ok=false; }
-  if (!email||!email.includes('@')) { showErr('su-email-err','Please enter a valid email address.'); ok=false; }
-  if (pass.length < 6)   { showErr('su-pass-err','Password must be at least 6 characters.'); ok=false; }
+  if (!emailValid(email)) { showErr('su-email-err','Please enter a valid email address (e.g. you@company.com).'); ok=false; }
+  if (!passwordValid(pass)) { showErr('su-pass-err','Password must be 6+ characters with a letter, number, and special character (e.g. @#$!).'); ok=false; }
   if (ok) enterDashboard(name, email);
 }
 
@@ -439,7 +450,7 @@ function saveAgent() {
   let ok = true;
   hideErr('modal-name-err'); hideErr('modal-email-err');
   if (!name)  { showErr('modal-name-err','Please enter a name.'); ok=false; }
-  if (!email || !email.includes('@')) { showErr('modal-email-err','Please enter a valid email.'); ok=false; }
+  if (!emailValid(email)) { showErr('modal-email-err','Please enter a valid email address (e.g. jane@company.com).'); ok=false; }
   if (!ok) return;
 
   if (editingId === null) {
@@ -605,6 +616,8 @@ function renderYearlyCharts(year) {
   const active = raw
     .map((v, i) => ({ label: MONTH_LABELS[i], v, month: i }))
     .filter(d => d.v !== null && d.v !== undefined);
+  const allMonths = raw
+    .map((v, i) => ({ label: MONTH_LABELS[i], v: (v !== null && v !== undefined) ? v : 0, hasData: v !== null && v !== undefined, month: i }));
   const total = active.reduce((s, d) => s + d.v, 0);
   const body = document.getElementById('tc-yearly-body');
   if (!body) return;
@@ -616,7 +629,7 @@ function renderYearlyCharts(year) {
       </div>
       <div class="rpt-mom-wrap">
         <div class="rpt-chart-section-title">Month-over-Month Trend</div>
-        ${buildMomChart(active)}
+        ${buildMomChart(allMonths)}
       </div>
     </div>`;
 }
@@ -658,30 +671,40 @@ function buildDonutChart(active, total) {
 
 function buildMomChart(active) {
   if (!active.length) return '<p class="rpt-no-data">No data available</p>';
-  const W = 520, H = 180, pL = 38, pB = 46, pT = 14, pR = 10;
+  const W = 720, H = 200, pL = 42, pB = 46, pT = 20, pR = 12;
   const cW = W - pL - pR, cH = H - pB - pT;
   const max = Math.max(...active.map(d => d.v), 1);
   const slot = cW / active.length;
   const bW = Math.min(28, slot * 0.55);
   let grid = '', bars = '', labs = '', deltas = '';
-  [0, 0.5, 1].forEach(p => {
+  [0.5, 1].forEach(p => {
     const y = pT + cH * (1 - p);
     grid += `<line x1="${pL}" y1="${y.toFixed(0)}" x2="${W - pR}" y2="${y.toFixed(0)}" stroke="var(--border)" stroke-width="1"/>`;
     grid += `<text x="${pL - 5}" y="${(y + 4).toFixed(0)}" text-anchor="end" font-size="9" style="fill:var(--text-muted)">${Math.round(max * p)}</text>`;
   });
+  const baseY = pT + cH;
+  grid += `<line x1="${pL}" y1="${baseY}" x2="${W - pR}" y2="${baseY}" stroke="var(--border)" stroke-width="1"/>`;
   active.forEach((d, i) => {
     const x = pL + slot * i + slot / 2;
-    const bH = Math.max(2, (d.v / max) * cH);
+    const hasData = d.hasData !== false;
+    const bH = hasData && d.v > 0 ? Math.max(2, (d.v / max) * cH) : 0;
     const by = pT + cH - bH;
     let color = '#1a56db', deltaTxt = '';
-    if (i > 0) {
-      const pct = (d.v - active[i-1].v) / active[i-1].v * 100;
-      color = pct >= 0 ? '#10b981' : '#ef4444';
-      deltaTxt = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+    if (hasData && d.v > 0 && i > 0) {
+      const prev = active[i - 1];
+      if (prev.hasData !== false && prev.v > 0) {
+        const pct = (d.v - prev.v) / prev.v * 100;
+        color = pct >= 0 ? '#10b981' : '#ef4444';
+        deltaTxt = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+      }
     }
-    bars  += `<rect x="${(x - bW/2).toFixed(1)}" y="${by.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${color}" rx="3" opacity="0.88"/>`;
-    bars  += `<text x="${x.toFixed(1)}" y="${(by - 4).toFixed(1)}" text-anchor="middle" font-size="8.5" style="fill:var(--text-secondary)">${d.v}</text>`;
-    labs  += `<text x="${x.toFixed(1)}" y="${(H - pB + 13).toFixed(0)}" text-anchor="middle" font-size="10" style="fill:var(--text-secondary)">${d.label}</text>`;
+    if (bH > 0) {
+      bars += `<rect x="${(x - bW/2).toFixed(1)}" y="${by.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${color}" rx="3" opacity="0.88"/>`;
+      bars += `<text x="${x.toFixed(1)}" y="${(by - 4).toFixed(1)}" text-anchor="middle" font-size="8.5" style="fill:var(--text-secondary)">${d.v}</text>`;
+    } else {
+      bars += `<rect x="${(x - bW/2).toFixed(1)}" y="${(pT + cH - 2).toFixed(1)}" width="${bW}" height="2" fill="var(--border)" rx="1" opacity="0.6"/>`;
+    }
+    labs  += `<text x="${x.toFixed(1)}" y="${(H - pB + 13).toFixed(0)}" text-anchor="middle" font-size="10" style="fill:var(--text-${hasData ? 'secondary' : 'muted'})">${d.label}</text>`;
     if (deltaTxt) {
       const dc = deltaTxt.startsWith('+') ? '#10b981' : '#ef4444';
       deltas += `<text x="${x.toFixed(1)}" y="${(H - pB + 28).toFixed(0)}" text-anchor="middle" font-size="8" fill="${dc}" font-weight="600">${deltaTxt}</text>`;
@@ -697,33 +720,39 @@ function renderCompareCharts() {
   const d26 = YEARLY_CHAT_DATA[2026];
   const body = document.getElementById('tc-yearly-body');
   if (!body) return;
-  const W = 680, H = 200, pL = 38, pB = 46, pT = 14, pR = 10;
+  const W = 760, H = 210, pL = 42, pB = 46, pT = 20, pR = 12;
   const cW = W - pL - pR, cH = H - pB - pT;
   const slot = cW / 12;
-  const bW = Math.min(14, slot * 0.32);
+  const bW = Math.min(16, slot * 0.35);
   const allV = [...d25, ...d26.filter(v => v !== null)];
   const max = Math.max(...allV, 1);
   let grid = '', b25 = '', b26 = '', labs = '', diff = '';
-  [0, 0.5, 1].forEach(p => {
+  [0.5, 1].forEach(p => {
     const y = pT + cH * (1 - p);
     grid += `<line x1="${pL}" y1="${y.toFixed(0)}" x2="${W - pR}" y2="${y.toFixed(0)}" stroke="var(--border)" stroke-width="1"/>`;
     grid += `<text x="${pL - 5}" y="${(y + 4).toFixed(0)}" text-anchor="end" font-size="9" style="fill:var(--text-muted)">${Math.round(max * p)}</text>`;
   });
+  const baseY2 = pT + cH;
+  grid += `<line x1="${pL}" y1="${baseY2}" x2="${W - pR}" y2="${baseY2}" stroke="var(--border)" stroke-width="1"/>`;
   MONTH_LABELS.forEach((lbl, i) => {
     const cx = pL + slot * i + slot / 2;
     const v25 = d25[i] || 0;
-    const h25 = Math.max(2, (v25 / max) * cH);
-    b25 += `<rect x="${(cx - bW - 1.5).toFixed(1)}" y="${(pT + cH - h25).toFixed(1)}" width="${bW}" height="${h25.toFixed(1)}" fill="#94a3b8" rx="2" opacity="0.85"/>`;
-    b25 += `<text x="${(cx - bW/2 - 1.5).toFixed(1)}" y="${(pT + cH - h25 - 3).toFixed(1)}" text-anchor="middle" font-size="7.5" style="fill:var(--text-secondary)">${v25}</text>`;
+    const h25 = v25 > 0 ? Math.max(2, (v25 / max) * cH) : 0;
+    if (h25 > 0) {
+      b25 += `<rect x="${(cx - bW - 1.5).toFixed(1)}" y="${(pT + cH - h25).toFixed(1)}" width="${bW}" height="${h25.toFixed(1)}" fill="#94a3b8" rx="2" opacity="0.85"/>`;
+      b25 += `<text x="${(cx - bW/2 - 1.5).toFixed(1)}" y="${(pT + cH - h25 - 3).toFixed(1)}" text-anchor="middle" font-size="7.5" style="fill:var(--text-secondary)">${v25}</text>`;
+    }
     labs += `<text x="${cx.toFixed(1)}" y="${(H - pB + 13).toFixed(0)}" text-anchor="middle" font-size="9.5" style="fill:var(--text-secondary)">${lbl}</text>`;
     const v26 = d26[i];
-    if (v26 !== null) {
+    if (v26 !== null && v26 > 0) {
       const h26 = Math.max(2, (v26 / max) * cH);
       b26 += `<rect x="${(cx + 1.5).toFixed(1)}" y="${(pT + cH - h26).toFixed(1)}" width="${bW}" height="${h26.toFixed(1)}" fill="#1a56db" rx="2" opacity="0.85"/>`;
       b26 += `<text x="${(cx + bW/2 + 1.5).toFixed(1)}" y="${(pT + cH - h26 - 3).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#1a56db">${v26}</text>`;
-      const pct = (v26 - v25) / v25 * 100;
-      const dc = pct >= 0 ? '#10b981' : '#ef4444';
-      diff += `<text x="${cx.toFixed(1)}" y="${(H - pB + 28).toFixed(0)}" text-anchor="middle" font-size="7.5" fill="${dc}" font-weight="600">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</text>`;
+      if (v25 > 0) {
+        const pct = (v26 - v25) / v25 * 100;
+        const dc = pct >= 0 ? '#10b981' : '#ef4444';
+        diff += `<text x="${cx.toFixed(1)}" y="${(H - pB + 28).toFixed(0)}" text-anchor="middle" font-size="7.5" fill="${dc}" font-weight="600">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</text>`;
+      }
     }
   });
   const svg = `<svg viewBox="0 0 ${W} ${H}" class="yoy-svg" preserveAspectRatio="xMidYMid meet">${grid}${b25}${b26}${labs}${diff}</svg>`;
@@ -768,18 +797,18 @@ function setRptPeriod(btn, prefix) {
 // ────────────────────────────────────────────────────────
 function renderBarChart(containerId, bars, color, yLabel) {
   if (!bars || !bars.length) return;
-  const W = 700, H = 200, padL = 44, padB = 28, padT = 12, padR = 10;
+  const W = 700, H = 214, padL = 44, padB = 28, padT = 26, padR = 10;
   const cW = W - padL - padR, cH = H - padB - padT;
   const max = Math.max(...bars.map(b => b.v), 1);
   const bW  = Math.max(8, Math.min(40, cW / bars.length - 8));
   const slot = cW / bars.length;
-  let svgBars = '', svgLabels = '', svgGrid = '';
+  let svgBars = '', svgLabels = '', svgVals = '', svgGrid = '';
 
   [0,.25,.5,.75,1].forEach(pct => {
     const y = padT + cH * (1 - pct);
     const val = Math.round(max * pct);
-    svgGrid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="${pct===0?'#e2e8f0':'#f1f5f9'}" stroke-width="1"/>`;
-    svgGrid += `<text x="${padL - 5}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="9" fill="#94a3b8">${val}</text>`;
+    svgGrid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1" opacity="${pct === 0 ? 1 : 0.5}"/>`;
+    svgGrid += `<text x="${padL - 5}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="9" style="fill:var(--text-muted)">${val}</text>`;
   });
 
   bars.forEach((b, i) => {
@@ -787,11 +816,12 @@ function renderBarChart(containerId, bars, color, yLabel) {
     const x  = padL + slot * i + (slot - bW) / 2;
     const y  = padT + cH - bH;
     svgBars   += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${color}" rx="3"><title>${b.l}: ${b.v}</title></rect>`;
-    svgLabels += `<text x="${(x + bW/2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#94a3b8">${b.l}</text>`;
+    svgLabels += `<text x="${(x + bW/2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9" style="fill:var(--text-muted)">${b.l}</text>`;
+    svgVals   += `<text x="${(x + bW/2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="600" style="fill:var(--text-secondary)">${b.v}</text>`;
   });
 
   document.getElementById(containerId).innerHTML =
-    `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${svgGrid}${svgBars}${svgLabels}</svg>`;
+    `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${svgGrid}${svgBars}${svgVals}${svgLabels}</svg>`;
 }
 
 // ────────────────────────────────────────────────────────
@@ -802,12 +832,12 @@ function renderDonut(containerId, pct, color) {
   const filled = circ * (pct / 100);
   document.getElementById(containerId).innerHTML =
     `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg" style="width:100%">
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f1f5f9" stroke-width="14"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="14"/>
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="14"
         stroke-dasharray="${filled.toFixed(2)} ${circ.toFixed(2)}"
         stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
-      <text x="${cx}" y="${cy-8}" text-anchor="middle" font-size="24" font-weight="800" fill="#0f172a">${pct}%</text>
-      <text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="10" fill="#64748b">Satisfaction</text>
+      <text x="${cx}" y="${cy-8}" text-anchor="middle" font-size="24" font-weight="800" style="fill:var(--text-primary)">${pct}%</text>
+      <text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">Satisfaction</text>
     </svg>`;
 }
 
@@ -846,10 +876,10 @@ function renderTotalChats() {
     return `<div class="rpt-kpi-card">
       <div class="rpt-kpi-top">
         <div class="rpt-kpi-icon ${k.cls}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icons[k.icon]}</svg></div>
-        <span class="rpt-kpi-delta ${k.dCls}">${k.delta}</span>
+        <span class="rpt-kpi-label">${k.lbl}</span>
       </div>
       <div class="rpt-kpi-value">${k.val}</div>
-      <div class="rpt-kpi-label">${k.lbl}</div>
+      <span class="rpt-kpi-delta ${k.dCls}">${k.delta}</span>
     </div>`;
   }).join('');
 
@@ -858,6 +888,19 @@ function renderTotalChats() {
   document.getElementById('tc-chart-sub').textContent   = `${total.toLocaleString()} chats · per ${data.xLabel.toLowerCase()}`;
 
   renderBarChart('tc-chart', adjBars, '#1a56db');
+  renderThisWeekChart();
+}
+
+function renderThisWeekChart() {
+  const wrap = document.getElementById('tc-week-chart');
+  if (!wrap) return;
+  const agentId = parseInt(document.getElementById('tc-agent-select')?.value) || null;
+  const share = agentId ? (agentShare[agentId] / 100) : 1;
+  const bars = periodChartData.last7.bars.map(b => ({ l: b.l, v: Math.round(b.v * share) }));
+  const total = bars.reduce((s, b) => s + b.v, 0);
+  const sub = document.getElementById('tc-week-sub');
+  if (sub) sub.textContent = `${total.toLocaleString()} chats · per day`;
+  renderBarChart('tc-week-chart', bars, '#8b5cf6');
 }
 
 // ────────────────────────────────────────────────────────
@@ -900,9 +943,9 @@ function renderSatisfaction() {
     { val:`${npsScore}`,      lbl:'NPS Score',         cls:'purple', delta: npsScore>=50?'↑ Promoters':'Passives', dCls: npsScore>=50?'up':'neu' },
   ].map(k => `<div class="rpt-kpi-card">
     <div class="rpt-kpi-top"><div class="rpt-kpi-icon ${k.cls}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
-      <span class="rpt-kpi-delta ${k.dCls}">${k.delta}</span></div>
+      <span class="rpt-kpi-label">${k.lbl}</span></div>
     <div class="rpt-kpi-value">${k.val}</div>
-    <div class="rpt-kpi-label">${k.lbl}</div>
+    <span class="rpt-kpi-delta ${k.dCls}">${k.delta}</span>
   </div>`).join('');
 
   // Trend chart (satisfaction % over bars)
@@ -912,12 +955,24 @@ function renderSatisfaction() {
     v: Math.min(100, Math.max(70, b.v + (agentId ? (agentBaseSat[agentId]-92) : 0)))
   }));
 
-  const periodLabelMap = { today:'Today', yesterday:'Yesterday', last7:'Last 7 Days', curMonth:'Current Month', lastMonth:'Last Month', curYear:'Current Year', total:'All Time' };
-  const agentLabel = agentId ? ` — ${agents.find(a=>a.id===agentId)?.name || ''}` : '';
-  document.getElementById('cs-chart-title').textContent = `Satisfaction Trend — ${periodLabelMap[period]}${agentLabel}`;
-  document.getElementById('cs-chart-sub').textContent   = `CSAT % per ${satTrendData[period].bars.length > 7 ? 'month' : period==='last7'?'day':'hour'}`;
+  const agentOffset = agentId ? (agentBaseSat[agentId] - 92) : 0;
+  const agentName   = agentId ? (agents.find(a => a.id === agentId)?.name || '') : '';
 
-  renderBarChart('cs-chart', agentTrend, '#10b981');
+  // This Week chart (last7 — fixed)
+  const weekBars = satTrendData.last7.bars.map(b => ({
+    l: b.l, v: Math.min(100, Math.max(70, b.v + agentOffset))
+  }));
+  const weekSub = document.getElementById('cs-chart-week-sub');
+  if (weekSub) weekSub.textContent = `CSAT % per day${agentName ? ' · ' + agentName : ''}`;
+  renderBarChart('cs-chart-week', weekBars, '#10b981');
+
+  // Current Month chart (curMonth — fixed)
+  const monthBars = satTrendData.curMonth.bars.map(b => ({
+    l: b.l, v: Math.min(100, Math.max(70, b.v + agentOffset))
+  }));
+  const monthSub = document.getElementById('cs-chart-month-sub');
+  if (monthSub) monthSub.textContent = `CSAT % per week${agentName ? ' · ' + agentName : ''}`;
+  renderBarChart('cs-chart-month', monthBars, '#10b981');
 }
 
 // ────────────────────────────────────────────────────────
@@ -1477,7 +1532,7 @@ let platformIssues = [
     summary:'App crashes when opening the chart view on devices running iOS 17.4.',
     reportedAt:'Yesterday, 16:30', reportedBy:'Rita Brown',
     impact:{ clients:8, tickets:5, downtime:'Ongoing' },
-    description:'Since the iOS 17.4 system update rolled out on Monday, 8 clients have reported that the ForexDesk mobile app crashes immediately when attempting to open the full-screen chart view. The crash does not occur on iOS 17.3 or earlier, or on Android. The crash log points to a rendering conflict in the WebKit chart library used by the app. A workaround (using the condensed chart view) is available.',
+    description:'Since the iOS 17.4 system update rolled out on Monday, 8 clients have reported that the OpoSupportDesk mobile app crashes immediately when attempting to open the full-screen chart view. The crash does not occur on iOS 17.3 or earlier, or on Android. The crash log points to a rendering conflict in the WebKit chart library used by the app. A workaround (using the condensed chart view) is available.',
     timeline:[
       { time:'Mon 16:30', author:'Rita B. (Agent)',   color:'orange', text:'First crash report received. Client on iPhone 15 Pro running iOS 17.4.' },
       { time:'Mon 17:10', author:'Mobile Dev Team',   color:'orange', text:'Issue reproduced internally on iOS 17.4 simulator. Logged as bug #MOB-2241.' },
@@ -1831,7 +1886,7 @@ function exportIssuesToExcel() {
       .hdr-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
     </style>
     </head><body>
-    <div class="hdr-title">ForexDesk — Platform Issues Report</div>
+    <div class="hdr-title">OpoSupportDesk — Platform Issues Report</div>
     <div class="hdr-sub">Exported on ${dateStr} &nbsp;|&nbsp; Total issues: ${platformIssues.length}</div>
     <table>
       <thead><tr>
@@ -1943,7 +1998,7 @@ let tickets = [
     createdAt:'Today, 09:22', updatedAt:'32m ago', unread:false,
     messages:[
       { role:'client', sender:'Ahmed L.', time:'09:22', text:'I changed my leverage from 1:100 to 1:500 in the portal but MT4 still shows 1:100. Is there a delay?' },
-      { role:'agent',  sender:'System Auto-Reply', time:'09:22', text:'Thank you for contacting ForexDesk support. Your ticket has been received and a support agent will respond shortly.' },
+      { role:'agent',  sender:'System Auto-Reply', time:'09:22', text:'Thank you for contacting OpoSupportDesk support. Your ticket has been received and a support agent will respond shortly.' },
     ]
   },
   {
@@ -2560,7 +2615,10 @@ function markReadOnPage(id) {
 // ────────────────────────────────────────────────────────
 //  SETTINGS & LANGUAGE
 // ────────────────────────────────────────────────────────
-let currentLang = 'en';
+let currentLang = (() => {
+  const saved = localStorage.getItem('lang');
+  return ['en', 'ar', 'fa'].includes(saved) ? saved : 'en';
+})();
 
 const translations = {
   en: {
@@ -2628,8 +2686,40 @@ const translations = {
   }
 };
 
+function _syncLangUI() {
+  const LABELS = { en: 'EN', ar: 'AR', fa: 'FA' };
+  const label = LABELS[currentLang] || 'EN';
+  document.querySelectorAll('.lang-switcher-label').forEach(el => el.textContent = label);
+  // Mark active items in all open dropdowns
+  document.querySelectorAll('.lang-drop-item').forEach(item => {
+    const code = item.querySelector('.lang-drop-code');
+    if (code) item.classList.toggle('active', code.textContent.toLowerCase() === currentLang);
+  });
+}
+
+function toggleLangDrop(dropId, event) {
+  event.stopPropagation();
+  const drop = document.getElementById(dropId);
+  if (!drop) return;
+  const isHidden = drop.classList.contains('hidden');
+  // Close all lang dropdowns first
+  document.querySelectorAll('.lang-drop').forEach(d => d.classList.add('hidden'));
+  if (isHidden) drop.classList.remove('hidden');
+}
+
+function selectLang(lang) {
+  document.querySelectorAll('.lang-drop').forEach(d => d.classList.add('hidden'));
+  applyLanguage(lang);
+}
+
+// Close lang dropdowns on outside click
+document.addEventListener('click', function() {
+  document.querySelectorAll('.lang-drop').forEach(d => d.classList.add('hidden'));
+});
+
 function applyLanguage(lang, btn) {
   currentLang = lang;
+  localStorage.setItem('lang', lang);
   const t = translations[lang];
 
   // Translate all data-i18n elements
@@ -2658,7 +2748,13 @@ function applyLanguage(lang, btn) {
     const card = document.getElementById('lang-' + lang);
     if (card) card.classList.add('active');
   }
+
+  // Sync global lang switcher labels
+  _syncLangUI();
 }
+
+// Apply saved language on startup
+(function() { applyLanguage(currentLang); })();
 
 // ────────────────────────────────────────────────────────
 //  PROFILE PAGE
@@ -2843,8 +2939,12 @@ function saveProfileShift() {
   profileSaveFeedback(document.querySelector('#page-profile .profile-card:nth-child(2) .profile-save-btn'), 'Saved');
 }
 
+function emailValid(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+}
+
 function passwordValid(p) {
-  return p.length >= 8 &&
+  return p.length >= 6 &&
     /[a-zA-Z]/.test(p) &&
     /[0-9]/.test(p) &&
     /[@#$!%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(p);
@@ -2865,7 +2965,7 @@ function updatePassStrength(p) {
   const label = document.getElementById('pass-strength-label');
   if (!fill || !label) return;
   let score = 0;
-  if (p.length >= 8)                                                         score++;
+  if (p.length >= 6)                                                         score++;
   if (/[a-zA-Z]/.test(p))                                                   score++;
   if (/[0-9]/.test(p))                                                       score++;
   if (/[@#$!%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(p))                    score++;
@@ -2893,7 +2993,7 @@ function savePassword() {
   msg.style.display = 'none';
   let ok = true;
   if (!passwordValid(np)) {
-    showErr('profile-pass-err', 'Min. 8 characters with letter, number, and special character (e.g. @#$!).');
+    showErr('profile-pass-err', 'Min. 6 characters with a letter, number, and special character (e.g. @#$!).');
     ok = false;
   }
   if (np !== cp) { showErr('profile-confirm-err', 'Passwords do not match.'); ok = false; }
@@ -2983,6 +3083,31 @@ function render7DayChart() {
     texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="${textCol}">${labels[i]}</text>`;
   });
 
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${bars}${vals}${texts}</svg>`;
+}
+
+function renderCurMonthChart() {
+  const wrap = document.getElementById('chats-curmonth-chart');
+  if (!wrap) return;
+  const data   = periodChartData.curMonth.bars;
+  const W = 580, H = 180, padB = 32, padT = 20, padL = 8, padR = 8;
+  const chartH = H - padB - padT;
+  const n      = data.length;
+  const max    = Math.max(...data.map(b => b.v));
+  const barW   = (W - padL - padR - (n - 1) * 16) / n;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textCol = isDark ? '#94a3b8' : '#64748b';
+  const valCol  = isDark ? '#e2e8f0' : '#1e293b';
+  let bars = '', vals = '', texts = '';
+  data.forEach((b, i) => {
+    const x  = padL + i * (barW + 16);
+    const bh = (b.v / max) * chartH;
+    const y  = padT + chartH - bh;
+    const op = (0.45 + 0.55 * (b.v / max)).toFixed(2);
+    bars  += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="5" fill="#8b5cf6" opacity="${op}"/>`;
+    vals  += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${valCol}">${b.v}</text>`;
+    texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="${textCol}">${b.l}</text>`;
+  });
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${bars}${vals}${texts}</svg>`;
 }
 
@@ -3210,7 +3335,7 @@ function exportDashboardReport() {
   const period  = getLastWeekPeriod();
 
   const rows = [
-    ['ForexDesk — Dashboard Report'],
+    ['OpoSupportDesk — Dashboard Report'],
     ['Generated', dateStr],
     [''],
     ['── PERFORMANCE OVERVIEW (' + period + ') ──'],
@@ -3279,7 +3404,15 @@ function initDashboardOverview() {
     chartEl.textContent = `${fmt(start)} – ${fmt(now)}`;
   }
 
+  // Current month period label
+  const monthEl = document.getElementById('chart-curmonth-period');
+  if (monthEl) {
+    const now = new Date();
+    monthEl.textContent = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
   render7DayChart();
+  renderCurMonthChart();
   startRealTimeSim();
 }
 
