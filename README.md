@@ -15,57 +15,75 @@ OpoSupportDesk is a single-page application (SPA) that gives support teams a uni
 ### Dashboard
 - Real-time overview panel showing customers online, ongoing chats, and logged-in agents
 - Statistics grid: Active Chats, Agents Online, Avg. First Response, CSAT Score
-- Last 7 Days SVG bar chart with live data
+- Last 7 Days and Current Month SVG bar charts with live data
 - Agent Status Board with per-agent load indicators
-- Platform Issues widget
+- Platform Issues preview widget
+- Export report to a styled HTML snapshot file
 
 ### Live Chats
 - Active chats panel with supervise mode per conversation
-- Chat queue with pick-up functionality
-- Real-time queue counter
+- Chat queue with urgency indicators (highlighted when wait time ≥ 5 min)
+- Pick-up functionality to assign queued chats to available agents
+- Manager notes: supervisors can inject internal notes into an active transcript
+- Real-time queue counter and channel badges (WebTrader, Mobile App, MT4 Plugin, etc.)
 
 ### Agent Management
 - Agent grid with SVG-generated avatars (gender-aware, 12-color palette)
-- Filter tabs: All, Day Shift, Night Shift, Online, Busy, Away, Offline
-- Edit and add agents via modal
+- Filter tabs: All, Day Shift, Night Shift, Online, Busy, Away, Offline — with live counts
+- Edit and add agents via modal (name, email, gender, shift, status, avatar preview)
 
 ### Platform Issues
-- Issues grid with status, priority, category, and owner
+- Issues grid with status, severity, platform icon, category, and owner
+- 10 tracked platform types: MT4, MT5, cTrader, OpoTrade, TradingView, Web Terminal, Web Portal, Payment Gateway, Mobile App, Email/SMS
 - Filter by status: To Do, In Progress, Pending, Postponed, Resolved
-- Full issue detail modal with conversation history and status controls
-- Create new issues; export data to Excel
+- Full issue detail modal with:
+  - Impact metrics: clients affected, tickets opened, downtime
+  - Color-coded timeline of status/priority events
+  - Comment thread (add new comments inline)
+  - Priority and status controls
+- Create new issues via modal
+- Export all issue data to a styled HTML report file
 
 ### Tickets
 - Split-panel layout: ticket list (left) + detail view (right)
 - Status tabs: Open, Pending, On Hold, Solved, Closed
-- Full conversation thread in detail panel
+- Full conversation thread in detail panel with client, agent, and internal note roles
+- Client info sidebar: email, channel, priority, created/updated timestamps
+- Unread indicators on ticket list items
 
 ### Reports
-- **Total Chats** — KPI cards, bar chart by period, Annual Chat Analytics with monthly distribution, MoM trend chart, and 2025 vs 2026 year-over-year comparison
-- **Chat Satisfaction** — CSAT score with donut chart
-- **Agent Performance** — Rankings table with multi-metric KPIs
-- Date period filters: Today, Yesterday, Last 7 Days, Current Month, Last Month, Current Year, Total
+- **Total Chats** — KPI cards with trend deltas, bar chart by period, Annual Chat Analytics (monthly distribution donut + month-over-month trend line chart), and 2025 vs 2026 year-over-year comparison
+- **Chat Satisfaction** — CSAT score with donut chart, weekly and monthly bar charts
+- **Agent Performance** — Rankings table with sortable KPI columns (Total Chats, Satisfaction, First Response, Efficiency) and per-agent sparklines
+- Date period filters: Today, Yesterday, Last 7 Days, Current Month, Last Month, Current Year, All Time
+- Year selector: 2025, 2026, Compare (side-by-side)
 
 ### Profile
-- Edit personal information and work shift
-- Custom avatar upload or SVG avatar generator
-- Password & security section
+- Edit personal information (name, email) and work shift (day/night)
+- Avatar selector: 12 SVG options (6 male × 6 female color palettes), custom image upload, and remove button
+- Password & Security section with strength indicator and confirm-password validation
 
 ### Settings
 - Light / Dark theme with live preview cards
 - Language & Region: English, Arabic (RTL), Persian (RTL)
-- 7 configurable notification toggles
+- 7 configurable notification toggles: New Chat Assigned, Agent Offline, New Platform Issue, New Ticket, Queue Alert (> 10 clients), Performance Drop (< 85%), SLA Breach
 
 ### Notifications
-- Full notification history with unread badge
-- Mark-as-read and dropdown panel in the header
+- Full notification history with unread badge (5 types: Chat, Agent, Ticket, Issue, Performance)
+- Mark-as-read per item or all at once
+- Dropdown panel in the header showing 3 most recent + View All link
+
+### Global Search
+- Instant search across 40+ indexed entries (pages, settings, agents, issues, tickets)
+- Dynamic matching on live agent names, issue titles, and ticket subjects
+- Grouped results by section with keyboard navigation (arrow keys)
 
 ---
 
 ## Session Management
 
-- Sessions persist in `localStorage` across page reloads
-- **10-minute inactivity timeout** — a warning modal appears at 9 minutes with a 60-second countdown
+- Sessions persist in `localStorage` across page reloads, including the last viewed page
+- **10-minute inactivity timeout** — a warning modal appears at 9 minutes with a 60-second visual countdown
 - Any mouse, keyboard, scroll, or touch event resets the idle timer
 - "Stay Logged In" extends the session; "Log Out Now" terminates it immediately
 - Automatic logout when the countdown reaches zero
@@ -82,7 +100,7 @@ Three languages supported with full RTL layout for Arabic and Persian:
 | Arabic | `ar` | RTL |
 | Persian / Farsi | `fa` | RTL |
 
-Language preference is persisted in `localStorage`.
+Language preference is persisted in `localStorage`. Switching language applies `dir="rtl"` to the document root for Arabic and Persian.
 
 ---
 
@@ -90,19 +108,21 @@ Language preference is persisted in `localStorage`.
 
 Built on **Material Design 3** principles:
 
-| Token | Value |
-|---|---|
-| Primary | `#1a56db` |
-| Surface | `#f3f4ff` |
-| Card | `#ffffff` |
-| On-Surface | `#1a1c22` |
-| Outline Variant | `#c4c6d0` |
-| Shape — Large | `16px` |
-| Shape — Full (buttons) | `100px` |
-| Easing | `cubic-bezier(0.2, 0, 0, 1)` |
-| Font | Roboto (300 · 400 · 500 · 700) |
+| Token | Light Value | Dark Value |
+|---|---|---|
+| Primary | `#1a56db` | `#1a56db` |
+| Page Background | `#f3f4ff` | `#111318` |
+| Card Background | `#ffffff` | `#1d2030` |
+| On-Surface | `#1a1c22` | `#e3e2e6` |
+| On-Surface Variant | `#44474e` | `#c5c6d0` |
+| Outline Variant | `#c4c6d0` | `#44474f` |
+| Sidebar Background | `#ffffff` | `#0c1322` |
+| Shape — Cards | `16px` | `16px` |
+| Shape — Buttons | `100px` | `100px` |
+| Easing | `cubic-bezier(0.2, 0, 0, 1)` | — |
+| Font | Roboto (300 · 400 · 500 · 700) | — |
 
-Dark mode uses the MD3 dark color scheme (`page-bg: #111318`, `card-bg: #1d2030`).
+The sidebar uses 20+ dedicated `--sb-*` CSS custom properties for precise light/dark theming without specificity conflicts.
 
 ---
 
@@ -112,8 +132,10 @@ Dark mode uses the MD3 dark color scheme (`page-bg: #111318`, `card-bg: #1d2030`
 |---|---|
 | `≤ 1200px` | Stat grid 4 → 2 columns |
 | `≤ 1024px` | Search bar narrows, tickets panel compresses |
-| `≤ 800px` | Sidebar collapses to icon-only (64px) |
+| `≤ 860px` | Chart container adjustments |
+| `≤ 800px` | Sidebar collapses to icon-only (64 px) |
 | `≤ 768px` | Tickets stack vertically, live chats go single-column, profile stacks |
+| `≤ 700px` | Report chart spacing adjustments |
 | `≤ 600px` | Search hidden, stat grid 1-column, language cards wrap |
 | `≤ 480px` | Language cards full-width, profile fields stack |
 
@@ -137,9 +159,9 @@ Dark mode uses the MD3 dark color scheme (`page-bg: #111318`, `card-bg: #1d2030`
 
 ```
 OpoLearningRepo/
-├── index.html      # Full SPA structure (auth screens + all 9 pages)
-├── app.js          # All application logic (~3 400 lines)
-├── styles.css      # Complete styling with MD3 overrides (~3 700 lines)
+├── index.html      # Full SPA structure (auth screens + all 9 pages + modals)
+├── app.js          # All application logic (~3 800 lines)
+├── styles.css      # Complete styling with MD3 tokens (~4 000 lines)
 └── README.md
 ```
 
@@ -155,7 +177,7 @@ No build step or dependency installation required.
    ```
 2. Open `index.html` in any modern browser.
 
-**Demo credentials:** any valid email address and any non-empty password are accepted.
+**Demo credentials:** any valid email address and a password meeting the minimum requirements (6+ characters, including at least one letter, one number, and one special character) are accepted.
 
 ---
 
