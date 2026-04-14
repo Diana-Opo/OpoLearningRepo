@@ -1845,66 +1845,226 @@ function piFilterByStatus(status) {
 function exportIssuesToExcel() {
   ensureIssueFields();
   const now     = new Date();
-  const dateStr = now.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
 
-  const statusColor = { todo:'#f1f5f9', inprogress:'#dbeafe', pending:'#fef3c7', postponed:'#f3e8ff', resolved:'#d1fae5' };
-  const priorityColor = { critical:'#fee2e2', high:'#ffedd5', medium:'#fffbeb' };
+  // ── Summary counts ──────────────────────────────────────
+  const statusList   = ['todo','inprogress','pending','postponed','resolved'];
+  const statusMeta   = {
+    todo:       { label:'To Do',       color:'#94a3b8', bg:'#f1f5f9' },
+    inprogress: { label:'In Progress', color:'#1a56db', bg:'#dbeafe' },
+    pending:    { label:'Pending',     color:'#b45309', bg:'#fef3c7' },
+    postponed:  { label:'Postponed',   color:'#7c3aed', bg:'#f3e8ff' },
+    resolved:   { label:'Resolved',    color:'#059669', bg:'#d1fae5' },
+  };
+  const priorityMeta = {
+    critical: { label:'Critical', color:'#dc2626', bg:'#fee2e2' },
+    high:     { label:'High',     color:'#ea580c', bg:'#ffedd5' },
+    medium:   { label:'Medium',   color:'#b45309', bg:'#fffbeb' },
+  };
 
-  const rows = platformIssues.map(issue => {
-    const pm = PLATFORM_META[issue.platform] || { label: issue.platform };
-    const comments = (issue.comments||[]).map(c => `[${c.author} @ ${c.time}]: ${c.text}`).join(' | ');
-    const timeline = issue.timeline.map(t => `[${t.time} ${t.author}]: ${t.text}`).join(' | ');
-    const sc = statusColor[issue.status]   || '#ffffff';
-    const pc = priorityColor[issue.priority] || '#ffffff';
-    return `
-      <tr>
-        <td style="background:${sc};font-weight:600;color:#1e293b;white-space:nowrap">${escHtml(issueStatusLabel(issue.status))}</td>
-        <td style="background:${pc};font-weight:600;color:#1e293b;white-space:nowrap">${escHtml((issue.priority||'medium').charAt(0).toUpperCase()+(issue.priority||'medium').slice(1))}</td>
-        <td style="font-weight:600">${escHtml(issue.title)}</td>
-        <td>${escHtml(pm.label)}</td>
-        <td>${escHtml(issue.reportedAt)}</td>
-        <td>${escHtml(issue.reportedBy)}</td>
-        <td style="text-align:center">${issue.impact.clients}</td>
-        <td style="text-align:center">${issue.impact.tickets}</td>
-        <td style="text-align:center">${escHtml(issue.impact.downtime)}</td>
-        <td style="max-width:300px">${escHtml(issue.description||'')}</td>
-        <td style="max-width:300px;color:#475569;font-size:12px">${escHtml(comments)}</td>
-        <td style="max-width:300px;color:#475569;font-size:12px">${escHtml(timeline)}</td>
-      </tr>`;
+  const countBy = (key, val) => platformIssues.filter(i => i[key] === val).length;
+
+  const summaryStatusCards = statusList.map(s => {
+    const m = statusMeta[s];
+    return `<div class="sum-card" style="border-top-color:${m.color}">
+      <div class="sum-label">${m.label}</div>
+      <div class="sum-val" style="color:${m.color}">${countBy('status', s)}</div>
+    </div>`;
   }).join('');
 
-  const html = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
-    <head><meta charset="UTF-8">
-    <style>
-      body { font-family: Calibri, Arial, sans-serif; font-size: 13px; }
-      table { border-collapse: collapse; width: 100%; }
-      th, td { border: 1px solid #cbd5e1; padding: 7px 11px; vertical-align: top; }
-      th { background: #1e3a5f; color: #ffffff; font-weight: 700; white-space: nowrap; }
-      tr:hover td { background: #f8fafc; }
-      .hdr-title { font-size: 20px; font-weight: 800; color: #1e3a5f; margin-bottom: 4px; }
-      .hdr-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
-    </style>
-    </head><body>
-    <div class="hdr-title">OpoSupportDesk — Platform Issues Report</div>
-    <div class="hdr-sub">Exported on ${dateStr} &nbsp;|&nbsp; Total issues: ${platformIssues.length}</div>
-    <table>
-      <thead><tr>
-        <th>Status</th><th>Priority</th><th>Title</th><th>Platform</th>
-        <th>Reported At</th><th>Reported By</th>
-        <th>Clients Affected</th><th>Tickets</th><th>Downtime</th>
-        <th>Description</th><th>Comments</th><th>Timeline</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    </body></html>`;
+  const priorityBar = ['critical','high','medium'].map(p => {
+    const m = priorityMeta[p]; const n = countBy('priority', p);
+    return `<div class="pri-row">
+      <span class="badge" style="background:${m.bg};color:${m.color};min-width:72px;text-align:center">${m.label}</span>
+      <div class="pri-bar-bg"><div class="pri-bar" style="width:${Math.round(n/Math.max(platformIssues.length,1)*100)}%;background:${m.color}"></div></div>
+      <span class="pri-count">${n}</span>
+    </div>`;
+  }).join('');
 
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  // ── Issue rows ──────────────────────────────────────────
+  const issueRows = platformIssues.map(issue => {
+    const pm      = PLATFORM_META[issue.platform] || { label: issue.platform, icon:'🔧' };
+    const sm      = statusMeta[issue.status]   || { label: issue.status,   color:'#64748b', bg:'#f1f5f9' };
+    const pm2     = priorityMeta[issue.priority] || { label: issue.priority, color:'#64748b', bg:'#f1f5f9' };
+    const lastTl  = issue.timeline[issue.timeline.length - 1];
+    const lastCmt = (issue.comments||[]).slice(-1)[0];
+
+    const tlHtml = issue.timeline.map(t =>
+      `<div class="tl-row"><span class="tl-time">${escHtml(t.time)}</span><span class="tl-author">${escHtml(t.author)}</span><span class="tl-text">${escHtml(t.text)}</span></div>`
+    ).join('');
+
+    const cmtHtml = (issue.comments||[]).length
+      ? (issue.comments||[]).map(c =>
+          `<div class="tl-row"><span class="tl-time">${escHtml(c.time)}</span><span class="tl-author">${escHtml(c.author)}</span><span class="tl-text">${escHtml(c.text)}</span></div>`
+        ).join('')
+      : `<span style="color:#94a3b8;font-style:italic">No comments</span>`;
+
+    return `
+    <div class="issue-card priority-${issue.priority||'medium'}">
+      <div class="issue-header">
+        <div class="issue-title-row">
+          <span class="issue-platform">${pm.icon} ${escHtml(pm.label)}</span>
+          <span class="badge" style="background:${sm.bg};color:${sm.color}">${sm.label}</span>
+          <span class="badge" style="background:${pm2.bg};color:${pm2.color}">${pm2.label}</span>
+        </div>
+        <div class="issue-title">${escHtml(issue.title)}</div>
+        <div class="issue-summary">${escHtml(issue.summary||'')}</div>
+      </div>
+      <div class="issue-body">
+        <div class="issue-meta-grid">
+          <div class="meta-item"><div class="meta-lbl">Reported By</div><div class="meta-val">${escHtml(issue.reportedBy||'—')}</div></div>
+          <div class="meta-item"><div class="meta-lbl">Reported At</div><div class="meta-val">${escHtml(issue.reportedAt||'—')}</div></div>
+          <div class="meta-item"><div class="meta-lbl">Clients Affected</div><div class="meta-val impact">${issue.impact.clients}</div></div>
+          <div class="meta-item"><div class="meta-lbl">Tickets Linked</div><div class="meta-val impact">${issue.impact.tickets}</div></div>
+          <div class="meta-item"><div class="meta-lbl">Downtime</div><div class="meta-val">${escHtml(issue.impact.downtime||'—')}</div></div>
+          <div class="meta-item"><div class="meta-lbl">Category</div><div class="meta-val">${escHtml(issue.category||'—')}</div></div>
+        </div>
+        ${issue.description ? `<div class="issue-desc"><strong>Description:</strong> ${escHtml(issue.description)}</div>` : ''}
+        <div class="issue-sections">
+          <div class="issue-section">
+            <div class="section-lbl">📋 Timeline</div>
+            <div class="tl-list">${tlHtml}</div>
+          </div>
+          ${(issue.comments||[]).length ? `<div class="issue-section">
+            <div class="section-lbl">💬 Comments</div>
+            <div class="tl-list">${cmtHtml}</div>
+          </div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpoSupportDesk — Platform Issues Report</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#f3f4ff;color:#1a1c22;font-size:14px;line-height:1.5}
+  .page{max-width:960px;margin:32px auto;padding:0 24px 48px}
+
+  /* ── Header ── */
+  .rpt-header{background:linear-gradient(135deg,#1e3a5f 0%,#1a56db 100%);color:#fff;border-radius:16px;padding:32px 36px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+  .rpt-header h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .rpt-header .sub{font-size:12px;opacity:.75;margin-top:4px}
+  .rpt-header .total{display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 14px;font-size:12px;font-weight:700;margin-top:10px}
+  .rpt-header .meta{text-align:right;font-size:12px;opacity:.85;line-height:1.8;flex-shrink:0}
+  .rpt-header .meta strong{font-size:13px;display:block;opacity:1}
+
+  /* ── Section cards ── */
+  .section{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:20px;overflow:hidden}
+  .section-title{padding:14px 22px;border-bottom:1px solid #eef0f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b}
+  .section-body{padding:22px}
+
+  /* ── Summary status cards ── */
+  .sum-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:0}
+  .sum-card{background:#f8f9ff;border-radius:10px;padding:16px 18px;border-top:3px solid;text-align:center}
+  .sum-label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+  .sum-val{font-size:28px;font-weight:800;line-height:1}
+
+  /* ── Priority bar ── */
+  .pri-rows{display:flex;flex-direction:column;gap:10px}
+  .pri-row{display:flex;align-items:center;gap:12px}
+  .pri-bar-bg{flex:1;background:#e8eaf0;border-radius:6px;height:10px}
+  .pri-bar{border-radius:6px;height:10px}
+  .pri-count{font-weight:700;font-size:14px;min-width:24px;text-align:right;color:#1a1c22}
+
+  /* ── Badge ── */
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+
+  /* ── Issue cards ── */
+  .issue-card{background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:16px;overflow:hidden;border-left:4px solid}
+  .issue-card.priority-critical{border-left-color:#ef4444}
+  .issue-card.priority-high{border-left-color:#f97316}
+  .issue-card.priority-medium{border-left-color:#f59e0b}
+  .issue-header{padding:18px 20px 14px;border-bottom:1px solid #f1f5f9}
+  .issue-title-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .issue-platform{font-size:12px;font-weight:600;color:#64748b}
+  .issue-title{font-size:15px;font-weight:700;color:#1a1c22;margin-bottom:5px}
+  .issue-summary{font-size:13px;color:#475569}
+  .issue-body{padding:18px 20px}
+  .issue-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  .meta-item{background:#f8f9ff;border-radius:8px;padding:10px 12px}
+  .meta-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+  .meta-val{font-size:14px;font-weight:600;color:#1a1c22}
+  .meta-val.impact{font-size:18px;font-weight:800;color:#1a56db}
+  .issue-desc{font-size:13px;color:#475569;background:#f8f9ff;border-radius:8px;padding:12px;margin-bottom:14px}
+  .issue-sections{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .issue-section{background:#f8f9ff;border-radius:8px;padding:12px 14px}
+  .section-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:8px}
+  .tl-list{display:flex;flex-direction:column;gap:6px}
+  .tl-row{font-size:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:baseline}
+  .tl-time{color:#94a3b8;flex-shrink:0;font-size:11px}
+  .tl-author{font-weight:600;color:#475569;flex-shrink:0}
+  .tl-text{color:#1a1c22}
+
+  /* ── Footer ── */
+  .rpt-footer{text-align:center;color:#94a3b8;font-size:11px;padding:28px 0 0;border-top:1px solid #eef0f6;margin-top:8px}
+
+  @media print{
+    body{background:#fff}
+    .page{margin:0;padding:16px}
+    .section,.issue-card{box-shadow:none;border:1px solid #eef0f6;break-inside:avoid}
+    .rpt-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="rpt-header">
+    <div>
+      <h1>🐛 Platform Issues Report</h1>
+      <div class="sub">OpoSupportDesk — Chat Support Manager</div>
+      <div class="total">${platformIssues.length} issue${platformIssues.length !== 1 ? 's' : ''} total</div>
+    </div>
+    <div class="meta">
+      <strong>${dateStr}</strong>
+      Generated at ${timeStr}<br>
+      Exported by ${currentUser?.name || 'Support Manager'}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📊 Summary by Status</div>
+    <div class="section-body">
+      <div class="sum-grid">${summaryStatusCards}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">⚠️ Priority Breakdown</div>
+    <div class="section-body">
+      <div class="pri-rows">${priorityBar}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📋 All Issues</div>
+    <div class="section-body" style="padding:18px">
+      ${issueRows}
+    </div>
+  </div>
+
+  <div class="rpt-footer">
+    Generated by <strong>OpoSupportDesk</strong> &nbsp;·&nbsp; ${dateStr} at ${timeStr} &nbsp;·&nbsp; Data captured at time of export
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `platform-issues-${now.toISOString().slice(0,10)}.xls`;
+  a.download = `platform-issues-${now.toISOString().slice(0,10)}.html`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
@@ -3330,42 +3490,193 @@ document.addEventListener('click', e => {
 //  EXPORT REPORT
 // ────────────────────────────────────────────────────────
 function exportDashboardReport() {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const now     = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
   const period  = getLastWeekPeriod();
 
-  const rows = [
-    ['OpoSupportDesk — Dashboard Report'],
-    ['Generated', dateStr],
-    [''],
-    ['── PERFORMANCE OVERVIEW (' + period + ') ──'],
-    ['Metric', 'Value', 'Change'],
-    ['Total Chats',    '427',    '+8%'],
-    ['Satisfaction',   '94%',    '+3%'],
-    ['Response Time',  '1m 38s', '-12%'],
-    ['Efficiency',     '87%',    '+5%'],
-    [''],
-    ['── TODAY\'S SNAPSHOT ──'],
-    ['Metric', 'Value', 'Change'],
-    ['Active Chats',       document.getElementById('stat-active')?.textContent || '14', '+12%'],
-    ['Agents Online',      '8',    '+2'],
-    ['Avg. First Response','1:42', '—'],
-    ['CSAT Score',         '94%',  '+3%'],
-    [''],
-    ['── LAST 7 DAYS — TOTAL CHATS ──'],
-    ['Day', 'Chats'],
-  ];
+  const customersOnline = document.getElementById('rt-customers')?.textContent || '—';
+  const ongoingChats    = document.getElementById('rt-ongoing')?.textContent   || '—';
+  const loggedAgents    = document.getElementById('rt-agents')?.textContent    || '—';
+  const activeChats     = document.getElementById('stat-active')?.textContent  || '14';
 
   const data7  = [38, 44, 55, 41, 62, 48, 24];
   const labels = getLast7DayLabels();
-  labels.forEach((lbl, i) => rows.push([lbl, data7[i]]));
+  const total7 = data7.reduce((s, v) => s + v, 0);
+  const max7   = Math.max(...data7);
 
-  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const agentRows = agents.map(a => `
+    <tr>
+      <td><strong>${a.name}</strong></td>
+      <td>${a.shift === 'day' ? '☀️ Day' : '🌙 Night'}</td>
+      <td><span class="badge badge-${a.status}">${a.status.charAt(0).toUpperCase()+a.status.slice(1)}</span></td>
+      <td>${a.chats} / ${a.maxChats}</td>
+      <td><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(a.chats/a.maxChats*100)}%"></div></div></td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpoSupportDesk — Dashboard Report</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',Roboto,Arial,sans-serif;background:#f3f4ff;color:#1a1c22;font-size:14px;line-height:1.5}
+  .page{max-width:960px;margin:32px auto;padding:0 24px 48px}
+
+  /* ── Header ── */
+  .rpt-header{background:linear-gradient(135deg,#1a56db 0%,#3b6fe0 100%);color:#fff;border-radius:16px;padding:32px 36px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+  .rpt-header h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .rpt-header .sub{font-size:12px;opacity:.75;margin-top:4px}
+  .rpt-header .period{display:inline-block;background:rgba(255,255,255,.18);border-radius:20px;padding:3px 12px;font-size:11px;font-weight:700;margin-top:10px;letter-spacing:.04em}
+  .rpt-header .meta{text-align:right;font-size:12px;opacity:.85;line-height:1.8;flex-shrink:0}
+  .rpt-header .meta strong{font-size:13px;display:block;opacity:1}
+
+  /* ── Section cards ── */
+  .section{background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:20px;overflow:hidden}
+  .section-title{padding:14px 22px;border-bottom:1px solid #eef0f6;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;display:flex;align-items:center;gap:8px}
+  .section-body{padding:22px}
+
+  /* ── RT grid ── */
+  .rt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .rt-card{background:#f8f9ff;border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px}
+  .rt-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .rt-icon.gray{background:#f1f5f9}.rt-icon.blue{background:#dbeafe}.rt-icon.green{background:#d1fae5}
+  .rt-lbl{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+  .rt-val{font-size:26px;font-weight:800;color:#1a1c22;line-height:1;margin-top:2px}
+
+  /* ── KPI grid ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .kpi-card{background:#f8f9ff;border-radius:10px;padding:18px;border-top:3px solid}
+  .kpi-card.blue{border-color:#1a56db}.kpi-card.green{border-color:#10b981}.kpi-card.yellow{border-color:#f59e0b}.kpi-card.purple{border-color:#8b5cf6}
+  .kpi-lbl{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .kpi-val{font-size:30px;font-weight:800;line-height:1;color:#1a1c22}
+  .kpi-delta{font-size:11px;font-weight:600;margin-top:7px}
+  .kpi-card.blue .kpi-delta{color:#1a56db}.kpi-card.green .kpi-delta{color:#10b981}
+  .kpi-card.yellow .kpi-delta{color:#b45309}.kpi-card.purple .kpi-delta{color:#8b5cf6}
+
+  /* ── Tables ── */
+  table{width:100%;border-collapse:collapse}
+  th{background:#f8f9ff;text-align:left;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;border-bottom:1px solid #eef0f6}
+  td{padding:11px 14px;border-bottom:1px solid #f5f6fb;font-size:13px;vertical-align:middle;color:#374151}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#fafbff}
+
+  /* ── Perf table change column ── */
+  .up{color:#10b981;font-weight:600}.down{color:#ef4444;font-weight:600}.neu{color:#64748b;font-weight:600}
+
+  /* ── Badges ── */
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .badge-online{background:#d1fae5;color:#059669}.badge-busy{background:#fee2e2;color:#dc2626}
+  .badge-away{background:#fef3c7;color:#b45309}.badge-offline{background:#f1f5f9;color:#64748b}
+  .badge-good{background:#d1fae5;color:#059669}.badge-warn{background:#fef3c7;color:#b45309}
+
+  /* ── Bar chart (7-day) ── */
+  .bar-bg{background:#e8eaf0;border-radius:6px;height:10px;width:160px}
+  .bar-fill{background:#1a56db;border-radius:6px;height:10px;transition:width .3s}
+  .day-val{font-weight:700;color:#1a56db;text-align:right;min-width:40px}
+
+  /* ── Footer ── */
+  .rpt-footer{text-align:center;color:#94a3b8;font-size:11px;padding:28px 0 0;border-top:1px solid #eef0f6;margin-top:8px}
+
+  @media print{
+    body{background:#fff}
+    .page{margin:0;padding:16px}
+    .section{box-shadow:none;border:1px solid #eef0f6;break-inside:avoid}
+    .rpt-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="rpt-header">
+    <div>
+      <h1>📊 Dashboard Report</h1>
+      <div class="sub">OpoSupportDesk — Chat Support Manager</div>
+      <div class="period">Period: ${period}</div>
+    </div>
+    <div class="meta">
+      <strong>${dateStr}</strong>
+      Generated at ${timeStr}<br>
+      Exported by ${currentUser?.name || 'Support Manager'}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🔴 Live Snapshot at Export Time</div>
+    <div class="section-body">
+      <div class="rt-grid">
+        <div class="rt-card"><div class="rt-icon gray">👥</div><div><div class="rt-lbl">Customers Online</div><div class="rt-val">${customersOnline}</div></div></div>
+        <div class="rt-card"><div class="rt-icon blue">💬</div><div><div class="rt-lbl">Ongoing Chats</div><div class="rt-val">${ongoingChats}</div></div></div>
+        <div class="rt-card"><div class="rt-icon green">👤</div><div><div class="rt-lbl">Logged-in Agents</div><div class="rt-val">${loggedAgents}</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📈 Today's Key Metrics</div>
+    <div class="section-body">
+      <div class="kpi-grid">
+        <div class="kpi-card blue"><div class="kpi-lbl">Active Chats</div><div class="kpi-val">${activeChats}</div><div class="kpi-delta">↑ +12% vs yesterday</div></div>
+        <div class="kpi-card green"><div class="kpi-lbl">Agents Online</div><div class="kpi-val">8</div><div class="kpi-delta">+2 from last shift</div></div>
+        <div class="kpi-card yellow"><div class="kpi-lbl">Avg. First Response</div><div class="kpi-val">1:42</div><div class="kpi-delta">Target: under 2 min</div></div>
+        <div class="kpi-card purple"><div class="kpi-lbl">CSAT Score</div><div class="kpi-val">94%</div><div class="kpi-delta">↑ +3% vs last week</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">⚡ Performance Overview — ${period}</div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th><th>Change</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Total Chats</td><td><strong>427</strong></td><td class="up">↑ +8%</td><td><span class="badge badge-good">On Track</span></td></tr>
+          <tr><td>Chat Satisfaction</td><td><strong>94%</strong></td><td class="up">↑ +3%</td><td><span class="badge badge-good">Excellent</span></td></tr>
+          <tr><td>Avg. Response Time</td><td><strong>1m 38s</strong></td><td class="up">↓ −12%</td><td><span class="badge badge-good">Improved</span></td></tr>
+          <tr><td>Agent Efficiency</td><td><strong>87%</strong></td><td class="up">↑ +5%</td><td><span class="badge badge-good">Good</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📅 Last 7 Days — Total Chats &nbsp;<span style="font-weight:400;text-transform:none;letter-spacing:0;color:#1a1c22">${total7} total</span></div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Day</th><th>Volume</th><th style="text-align:right">Chats</th></tr></thead>
+        <tbody>
+          ${labels.map((lbl, i) => `<tr><td><strong>${lbl}</strong></td><td><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(data7[i]/max7*100)}%"></div></div></td><td class="day-val">${data7[i]}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">👥 Agent Status Board</div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Agent</th><th>Shift</th><th>Status</th><th>Chats</th><th>Load</th></tr></thead>
+        <tbody>${agentRows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rpt-footer">
+    Generated by <strong>OpoSupportDesk</strong> &nbsp;·&nbsp; ${dateStr} at ${timeStr} &nbsp;·&nbsp; Data captured at time of export
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = `forexdesk-report-${now.toISOString().slice(0,10)}.csv`;
+  a.download = `oposupportdesk-report-${now.toISOString().slice(0,10)}.html`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
