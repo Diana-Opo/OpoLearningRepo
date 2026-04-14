@@ -260,6 +260,16 @@ function navClick(el) {
   el.classList.add('active');
   const page = el.dataset.page;
   if (page) showPage(page);
+  closeMobileSidebar();
+}
+
+function toggleMobileSidebar() {
+  const open = document.getElementById('sidebar').classList.toggle('mobile-open');
+  document.getElementById('sidebar-mobile-overlay').classList.toggle('visible', open);
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-mobile-overlay').classList.remove('visible');
 }
 
 function navToAgents() {

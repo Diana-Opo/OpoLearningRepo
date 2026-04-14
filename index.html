@@ -292,6 +292,8 @@
 ═══════════════════════════════════════════════ -->
 <div id="app" class="hidden">
 
+  <div id="sidebar-mobile-overlay" class="sidebar-mobile-overlay" onclick="closeMobileSidebar()"></div>
+
   <!-- SIDEBAR -->
   <nav id="sidebar">
     <div class="sidebar-logo">
@@ -455,6 +457,11 @@
   <div id="main-area">
     <!-- HEADER -->
     <header id="header">
+      <button class="btn-hamburger" id="btn-hamburger" onclick="toggleMobileSidebar()" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
       <div class="header-page-title" id="header-title">Dashboard</div>
       <div class="header-search" id="header-search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1120,6 +1127,7 @@
             </div>
           </div>
           <div class="rpt-chart-card" style="padding:0;overflow:hidden">
+            <div class="rpt-perf-scroll-wrap">
             <table class="rpt-perf-table" id="rpt-perf-table">
               <thead>
                 <tr>
@@ -1155,6 +1163,7 @@
               </thead>
               <tbody id="rpt-perf-tbody"></tbody>
             </table>
+            </div><!-- /rpt-perf-scroll-wrap -->
           </div>
         </div>
 
