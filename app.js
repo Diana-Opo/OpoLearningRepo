@@ -48,9 +48,59 @@ function avatarSVG(gender, color) {
 }
 
 // ────────────────────────────────────────────────────────
+//  THEME
+// ────────────────────────────────────────────────────────
+let currentTheme = (() => {
+  const saved = localStorage.getItem('theme');
+  return (saved === 'dark' || saved === 'light') ? saved : 'light';
+})();
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+  _syncThemeUI();
+}
+
+function cycleTheme() {
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+}
+
+function _syncThemeUI() {
+  const lightEl = document.getElementById('theme-icon-light');
+  const darkEl  = document.getElementById('theme-icon-dark');
+  if (lightEl) lightEl.style.display = currentTheme === 'light' ? '' : 'none';
+  if (darkEl)  darkEl.style.display  = currentTheme === 'dark'  ? '' : 'none';
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.title = currentTheme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode';
+  document.querySelectorAll('.theme-option').forEach(b =>
+    b.classList.toggle('active', b.dataset.theme === currentTheme)
+  );
+}
+
+// Apply on load
+(function() { applyTheme(currentTheme); })();
+
+// ────────────────────────────────────────────────────────
 //  AUTH
 // ────────────────────────────────────────────────────────
 let currentUser = {};
+
+const SESSION_KEY = 'forexdesk_session';
+
+function saveSession() {
+  const { name, email, avatarCustom, avatarIdx, shift } = currentUser;
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    name, email,
+    avatarCustom: avatarCustom || null,
+    avatarIdx:    avatarIdx    ?? null,
+    shift:        shift        || 'day'
+  }));
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
 
 function showScreen(s) {
   document.getElementById('login-screen').classList.add('hidden');
@@ -91,6 +141,12 @@ function handleSignup(e) {
 
 function enterDashboard(name, email) {
   currentUser = { name, email };
+  _applyUserToDOM();
+  saveSession();
+}
+
+function _applyUserToDOM() {
+  const { name } = currentUser;
   const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('header-avatar').textContent  = initials;
   document.getElementById('sidebar-avatar').textContent = initials;
@@ -102,12 +158,59 @@ function enterDashboard(name, email) {
     now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('auth-wrap').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  showPage('dashboard');
+  if (currentUser.avatarCustom) updateHeaderAvatarImage();
+  else if (currentUser.avatarIdx != null) updateHeaderAvatarSVG();
+  const savedPage = localStorage.getItem('forexdesk_page') || 'dashboard';
+  showPage(savedPage);
   updateNotifDot();
+  _startIdleTimers();
+}
+
+function showLogoutPopup() {
+  const nameEl   = document.getElementById('sidebar-name');
+  const avatarEl = document.getElementById('sidebar-avatar');
+  const logoutAv = document.getElementById('logout-avatar');
+
+  if (nameEl) document.getElementById('logout-name').textContent = nameEl.textContent;
+
+  // Mirror the sidebar avatar into the user card row
+  if (currentUser && currentUser.avatarCustom) {
+    logoutAv.innerHTML = `<img src="${currentUser.avatarCustom}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" />`;
+  } else if (avatarEl) {
+    logoutAv.innerHTML = avatarEl.innerHTML;
+  }
+
+  // Fill the top icon circle with profile image when available
+  const iconEl = document.getElementById('logout-popup-icon');
+  if (iconEl) {
+    if (currentUser && currentUser.avatarCustom) {
+      iconEl.innerHTML = `<img src="${currentUser.avatarCustom}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" />`;
+      iconEl.classList.add('has-avatar');
+    } else {
+      // Restore default icon in case it was previously replaced
+      iconEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
+      iconEl.classList.remove('has-avatar');
+    }
+  }
+
+  const overlay = document.getElementById('logout-overlay');
+  overlay.classList.remove('hidden');
+  requestAnimationFrame(() => overlay.classList.add('logout-overlay--visible'));
+}
+
+function hideLogoutPopup(e) {
+  if (e && e.target !== document.getElementById('logout-overlay')) return;
+  const overlay = document.getElementById('logout-overlay');
+  overlay.classList.remove('logout-overlay--visible');
+  overlay.addEventListener('transitionend', () => overlay.classList.add('hidden'), { once: true });
 }
 
 function handleLogout() {
-  if (!confirm('Sign out of ForexDesk?')) return;
+  _clearIdleTimers();
+  clearSession();
+  localStorage.removeItem('forexdesk_page');
+  document.getElementById('logout-overlay').classList.add('hidden');
+  document.getElementById('logout-overlay').classList.remove('logout-overlay--visible');
   document.getElementById('app').classList.add('hidden');
   document.getElementById('auth-wrap').classList.remove('hidden');
   showScreen('login');
@@ -125,6 +228,9 @@ function showPage(pageId) {
   if (target) target.classList.remove('hidden');
   const t = translations[currentLang];
   document.getElementById('header-title').textContent = (t && t['page_' + pageId]) || PAGE_TITLES[pageId] || 'Dashboard';
+  // Sync sidebar active state
+  document.querySelectorAll('.nav-item').forEach(n =>
+    n.classList.toggle('active', n.dataset.page === pageId));
   if (pageId === 'agents')        renderAgents(currentFilter);
   if (pageId === 'livechats')     renderLiveChats();
   if (pageId === 'issues')        renderIssues(currentIssueFilter);
@@ -134,6 +240,8 @@ function showPage(pageId) {
   if (pageId === 'profile')       initProfile();
   if (pageId === 'notifications') renderNotifPage();
   if (pageId === 'dashboard')     initDashboardOverview();
+  // Persist the current page so refresh restores it
+  localStorage.setItem('forexdesk_page', pageId);
 }
 
 function navClick(el) {
@@ -443,10 +551,24 @@ function fmtSec(s) {
 }
 
 // ────────────────────────────────────────────────────────
+//  REPORTS — ANNUAL CHAT DATA
+// ────────────────────────────────────────────────────────
+const YEARLY_CHAT_DATA = {
+  2025: [380, 342, 415, 428, 398, 445, 421, 389, 402, 435, 388, 378],
+  2026: [412, 387, 445, 428, null, null, null, null, null, null, null, null]
+};
+const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DONUT_PALETTE = [
+  '#1a56db','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4',
+  '#ec4899','#f97316','#6366f1','#14b8a6','#a855f7','#0ea5e9'
+];
+
+// ────────────────────────────────────────────────────────
 //  REPORTS — STATE
 // ────────────────────────────────────────────────────────
 let rptActiveSub  = 'total-chats';
 let tcPeriod = 'today', csPeriod = 'today', apPeriod = 'today';
+let tcYearView = '2026';
 let perfSortCol = 'totalChats', perfSortDir = 'desc';
 
 // ────────────────────────────────────────────────────────
@@ -464,6 +586,153 @@ function initReports() {
     });
   });
   renderTotalChats();
+  renderYearlyCharts('2026');
+}
+
+// ────────────────────────────────────────────────────────
+//  REPORTS — ANNUAL ANALYTICS CHARTS
+// ────────────────────────────────────────────────────────
+function setYearView(btn, year) {
+  document.querySelectorAll('#tc-year-tabs .rpt-year-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  tcYearView = year;
+  if (year === 'compare') renderCompareCharts();
+  else renderYearlyCharts(year);
+}
+
+function renderYearlyCharts(year) {
+  const raw = YEARLY_CHAT_DATA[year] || [];
+  const active = raw
+    .map((v, i) => ({ label: MONTH_LABELS[i], v, month: i }))
+    .filter(d => d.v !== null && d.v !== undefined);
+  const total = active.reduce((s, d) => s + d.v, 0);
+  const body = document.getElementById('tc-yearly-body');
+  if (!body) return;
+  body.innerHTML = `
+    <div class="rpt-yearly-grid">
+      <div class="rpt-donut-wrap">
+        <div class="rpt-chart-section-title">Monthly Distribution</div>
+        ${buildDonutChart(active, total)}
+      </div>
+      <div class="rpt-mom-wrap">
+        <div class="rpt-chart-section-title">Month-over-Month Trend</div>
+        ${buildMomChart(active)}
+      </div>
+    </div>`;
+}
+
+function buildDonutChart(active, total) {
+  const cx = 100, cy = 100, r = 68, sw = 26;
+  const C = 2 * Math.PI * r;
+  let cumFrac = 0, segs = '';
+  active.forEach(d => {
+    const frac = d.v / total;
+    const dash = frac * C;
+    const offset = C * (0.25 - cumFrac);
+    segs += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+      stroke="${DONUT_PALETTE[d.month]}" stroke-width="${sw}"
+      stroke-dasharray="${dash.toFixed(2)} ${(C - dash).toFixed(2)}"
+      stroke-dashoffset="${offset.toFixed(2)}" class="donut-seg"/>`;
+    cumFrac += frac;
+  });
+  let legend = '<div class="donut-legend">';
+  active.forEach(d => {
+    const pct = ((d.v / total) * 100).toFixed(1);
+    legend += `<div class="donut-legend-item">
+      <span class="donut-legend-dot" style="background:${DONUT_PALETTE[d.month]}"></span>
+      <span class="donut-legend-month">${d.label}</span>
+      <span class="donut-legend-val">${d.v.toLocaleString()}</span>
+      <span class="donut-legend-pct">${pct}%</span>
+    </div>`;
+  });
+  legend += '</div>';
+  return `<div class="donut-chart-wrap">
+    <svg viewBox="0 0 200 200" class="donut-svg">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f1f5f9" stroke-width="${sw}"/>
+      ${segs}
+      <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="22" font-weight="700" style="fill:var(--text-primary)">${total.toLocaleString()}</text>
+      <text x="${cx}" y="${cy + 13}" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">total chats</text>
+    </svg>
+  </div>${legend}`;
+}
+
+function buildMomChart(active) {
+  if (!active.length) return '<p class="rpt-no-data">No data available</p>';
+  const W = 520, H = 180, pL = 38, pB = 46, pT = 14, pR = 10;
+  const cW = W - pL - pR, cH = H - pB - pT;
+  const max = Math.max(...active.map(d => d.v), 1);
+  const slot = cW / active.length;
+  const bW = Math.min(28, slot * 0.55);
+  let grid = '', bars = '', labs = '', deltas = '';
+  [0, 0.5, 1].forEach(p => {
+    const y = pT + cH * (1 - p);
+    grid += `<line x1="${pL}" y1="${y.toFixed(0)}" x2="${W - pR}" y2="${y.toFixed(0)}" stroke="var(--border)" stroke-width="1"/>`;
+    grid += `<text x="${pL - 5}" y="${(y + 4).toFixed(0)}" text-anchor="end" font-size="9" style="fill:var(--text-muted)">${Math.round(max * p)}</text>`;
+  });
+  active.forEach((d, i) => {
+    const x = pL + slot * i + slot / 2;
+    const bH = Math.max(2, (d.v / max) * cH);
+    const by = pT + cH - bH;
+    let color = '#1a56db', deltaTxt = '';
+    if (i > 0) {
+      const pct = (d.v - active[i-1].v) / active[i-1].v * 100;
+      color = pct >= 0 ? '#10b981' : '#ef4444';
+      deltaTxt = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+    }
+    bars  += `<rect x="${(x - bW/2).toFixed(1)}" y="${by.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${color}" rx="3" opacity="0.88"/>`;
+    bars  += `<text x="${x.toFixed(1)}" y="${(by - 4).toFixed(1)}" text-anchor="middle" font-size="8.5" style="fill:var(--text-secondary)">${d.v}</text>`;
+    labs  += `<text x="${x.toFixed(1)}" y="${(H - pB + 13).toFixed(0)}" text-anchor="middle" font-size="10" style="fill:var(--text-secondary)">${d.label}</text>`;
+    if (deltaTxt) {
+      const dc = deltaTxt.startsWith('+') ? '#10b981' : '#ef4444';
+      deltas += `<text x="${x.toFixed(1)}" y="${(H - pB + 28).toFixed(0)}" text-anchor="middle" font-size="8" fill="${dc}" font-weight="600">${deltaTxt}</text>`;
+    }
+  });
+  return `<div class="mom-chart-wrap">
+    <svg viewBox="0 0 ${W} ${H}" class="mom-svg" preserveAspectRatio="xMidYMid meet">${grid}${bars}${labs}${deltas}</svg>
+  </div>`;
+}
+
+function renderCompareCharts() {
+  const d25 = YEARLY_CHAT_DATA[2025];
+  const d26 = YEARLY_CHAT_DATA[2026];
+  const body = document.getElementById('tc-yearly-body');
+  if (!body) return;
+  const W = 680, H = 200, pL = 38, pB = 46, pT = 14, pR = 10;
+  const cW = W - pL - pR, cH = H - pB - pT;
+  const slot = cW / 12;
+  const bW = Math.min(14, slot * 0.32);
+  const allV = [...d25, ...d26.filter(v => v !== null)];
+  const max = Math.max(...allV, 1);
+  let grid = '', b25 = '', b26 = '', labs = '', diff = '';
+  [0, 0.5, 1].forEach(p => {
+    const y = pT + cH * (1 - p);
+    grid += `<line x1="${pL}" y1="${y.toFixed(0)}" x2="${W - pR}" y2="${y.toFixed(0)}" stroke="var(--border)" stroke-width="1"/>`;
+    grid += `<text x="${pL - 5}" y="${(y + 4).toFixed(0)}" text-anchor="end" font-size="9" style="fill:var(--text-muted)">${Math.round(max * p)}</text>`;
+  });
+  MONTH_LABELS.forEach((lbl, i) => {
+    const cx = pL + slot * i + slot / 2;
+    const v25 = d25[i] || 0;
+    const h25 = Math.max(2, (v25 / max) * cH);
+    b25 += `<rect x="${(cx - bW - 1.5).toFixed(1)}" y="${(pT + cH - h25).toFixed(1)}" width="${bW}" height="${h25.toFixed(1)}" fill="#94a3b8" rx="2" opacity="0.85"/>`;
+    b25 += `<text x="${(cx - bW/2 - 1.5).toFixed(1)}" y="${(pT + cH - h25 - 3).toFixed(1)}" text-anchor="middle" font-size="7.5" style="fill:var(--text-secondary)">${v25}</text>`;
+    labs += `<text x="${cx.toFixed(1)}" y="${(H - pB + 13).toFixed(0)}" text-anchor="middle" font-size="9.5" style="fill:var(--text-secondary)">${lbl}</text>`;
+    const v26 = d26[i];
+    if (v26 !== null) {
+      const h26 = Math.max(2, (v26 / max) * cH);
+      b26 += `<rect x="${(cx + 1.5).toFixed(1)}" y="${(pT + cH - h26).toFixed(1)}" width="${bW}" height="${h26.toFixed(1)}" fill="#1a56db" rx="2" opacity="0.85"/>`;
+      b26 += `<text x="${(cx + bW/2 + 1.5).toFixed(1)}" y="${(pT + cH - h26 - 3).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="#1a56db">${v26}</text>`;
+      const pct = (v26 - v25) / v25 * 100;
+      const dc = pct >= 0 ? '#10b981' : '#ef4444';
+      diff += `<text x="${cx.toFixed(1)}" y="${(H - pB + 28).toFixed(0)}" text-anchor="middle" font-size="7.5" fill="${dc}" font-weight="600">${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</text>`;
+    }
+  });
+  const svg = `<svg viewBox="0 0 ${W} ${H}" class="yoy-svg" preserveAspectRatio="xMidYMid meet">${grid}${b25}${b26}${labs}${diff}</svg>`;
+  const legend = `<div class="yoy-legend">
+    <span class="yoy-legend-dot" style="background:#94a3b8"></span><span>2025</span>
+    <span class="yoy-legend-dot" style="background:#1a56db"></span><span>2026</span>
+    <span class="yoy-legend-note">% = YoY change</span>
+  </div>`;
+  body.innerHTML = `<div class="rpt-yoy-wrap">${legend}${svg}</div>`;
 }
 
 // ────────────────────────────────────────────────────────
@@ -476,7 +745,7 @@ function showReportTab(btn, tabId) {
   const el = document.getElementById('rpt-' + tabId);
   if (el) el.classList.remove('hidden');
   rptActiveSub = tabId;
-  if (tabId === 'total-chats')  renderTotalChats();
+  if (tabId === 'total-chats')  { renderTotalChats(); renderYearlyCharts(tcYearView === 'compare' ? '2026' : tcYearView); }
   if (tabId === 'satisfaction') renderSatisfaction();
   if (tabId === 'agent-perf')   renderAgentPerf();
 }
@@ -691,9 +960,12 @@ function renderAgentPerf() {
     if (match) th.classList.toggle('sorted', match[1] === perfSortCol);
   });
 
+  const periodTotal = periodTotals[period] || 1;
+
   document.getElementById('rpt-perf-tbody').innerHTML = rows.map((r, idx) => {
     const satColor = r.satisfaction >= 93 ? '#10b981' : r.satisfaction >= 85 ? '#f59e0b' : '#ef4444';
     const initials = r.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    const sharePct = (r.totalChats / periodTotal) * 100;
     return `<tr>
       <td>
         <div class="rpt-agent-cell">
@@ -723,8 +995,87 @@ function renderAgentPerf() {
         </div>
       </td>
       <td>${fmtSec(r.chattingTime)}</td>
+      <td class="rpt-share-cell">${buildShareRing(sharePct)}</td>
+      <td class="rpt-trend-cell">${buildAgentTrendSVG(r.agentId)}</td>
     </tr>`;
   }).join('');
+}
+
+function buildShareRing(pct) {
+  const r = 17, sw = 5, cx = 21, cy = 21;
+  const C = 2 * Math.PI * r;
+  const fill = Math.min(pct / 100, 1) * C;
+  const color = pct >= 15 ? '#1a56db' : pct >= 8 ? '#8b5cf6' : '#94a3b8';
+  return `<div class="share-ring-wrap">
+    <svg viewBox="0 0 42 42" class="share-ring-svg">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f1f5f9" stroke-width="${sw}"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"
+        stroke-dasharray="${fill.toFixed(2)} ${(C - fill).toFixed(2)}"
+        stroke-dashoffset="${(C * 0.25).toFixed(2)}" stroke-linecap="round"/>
+      <text x="${cx}" y="${cy + 3.5}" text-anchor="middle" font-size="8" font-weight="700" fill="#1e293b">${pct.toFixed(1)}%</text>
+    </svg>
+  </div>`;
+}
+
+function buildAgentTrendSVG(agentId) {
+  const p = agentBasePerf[agentId];
+  if (!p) return '';
+  // Generate monthly data for Jan–Apr 2026
+  const months = [0, 1, 2, 3];
+  const mLabels = ['Jan','Feb','Mar','Apr'];
+  const monthly = months.map(m => {
+    const yearTotal = YEARLY_CHAT_DATA[2026][m] || 1;
+    const chats = Math.round((agentShare[agentId] / 100) * yearTotal);
+    const fr    = Math.max(30,  p.fr  + seededVal(agentId * 11 + m, -18, 22));
+    const eff   = Math.min(100, Math.max(65, p.eff + seededVal(agentId * 13 + m, -6, 6)));
+    const ct    = Math.max(100, p.ct  + seededVal(agentId * 17 + m, -35, 45));
+    return { chats, fr, eff, ct };
+  });
+
+  // Series: [values, color, higherIsBetter]
+  const series = [
+    { vals: monthly.map(d => d.chats), color: '#1a56db', hi: true  },
+    { vals: monthly.map(d => d.fr),    color: '#10b981', hi: false },
+    { vals: monthly.map(d => d.eff),   color: '#f59e0b', hi: true  },
+    { vals: monthly.map(d => d.ct),    color: '#8b5cf6', hi: false },
+  ];
+
+  const W = 130, H = 58, pL = 6, pR = 6, pT = 6, pB = 16;
+  const cW = W - pL - pR, cH = H - pT - pB;
+  const xStep = cW / (months.length - 1);
+  let svgContent = '';
+
+  series.forEach(s => {
+    const mn = Math.min(...s.vals), mx = Math.max(...s.vals);
+    const range = mx - mn || 1;
+    const pts = s.vals.map((v, i) => {
+      const x = pL + i * xStep;
+      const norm = (v - mn) / range;
+      const y = s.hi ? pT + cH * (1 - norm) : pT + cH * norm;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    svgContent += `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>`;
+    s.vals.forEach((v, i) => {
+      const x = pL + i * xStep;
+      const norm = (v - mn) / range;
+      const y = s.hi ? pT + cH * (1 - norm) : pT + cH * norm;
+      svgContent += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" fill="${s.color}"/>`;
+    });
+  });
+
+  // Month labels
+  mLabels.forEach((lbl, i) => {
+    const x = pL + i * xStep;
+    svgContent += `<text x="${x.toFixed(1)}" y="${H - 2}" text-anchor="middle" font-size="7.5" fill="#94a3b8">${lbl}</text>`;
+  });
+
+  // Grid lines (faint)
+  [0, 0.5, 1].forEach(p => {
+    const y = pT + cH * p;
+    svgContent = `<line x1="${pL}" y1="${y.toFixed(1)}" x2="${W - pR}" y2="${y.toFixed(1)}" stroke="#f1f5f9" stroke-width="1"/>` + svgContent;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="agent-trend-svg">${svgContent}</svg>`;
 }
 
 function sortPerfTable(col) {
@@ -1738,6 +2089,66 @@ function updateTicketCounts() {
   if (badge) badge.textContent = openCount;
   const totalBadge = document.getElementById('tkt-total-badge');
   if (totalBadge) totalBadge.textContent = tickets.length;
+  // Keep empty-state stats in sync if panel is showing empty state
+  [['open','open'],['pending','pending'],['hold','hold'],['resolved','solved'],['closed','closed']].forEach(([id, status]) => {
+    const el = document.getElementById('tkt-es-' + id);
+    if (el) el.textContent = tickets.filter(t => t.status === status).length;
+  });
+}
+
+function renderTicketEmptyPanel() {
+  const open     = tickets.filter(t => t.status === 'open').length;
+  const pending  = tickets.filter(t => t.status === 'pending').length;
+  const hold     = tickets.filter(t => t.status === 'hold').length;
+  const resolved = tickets.filter(t => t.status === 'solved').length;
+  const closed   = tickets.filter(t => t.status === 'closed').length;
+  document.getElementById('tkt-detail-panel').innerHTML = `
+    <div class="tkt-empty-state">
+      <div class="tkt-empty-visual">
+        <div class="tkt-empty-icon-ring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <line x1="10" y1="9" x2="8" y2="9"/>
+          </svg>
+        </div>
+        <div class="tkt-empty-chip tkt-empty-chip--hold"><span class="tkt-empty-chip-dot" style="background:#f97316"></span>On Hold</div>
+        <div class="tkt-empty-chip tkt-empty-chip--open"><span class="tkt-empty-chip-dot" style="background:#ef4444"></span>Open</div>
+        <div class="tkt-empty-chip tkt-empty-chip--pending"><span class="tkt-empty-chip-dot" style="background:#f59e0b"></span>Pending</div>
+        <div class="tkt-empty-chip tkt-empty-chip--resolved"><span class="tkt-empty-chip-dot" style="background:#10b981"></span>Resolved</div>
+        <div class="tkt-empty-chip tkt-empty-chip--closed"><span class="tkt-empty-chip-dot" style="background:#94a3b8"></span>Closed</div>
+      </div>
+      <div class="tkt-empty-title">No ticket selected</div>
+      <div class="tkt-empty-desc">Choose a ticket from the list on the left to view its full conversation, details, and history.</div>
+      <div class="tkt-empty-stats">
+        <div class="tkt-empty-stat">
+          <span class="tkt-empty-stat-num">${open}</span>
+          <span class="tkt-empty-stat-lbl">Open</span>
+        </div>
+        <div class="tkt-empty-stat-div"></div>
+        <div class="tkt-empty-stat">
+          <span class="tkt-empty-stat-num">${pending}</span>
+          <span class="tkt-empty-stat-lbl">Pending</span>
+        </div>
+        <div class="tkt-empty-stat-div"></div>
+        <div class="tkt-empty-stat">
+          <span class="tkt-empty-stat-num">${hold}</span>
+          <span class="tkt-empty-stat-lbl">On Hold</span>
+        </div>
+        <div class="tkt-empty-stat-div"></div>
+        <div class="tkt-empty-stat">
+          <span class="tkt-empty-stat-num">${resolved}</span>
+          <span class="tkt-empty-stat-lbl">Resolved</span>
+        </div>
+        <div class="tkt-empty-stat-div"></div>
+        <div class="tkt-empty-stat">
+          <span class="tkt-empty-stat-num">${closed}</span>
+          <span class="tkt-empty-stat-lbl">Closed</span>
+        </div>
+      </div>
+    </div>`;
 }
 
 function filterTickets(btn, status) {
@@ -1747,11 +2158,7 @@ function filterTickets(btn, status) {
   selectedTicketId = null;
   renderTicketList(status);
   // Reset detail panel
-  document.getElementById('tkt-detail-panel').innerHTML = `
-    <div class="tkt-empty-state">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      <p>Select a ticket to view details</p>
-    </div>`;
+  renderTicketEmptyPanel();
 }
 
 const PRIORITY_LABELS = { urgent:'Urgent', high:'High', normal:'Normal', low:'Low' };
@@ -2317,6 +2724,7 @@ function handleAvatarUpload(event) {
     syncAvatarSelection();
     renderProfilePreview();
     updateHeaderAvatarImage();
+    saveSession();
     document.getElementById('profile-avatar-picker').style.display = 'none';
   };
   reader.readAsDataURL(file);
@@ -2346,6 +2754,7 @@ function selectAvatar(idx, gender, color) {
   syncAvatarSelection();
   renderProfilePreview();
   updateHeaderAvatarSVG();
+  saveSession();
   document.getElementById('profile-avatar-picker').style.display = 'none';
 }
 
@@ -2354,6 +2763,7 @@ function removeAvatar() {
   currentUser.avatarCustom = null;
   syncAvatarSelection();
   renderProfilePreview();
+  saveSession();
   const initials = (currentUser.name || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   ['header-avatar','sidebar-avatar'].forEach(id => {
     const el = document.getElementById(id);
@@ -2421,6 +2831,7 @@ function saveProfileInfo() {
   renderProfilePreview();
   if (currentUser.avatarCustom)       updateHeaderAvatarImage();
   else if (currentUser.avatarIdx != null) updateHeaderAvatarSVG();
+  saveSession();
 
   profileSaveFeedback(document.querySelector('#page-profile .profile-card:nth-child(1) .profile-save-btn'), 'Saved');
 }
@@ -2428,6 +2839,7 @@ function saveProfileInfo() {
 function saveProfileShift() {
   const val = document.querySelector('input[name="profile-shift"]:checked')?.value || 'day';
   currentUser.shift = val;
+  saveSession();
   profileSaveFeedback(document.querySelector('#page-profile .profile-card:nth-child(2) .profile-save-btn'), 'Saved');
 }
 
@@ -2505,10 +2917,12 @@ function resetPassword() {
 }
 
 function initSettings() {
-  // Sync the active language card with currentLang
+  // Sync language
   document.querySelectorAll('.lang-card').forEach(c => c.classList.remove('active'));
   const card = document.getElementById('lang-' + currentLang);
   if (card) card.classList.add('active');
+  // Sync theme
+  _syncThemeUI();
 }
 
 // ────────────────────────────────────────────────────────
@@ -2544,13 +2958,19 @@ function getLast7DayLabels() {
 function render7DayChart() {
   const wrap = document.getElementById('chats-7day-chart');
   if (!wrap) return;
-  const data   = [52, 67, 71, 43, 89, 76, 58];
+  // Values sum to 312 (matches periodTotals.last7)
+  const data   = [38, 44, 55, 41, 62, 48, 24];
   const labels = getLast7DayLabels();
   const W = 580, H = 180, padB = 32, padT = 20, padL = 8, padR = 8;
   const chartH = H - padB - padT;
   const n      = data.length;
   const max    = Math.max(...data);
   const barW   = (W - padL - padR - (n - 1) * 12) / n;
+
+  // Detect current theme for text color
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textCol = isDark ? '#94a3b8' : '#64748b';
+  const valCol  = isDark ? '#e2e8f0' : '#1e293b';
 
   let bars = '', vals = '', texts = '';
   data.forEach((v, i) => {
@@ -2559,8 +2979,8 @@ function render7DayChart() {
     const y  = padT + chartH - bh;
     const op = (0.45 + 0.55 * (v / max)).toFixed(2);
     bars  += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="5" fill="#1a56db" opacity="${op}"/>`;
-    vals  += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="#0f172a">${v}</text>`;
-    texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="#64748b">${labels[i]}</text>`;
+    vals  += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${valCol}">${v}</text>`;
+    texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="${textCol}">${labels[i]}</text>`;
   });
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${bars}${vals}${texts}</svg>`;
@@ -2811,7 +3231,7 @@ function exportDashboardReport() {
     ['Day', 'Chats'],
   ];
 
-  const data7  = [52, 67, 71, 43, 89, 76, 58];
+  const data7  = [38, 44, 55, 41, 62, 48, 24];
   const labels = getLast7DayLabels();
   labels.forEach((lbl, i) => rows.push([lbl, data7[i]]));
 
@@ -2862,3 +3282,92 @@ function initDashboardOverview() {
   render7DayChart();
   startRealTimeSim();
 }
+
+// ────────────────────────────────────────────────────────
+//  SESSION TIMEOUT — 10-min inactivity auto-logout
+// ────────────────────────────────────────────────────────
+const IDLE_TIMEOUT_MS = 10 * 60 * 1000;   // 10 minutes
+const IDLE_WARN_MS    =  9 * 60 * 1000;   // warn after 9 minutes
+const IDLE_EVENTS     = ['mousemove','mousedown','keydown','touchstart','scroll','click'];
+
+let _idleTimer    = null;
+let _warnTimer    = null;
+let _cdInterval   = null;
+
+function _startIdleTimers() {
+  _clearIdleTimers();
+  _warnTimer = setTimeout(_showIdleWarning, IDLE_WARN_MS);
+  _idleTimer = setTimeout(forceLogout,      IDLE_TIMEOUT_MS);
+}
+
+function _clearIdleTimers() {
+  clearTimeout(_idleTimer);
+  clearTimeout(_warnTimer);
+  clearInterval(_cdInterval);
+}
+
+function _resetIdleTimers() {
+  // Only act when the app is visible and the warning is not already showing
+  if (document.getElementById('app').classList.contains('hidden')) return;
+  if (!document.getElementById('idle-warning').classList.contains('hidden')) return;
+  _startIdleTimers();
+}
+
+function _showIdleWarning() {
+  clearInterval(_cdInterval);
+  let remaining = 60;
+  const el = document.getElementById('idle-countdown');
+  if (el) el.textContent = remaining;
+
+  const overlay = document.getElementById('idle-warning');
+  overlay.classList.remove('hidden');
+  requestAnimationFrame(() => overlay.classList.add('idle-overlay--visible'));
+
+  _cdInterval = setInterval(() => {
+    remaining--;
+    if (el) el.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(_cdInterval);
+      forceLogout();
+    }
+  }, 1000);
+
+  // Hard cutoff after exactly 60 s in case interval drifts
+  _idleTimer = setTimeout(forceLogout, 60 * 1000);
+}
+
+function dismissIdleWarning() {
+  const overlay = document.getElementById('idle-warning');
+  overlay.classList.remove('idle-overlay--visible');
+  overlay.addEventListener('transitionend', () => overlay.classList.add('hidden'), { once: true });
+  _startIdleTimers();          // fresh 10-minute window
+}
+
+function forceLogout() {
+  _clearIdleTimers();
+  const overlay = document.getElementById('idle-warning');
+  if (overlay) { overlay.classList.add('hidden'); overlay.classList.remove('idle-overlay--visible'); }
+  handleLogout();
+}
+
+// Attach activity listeners once (passive for performance)
+IDLE_EVENTS.forEach(evt =>
+  document.addEventListener(evt, _resetIdleTimers, { passive: true })
+);
+
+// ────────────────────────────────────────────────────────
+//  SESSION RESTORE — runs once after all functions defined
+// ────────────────────────────────────────────────────────
+(function restoreSession() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) {}
+  if (!saved || !saved.name || !saved.email) return;
+  currentUser = {
+    name:         saved.name,
+    email:        saved.email,
+    avatarCustom: saved.avatarCustom || null,
+    avatarIdx:    saved.avatarIdx    ?? null,
+    shift:        saved.shift        || 'day'
+  };
+  _applyUserToDOM();
+})();
