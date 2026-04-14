@@ -431,6 +431,62 @@
     </div>
   </div>
 
+  <!-- HELP MODAL -->
+  <div id="help-modal-overlay" class="help-modal-overlay hidden" onclick="closeHelpModal(event)">
+    <div class="help-modal" role="dialog" aria-modal="true" aria-label="Help">
+      <div class="help-modal-header">
+        <div class="help-modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Quick Help
+        </div>
+        <button class="help-modal-close" onclick="closeHelpModal()" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="help-modal-body">
+
+        <div class="help-section">
+          <div class="help-section-title">Pages</div>
+          <div class="help-grid">
+            <div class="help-item"><span class="help-icon">📊</span><div><strong>Dashboard</strong><div class="help-desc">Overview of live stats, agent status, and platform issues.</div></div></div>
+            <div class="help-item"><span class="help-icon">💬</span><div><strong>Live Chats</strong><div class="help-desc">Supervise active conversations and pick up queued chats.</div></div></div>
+            <div class="help-item"><span class="help-icon">👥</span><div><strong>Agents</strong><div class="help-desc">Manage agents, shifts, and statuses.</div></div></div>
+            <div class="help-item"><span class="help-icon">⚠️</span><div><strong>Platform Issues</strong><div class="help-desc">Track and resolve technical incidents by platform.</div></div></div>
+            <div class="help-item"><span class="help-icon">🎫</span><div><strong>Tickets</strong><div class="help-desc">Handle client support tickets with full conversation history.</div></div></div>
+            <div class="help-item"><span class="help-icon">📈</span><div><strong>Reports</strong><div class="help-desc">Analyse chat volumes, satisfaction scores, and agent performance.</div></div></div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">Tips</div>
+          <div class="help-tips">
+            <div class="help-tip">🔍 Use the <strong>search bar</strong> in the header to jump to any page or record instantly.</div>
+            <div class="help-tip">🌙 Toggle <strong>Light / Dark</strong> mode with the sun/moon icon in the header or in Settings.</div>
+            <div class="help-tip">🌐 Switch language (English / Arabic / Persian) via the globe icon or Settings → Language.</div>
+            <div class="help-tip">📤 Export reports or issue data using the <strong>Export</strong> button on Dashboard and Platform Issues.</div>
+            <div class="help-tip">⏱️ Your session auto-expires after <strong>10 minutes</strong> of inactivity — a warning appears at 9 min.</div>
+            <div class="help-tip">👤 Edit your profile, avatar, and password in the <strong>Profile</strong> page.</div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <div class="help-section-title">Demo Credentials</div>
+          <div class="help-creds">
+            <div class="help-cred-row"><span class="help-cred-label">Email</span><span class="help-cred-val">any valid email address</span></div>
+            <div class="help-cred-row"><span class="help-cred-label">Password</span><span class="help-cred-val">6+ chars · letter · number · special char</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- SESSION TIMEOUT WARNING -->
   <div id="idle-warning" class="idle-overlay hidden" aria-modal="true" role="alertdialog">
     <div class="idle-popup">
@@ -518,7 +574,7 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </div>
-        <div class="icon-btn" title="Help">
+        <div class="icon-btn" title="Help" onclick="openHelpModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>

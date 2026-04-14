@@ -209,6 +209,14 @@ function showLogoutPopup() {
   requestAnimationFrame(() => overlay.classList.add('logout-overlay--visible'));
 }
 
+function openHelpModal() {
+  document.getElementById('help-modal-overlay').classList.remove('hidden');
+}
+function closeHelpModal(e) {
+  if (e && e.target !== document.getElementById('help-modal-overlay')) return;
+  document.getElementById('help-modal-overlay').classList.add('hidden');
+}
+
 function hideLogoutPopup(e) {
   if (e && e.target !== document.getElementById('logout-overlay')) return;
   const overlay = document.getElementById('logout-overlay');
