@@ -3139,6 +3139,42 @@ html[dir="rtl"] .card-header .card-action { margin-left: 0; margin-right: auto; 
 html[dir="rtl"] .stat-delta { margin-left: 0; margin-right: auto; }
 html[dir="rtl"] .nav-badge  { margin-left: 0; margin-right: auto; }
 
+/* Auth page RTL fixes */
+html[dir="rtl"] .auth-input-icon {
+  left: auto; right: 13px;
+}
+html[dir="rtl"] .auth-input-wrap input {
+  padding-left: 36px; padding-right: 36px;
+}
+html[dir="rtl"] #login-password,
+html[dir="rtl"] #su-password {
+  padding-left: 40px; padding-right: 36px;
+}
+html[dir="rtl"] .auth-pass-toggle {
+  right: auto; left: 10px;
+}
+
+/* Header RTL */
+html[dir="rtl"] .notif-dot {
+  right: auto; left: 7px;
+}
+html[dir="rtl"] .sidebar-user .logout-icon { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .agent-status-label::before { margin-right: 0; margin-left: 4px; }
+html[dir="rtl"] .sort-icon { margin-left: 0; margin-right: 4px; }
+html[dir="rtl"] .tkt-row-time { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .rpt-legend-val { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .yoy-legend-note { margin-left: 0; margin-right: 6px; }
+html[dir="rtl"] .notif-unread-count { margin-left: 0; margin-right: 8px; }
+html[dir="rtl"] .notif-dd-footer a::after { content: ' ←'; }
+html[dir="rtl"] .kpi-trend { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .pass-hint-icon { margin-right: 0; margin-left: 4px; }
+html[dir="rtl"] .id-field-sep { margin: 0 12px; }
+html[dir="rtl"] .tkt-unread-dot { margin-left: 0; margin-right: 8px; }
+html[dir="rtl"] .btn-back svg { transform: scaleX(-1); }
+html[dir="rtl"] .lc-section-title svg { margin-right: 0; margin-left: 8px; }
+html[dir="rtl"] .id-section-title svg { margin-right: 0; margin-left: 8px; }
+html[dir="rtl"] .rpt-kpi-delta { right: auto; left: 16px; }
+
 /* ── REAL-TIME OVERVIEW ─────────────────────────────────── */
 .rt-overview {
   display: flex;

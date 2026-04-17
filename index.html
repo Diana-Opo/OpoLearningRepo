@@ -141,8 +141,8 @@
       </div>
 
       <!-- Headline & description -->
-      <div class="auth-brand-headline">Command your support team with confidence</div>
-      <div class="auth-brand-desc">Real-time supervision, agent analytics, and ticket management — unified in one powerful dashboard.</div>
+      <div class="auth-brand-headline" data-i18n="auth_headline">Command your support team with confidence</div>
+      <div class="auth-brand-desc" data-i18n="auth_desc">Real-time supervision, agent analytics, and ticket management — unified in one powerful dashboard.</div>
 
       <!-- Feature list -->
       <div class="auth-features">
@@ -151,9 +151,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
           <div class="auth-feature-text">
-            <span class="auth-feature-title">Live Chat Supervision</span>
+            <span class="auth-feature-title" data-i18n="auth_feat_chat_title">Live Chat Supervision</span>
             <span class="auth-feature-sep">—</span>
-            <span class="auth-feature-sub">Monitor and guide agents in real time</span>
+            <span class="auth-feature-sub" data-i18n="auth_feat_chat_sub">Monitor and guide agents in real time</span>
           </div>
         </div>
         <div class="auth-feature">
@@ -161,9 +161,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           </div>
           <div class="auth-feature-text">
-            <span class="auth-feature-title">Performance Analytics</span>
+            <span class="auth-feature-title" data-i18n="auth_feat_analytics_title">Performance Analytics</span>
             <span class="auth-feature-sep">—</span>
-            <span class="auth-feature-sub">Deep insights into agent efficiency</span>
+            <span class="auth-feature-sub" data-i18n="auth_feat_analytics_sub">Deep insights into agent efficiency</span>
           </div>
         </div>
         <div class="auth-feature">
@@ -171,9 +171,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </div>
           <div class="auth-feature-text">
-            <span class="auth-feature-title">Ticket Management</span>
+            <span class="auth-feature-title" data-i18n="auth_feat_tickets_title">Ticket Management</span>
             <span class="auth-feature-sep">—</span>
-            <span class="auth-feature-sub">Track and resolve client issues fast</span>
+            <span class="auth-feature-sub" data-i18n="auth_feat_tickets_sub">Track and resolve client issues fast</span>
           </div>
         </div>
       </div>
@@ -182,17 +182,17 @@
       <div class="auth-brand-stats">
         <div class="auth-stat">
           <span class="auth-stat-num">12</span>
-          <span class="auth-stat-lbl">Agents Online</span>
+          <span class="auth-stat-lbl" data-i18n="auth_stat_agents">Agents Online</span>
         </div>
         <div class="auth-stat-sep"></div>
         <div class="auth-stat">
           <span class="auth-stat-num">98%</span>
-          <span class="auth-stat-lbl">Satisfaction</span>
+          <span class="auth-stat-lbl" data-i18n="auth_stat_satisfaction">Satisfaction</span>
         </div>
         <div class="auth-stat-sep"></div>
         <div class="auth-stat">
           <span class="auth-stat-num">1.4m</span>
-          <span class="auth-stat-lbl">Avg Response</span>
+          <span class="auth-stat-lbl" data-i18n="auth_stat_response">Avg Response</span>
         </div>
       </div>
 
@@ -205,12 +205,12 @@
     <!-- LOGIN -->
     <div id="login-screen" class="auth-card">
       <div class="auth-card-header">
-        <h1 class="auth-heading">Welcome back</h1>
-        <p class="auth-sub">Sign in to your support dashboard</p>
+        <h1 class="auth-heading" data-i18n="auth_login_title">Welcome back</h1>
+        <p class="auth-sub" data-i18n="auth_login_sub">Sign in to your support dashboard</p>
       </div>
       <form id="login-form" onsubmit="handleLogin(event)">
         <div class="form-group">
-          <label>Email address</label>
+          <label data-i18n="auth_lbl_email">Email address</label>
           <div class="auth-input-wrap">
             <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <input id="login-email" type="email" placeholder="you@forexdesk.io" autocomplete="email" />
@@ -218,10 +218,10 @@
           <div class="input-error" id="login-email-err">Please enter a valid email.</div>
         </div>
         <div class="form-group">
-          <label>Password</label>
+          <label data-i18n="auth_lbl_password">Password</label>
           <div class="auth-input-wrap">
             <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password" />
+            <input id="login-password" type="password" placeholder="Enter your password" autocomplete="current-password" data-i18n-placeholder="ph_login_password" />
             <button type="button" class="auth-pass-toggle" onclick="togglePassVisibility('login-password',this)" tabindex="-1">
               <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -230,23 +230,23 @@
         </div>
         <button type="submit" class="auth-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-          Sign In
+          <span data-i18n="auth_login_btn">Sign In</span>
         </button>
       </form>
       <div class="auth-footer">
-        Don't have an account? <a href="#" onclick="showScreen('signup');return false;">Create one</a>
+        <span data-i18n="auth_no_account">Don't have an account?</span> <a href="#" onclick="showScreen('signup');return false;" data-i18n="auth_create_link">Create one</a>
       </div>
     </div>
 
     <!-- SIGN UP -->
     <div id="signup-screen" class="auth-card hidden">
       <div class="auth-card-header">
-        <h1 class="auth-heading">Create account</h1>
-        <p class="auth-sub">Join the OpoSupportDesk support team</p>
+        <h1 class="auth-heading" data-i18n="auth_signup_title">Create account</h1>
+        <p class="auth-sub" data-i18n="auth_signup_sub">Join the OpoSupportDesk support team</p>
       </div>
       <form id="signup-form" onsubmit="handleSignup(event)">
         <div class="form-group">
-          <label>Full name</label>
+          <label data-i18n="auth_lbl_fullname">Full name</label>
           <div class="auth-input-wrap">
             <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <input id="su-name" type="text" placeholder="Jane Smith" autocomplete="name" />
@@ -254,7 +254,7 @@
           <div class="input-error" id="su-name-err">Please enter your name.</div>
         </div>
         <div class="form-group">
-          <label>Email address</label>
+          <label data-i18n="auth_lbl_email">Email address</label>
           <div class="auth-input-wrap">
             <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <input id="su-email" type="email" placeholder="you@forexdesk.io" autocomplete="email" />
@@ -262,10 +262,10 @@
           <div class="input-error" id="su-email-err">Please enter a valid email.</div>
         </div>
         <div class="form-group">
-          <label>Password</label>
+          <label data-i18n="auth_lbl_password">Password</label>
           <div class="auth-input-wrap">
             <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input id="su-password" type="password" placeholder="6+ chars, letter, number & symbol" autocomplete="new-password" />
+            <input id="su-password" type="password" placeholder="6+ chars, letter, number &amp; symbol" autocomplete="new-password" data-i18n-placeholder="ph_su_password" />
             <button type="button" class="auth-pass-toggle" onclick="togglePassVisibility('su-password',this)" tabindex="-1">
               <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
@@ -274,11 +274,11 @@
         </div>
         <button type="submit" class="auth-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          Create Account
+          <span data-i18n="auth_signup_btn">Create Account</span>
         </button>
       </form>
       <div class="auth-footer">
-        Already have an account? <a href="#" onclick="showScreen('login');return false;">Sign In</a>
+        <span data-i18n="auth_have_account">Already have an account?</span> <a href="#" onclick="showScreen('login');return false;" data-i18n="auth_signin_link">Sign In</a>
       </div>
     </div>
 
@@ -371,7 +371,7 @@
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
       </svg>
-      <span>Profile</span>
+      <span data-i18n="nav_profile">Profile</span>
     </a>
 
     <a class="nav-item" data-page="settings" onclick="navClick(this);return false;" href="#">
@@ -407,25 +407,25 @@
         </svg>
       </div>
       <div class="logout-popup-body">
-        <div class="logout-popup-title">Sign out?</div>
-        <div class="logout-popup-sub">You'll need to sign back in to access your dashboard.</div>
+        <div class="logout-popup-title" data-i18n="logout_title">Sign out?</div>
+        <div class="logout-popup-sub" data-i18n="logout_sub">You'll need to sign back in to access your dashboard.</div>
         <div class="logout-popup-user">
           <div class="avatar logout-popup-avatar" id="logout-avatar">JD</div>
           <div>
             <div class="logout-popup-name" id="logout-name">Jane Doe</div>
-            <div class="logout-popup-role">Support Manager</div>
+            <div class="logout-popup-role" data-i18n="role_label">Support Manager</div>
           </div>
         </div>
       </div>
       <div class="logout-popup-actions">
-        <button class="logout-cancel-btn" onclick="hideLogoutPopup()">Cancel</button>
+        <button class="logout-cancel-btn" onclick="hideLogoutPopup()" data-i18n="btn_cancel">Cancel</button>
         <button class="logout-confirm-btn" onclick="handleLogout()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          Sign Out
+          <span data-i18n="btn_sign_out">Sign Out</span>
         </button>
       </div>
     </div>
@@ -441,7 +441,7 @@
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          Quick Help
+          <span data-i18n="help_title">Quick Help</span>
         </div>
         <button class="help-modal-close" onclick="closeHelpModal()" aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
@@ -452,34 +452,34 @@
       <div class="help-modal-body">
 
         <div class="help-section">
-          <div class="help-section-title">Pages</div>
+          <div class="help-section-title" data-i18n="help_pages_title">Pages</div>
           <div class="help-grid">
-            <div class="help-item"><span class="help-icon">📊</span><div><strong>Dashboard</strong><div class="help-desc">Overview of live stats, agent status, and platform issues.</div></div></div>
-            <div class="help-item"><span class="help-icon">💬</span><div><strong>Live Chats</strong><div class="help-desc">Supervise active conversations and pick up queued chats.</div></div></div>
-            <div class="help-item"><span class="help-icon">👥</span><div><strong>Agents</strong><div class="help-desc">Manage agents, shifts, and statuses.</div></div></div>
-            <div class="help-item"><span class="help-icon">⚠️</span><div><strong>Platform Issues</strong><div class="help-desc">Track and resolve technical incidents by platform.</div></div></div>
-            <div class="help-item"><span class="help-icon">🎫</span><div><strong>Tickets</strong><div class="help-desc">Handle client support tickets with full conversation history.</div></div></div>
-            <div class="help-item"><span class="help-icon">📈</span><div><strong>Reports</strong><div class="help-desc">Analyse chat volumes, satisfaction scores, and agent performance.</div></div></div>
+            <div class="help-item"><span class="help-icon">📊</span><div><strong data-i18n="help_pg_dashboard">Dashboard</strong><div class="help-desc" data-i18n="help_pg_dashboard_desc">Overview of live stats, agent status, and platform issues.</div></div></div>
+            <div class="help-item"><span class="help-icon">💬</span><div><strong data-i18n="help_pg_livechats">Live Chats</strong><div class="help-desc" data-i18n="help_pg_livechats_desc">Supervise active conversations and pick up queued chats.</div></div></div>
+            <div class="help-item"><span class="help-icon">👥</span><div><strong data-i18n="help_pg_agents">Agents</strong><div class="help-desc" data-i18n="help_pg_agents_desc">Manage agents, shifts, and statuses.</div></div></div>
+            <div class="help-item"><span class="help-icon">⚠️</span><div><strong data-i18n="help_pg_issues">Platform Issues</strong><div class="help-desc" data-i18n="help_pg_issues_desc">Track and resolve technical incidents by platform.</div></div></div>
+            <div class="help-item"><span class="help-icon">🎫</span><div><strong data-i18n="help_pg_tickets">Tickets</strong><div class="help-desc" data-i18n="help_pg_tickets_desc">Handle client support tickets with full conversation history.</div></div></div>
+            <div class="help-item"><span class="help-icon">📈</span><div><strong data-i18n="help_pg_reports">Reports</strong><div class="help-desc" data-i18n="help_pg_reports_desc">Analyse chat volumes, satisfaction scores, and agent performance.</div></div></div>
           </div>
         </div>
 
         <div class="help-section">
-          <div class="help-section-title">Tips</div>
+          <div class="help-section-title" data-i18n="help_tips_title">Tips</div>
           <div class="help-tips">
-            <div class="help-tip">🔍 Use the <strong>search bar</strong> in the header to jump to any page or record instantly.</div>
-            <div class="help-tip">🌙 Toggle <strong>Light / Dark</strong> mode with the sun/moon icon in the header or in Settings.</div>
-            <div class="help-tip">🌐 Switch language (English / Arabic / Persian) via the globe icon or Settings → Language.</div>
-            <div class="help-tip">📤 Export reports or issue data using the <strong>Export</strong> button on Dashboard and Platform Issues.</div>
-            <div class="help-tip">⏱️ Your session auto-expires after <strong>10 minutes</strong> of inactivity — a warning appears at 9 min.</div>
-            <div class="help-tip">👤 Edit your profile, avatar, and password in the <strong>Profile</strong> page.</div>
+            <div class="help-tip" data-i18n-html="help_tip_1">🔍 Use the <strong>search bar</strong> in the header to jump to any page or record instantly.</div>
+            <div class="help-tip" data-i18n-html="help_tip_2">🌙 Toggle <strong>Light / Dark</strong> mode with the sun/moon icon in the header or in Settings.</div>
+            <div class="help-tip" data-i18n-html="help_tip_3">🌐 Switch language (English / Arabic / Persian) via the globe icon or Settings → Language.</div>
+            <div class="help-tip" data-i18n-html="help_tip_4">📤 Export reports or issue data using the <strong>Export</strong> button on Dashboard and Platform Issues.</div>
+            <div class="help-tip" data-i18n-html="help_tip_5">⏱️ Your session auto-expires after <strong>10 minutes</strong> of inactivity — a warning appears at 9 min.</div>
+            <div class="help-tip" data-i18n-html="help_tip_6">👤 Edit your profile, avatar, and password in the <strong>Profile</strong> page.</div>
           </div>
         </div>
 
         <div class="help-section">
-          <div class="help-section-title">Demo Credentials</div>
+          <div class="help-section-title" data-i18n="help_demo_title">Demo Credentials</div>
           <div class="help-creds">
-            <div class="help-cred-row"><span class="help-cred-label">Email</span><span class="help-cred-val">any valid email address</span></div>
-            <div class="help-cred-row"><span class="help-cred-label">Password</span><span class="help-cred-val">6+ chars · letter · number · special char</span></div>
+            <div class="help-cred-row"><span class="help-cred-label" data-i18n="help_cred_email_label">Email</span><span class="help-cred-val" data-i18n="help_cred_email_val">any valid email address</span></div>
+            <div class="help-cred-row"><span class="help-cred-label" data-i18n="help_cred_pass_label">Password</span><span class="help-cred-val" data-i18n="help_cred_pass_val">6+ chars · letter · number · special char</span></div>
           </div>
         </div>
 
@@ -496,15 +496,15 @@
           <polyline points="12 6 12 12 16 14"/>
         </svg>
       </div>
-      <div class="idle-popup-title">Session Expiring</div>
-      <div class="idle-popup-sub">You've been inactive. Your session will automatically end in</div>
+      <div class="idle-popup-title" data-i18n="idle_title">Session Expiring</div>
+      <div class="idle-popup-sub" data-i18n="idle_sub">You've been inactive. Your session will automatically end in</div>
       <div class="idle-countdown-ring">
         <span id="idle-countdown">60</span>
-        <span class="idle-countdown-unit">sec</span>
+        <span class="idle-countdown-unit" data-i18n="idle_unit">sec</span>
       </div>
       <div class="idle-popup-actions">
-        <button class="idle-stay-btn" onclick="dismissIdleWarning()">Stay Logged In</button>
-        <button class="idle-logout-btn" onclick="forceLogout()">Log Out Now</button>
+        <button class="idle-stay-btn" onclick="dismissIdleWarning()" data-i18n="idle_stay">Stay Logged In</button>
+        <button class="idle-logout-btn" onclick="forceLogout()" data-i18n="idle_logout">Log Out Now</button>
       </div>
     </div>
   </div>
@@ -523,7 +523,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input type="text" id="global-search-input" placeholder="Search anything…" autocomplete="off"
+        <input type="text" id="global-search-input" placeholder="Search anything…" autocomplete="off" data-i18n-placeholder="ph_search"
                oninput="handleGlobalSearch(this.value)"
                onfocus="handleGlobalSearch(this.value)"
                onkeydown="searchKeyNav(event)" />
@@ -542,13 +542,13 @@
           <!-- Notification dropdown -->
           <div class="notif-dropdown hidden" id="notif-dropdown">
             <div class="notif-dd-header">
-              <span class="notif-dd-title">Notifications</span>
+              <span class="notif-dd-title" data-i18n="notif_dd_title">Notifications</span>
               <span class="notif-unread-count" id="notif-unread-count"></span>
-              <button class="notif-mark-all-btn" onclick="markAllRead(); event.stopPropagation();">Mark all read</button>
+              <button class="notif-mark-all-btn" onclick="markAllRead(); event.stopPropagation();" data-i18n="notif_mark_all">Mark all read</button>
             </div>
             <div id="notif-dd-list"></div>
             <div class="notif-dd-footer">
-              <a href="#" onclick="showNotifPage(); return false;">View All Notifications →</a>
+              <a href="#" onclick="showNotifPage(); return false;"><span data-i18n="notif_view_all">View All Notifications</span> →</a>
             </div>
           </div>
         </div>
@@ -596,22 +596,22 @@
 
         <div class="section-header">
           <div>
-            <div class="section-title">Good morning, <span id="greeting-name">Jane</span> 👋</div>
+            <div class="section-title"><span data-i18n="dash_greeting">Good morning</span>, <span id="greeting-name">Jane</span> 👋</div>
             <div class="section-sub" id="today-date"></div>
           </div>
-          <button class="btn-outline" onclick="exportDashboardReport()">↓ Export Report</button>
+          <button class="btn-outline" onclick="exportDashboardReport()" data-i18n="dash_export">↓ Export Report</button>
         </div>
 
         <!-- REAL-TIME OVERVIEW -->
         <div class="rt-overview">
-          <div class="rt-live-badge"><span class="rt-pulse-dot"></span>Live</div>
+          <div class="rt-live-badge"><span class="rt-pulse-dot"></span><span data-i18n="dash_live">Live</span></div>
           <div class="rt-items">
             <div class="rt-item">
               <div class="rt-item-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <div>
-                <div class="rt-item-lbl">Customers Online</div>
+                <div class="rt-item-lbl" data-i18n="dash_customers_online">Customers Online</div>
                 <div class="rt-item-val" id="rt-customers">38</div>
               </div>
             </div>
@@ -621,7 +621,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
               <div>
-                <div class="rt-item-lbl">Ongoing Chats</div>
+                <div class="rt-item-lbl" data-i18n="dash_ongoing_chats">Ongoing Chats</div>
                 <div class="rt-item-val" id="rt-ongoing">14</div>
               </div>
             </div>
@@ -631,7 +631,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
               </div>
               <div>
-                <div class="rt-item-lbl">Logged-in Agents</div>
+                <div class="rt-item-lbl" data-i18n="dash_logged_agents">Logged-in Agents</div>
                 <div class="rt-item-val" id="rt-agents">8</div>
               </div>
             </div>
@@ -645,7 +645,7 @@
                 <div class="stat-icon blue">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </div>
-                <span class="stat-label">Active Chats</span>
+                <span class="stat-label" data-i18n="stat_active_chats">Active Chats</span>
               </div>
               <span class="stat-delta up">↑ 12%</span>
             </div>
@@ -657,7 +657,7 @@
                 <div class="stat-icon green">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <span class="stat-label">Agents Online</span>
+                <span class="stat-label" data-i18n="stat_agents_online">Agents Online</span>
               </div>
               <span class="stat-delta up">↑ 2</span>
             </div>
@@ -669,7 +669,7 @@
                 <div class="stat-icon yellow">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </div>
-                <span class="stat-label">Avg. First Response</span>
+                <span class="stat-label" data-i18n="stat_avg_response">Avg. First Response</span>
               </div>
               <span class="stat-delta warn">1m 42s avg</span>
             </div>
@@ -681,7 +681,7 @@
                 <div class="stat-icon purple">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
-                <span class="stat-label">CSAT Score</span>
+                <span class="stat-label" data-i18n="stat_csat">CSAT Score</span>
               </div>
               <span class="stat-delta up">↑ 3%</span>
             </div>
@@ -693,10 +693,10 @@
         <div class="card perf-overview-card">
           <div class="card-header">
             <div>
-              <div class="card-title">Performance Overview</div>
+              <div class="card-title" data-i18n="perf_overview_title">Performance Overview</div>
               <div class="card-sub" id="perf-period-label">Last week · —</div>
             </div>
-            <span class="perf-monday-badge">↻ Updated every Monday</span>
+            <span class="perf-monday-badge" data-i18n="perf_updated">↻ Updated every Monday</span>
           </div>
           <div class="perf-kpi-grid">
 
@@ -706,12 +706,12 @@
                   <div class="kpi-icon-wrap blue">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   </div>
-                  <span class="kpi-label">Total Chats</span>
+                  <span class="kpi-label" data-i18n="kpi_total_chats">Total Chats</span>
                 </div>
                 <span class="kpi-trend up">↑ 8%</span>
               </div>
               <div class="kpi-value">427</div>
-              <div class="kpi-tip">Chat volume is growing. Ensure sufficient agent coverage during peak hours.</div>
+              <div class="kpi-tip" data-i18n="kpi_chat_vol_tip">Chat volume is growing. Ensure sufficient agent coverage during peak hours.</div>
             </div>
 
             <div class="perf-kpi-item">
@@ -720,12 +720,12 @@
                   <div class="kpi-icon-wrap green">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                   </div>
-                  <span class="kpi-label">Satisfaction</span>
+                  <span class="kpi-label" data-i18n="kpi_satisfaction">Satisfaction</span>
                 </div>
                 <span class="kpi-trend up">↑ 3%</span>
               </div>
               <div class="kpi-value">94%</div>
-              <div class="kpi-tip">CSAT is above target. Maintain response quality and empathy in conversations.</div>
+              <div class="kpi-tip" data-i18n="kpi_sat_tip">CSAT is above target. Maintain response quality and empathy in conversations.</div>
             </div>
 
             <div class="perf-kpi-item">
@@ -734,12 +734,12 @@
                   <div class="kpi-icon-wrap yellow">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   </div>
-                  <span class="kpi-label">Response Time</span>
+                  <span class="kpi-label" data-i18n="kpi_response_time">Response Time</span>
                 </div>
                 <span class="kpi-trend down good">↓ 12%</span>
               </div>
               <div class="kpi-value">1m 38s</div>
-              <div class="kpi-tip">Response time improved. Keep encouraging quick first replies from agents.</div>
+              <div class="kpi-tip" data-i18n="kpi_resp_tip">Response time improved. Keep encouraging quick first replies from agents.</div>
             </div>
 
             <div class="perf-kpi-item">
@@ -748,12 +748,12 @@
                   <div class="kpi-icon-wrap purple">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                   </div>
-                  <span class="kpi-label">Efficiency</span>
+                  <span class="kpi-label" data-i18n="kpi_efficiency">Efficiency</span>
                 </div>
                 <span class="kpi-trend up">↑ 5%</span>
               </div>
               <div class="kpi-value">87%</div>
-              <div class="kpi-tip">Team efficiency is up. Review first-contact resolution to push it further.</div>
+              <div class="kpi-tip" data-i18n="kpi_eff_tip">Team efficiency is up. Review first-contact resolution to push it further.</div>
             </div>
 
           </div>
@@ -764,7 +764,7 @@
           <div class="card">
             <div class="card-header">
               <div>
-                <div class="card-title">Last 7 Days — Total Chats</div>
+                <div class="card-title" data-i18n="dash_chart_7days">Last 7 Days — Total Chats</div>
                 <div class="card-sub" id="chart-7days-period"></div>
               </div>
             </div>
@@ -775,7 +775,7 @@
           <div class="card">
             <div class="card-header">
               <div>
-                <div class="card-title">Current Month — Total Chats</div>
+                <div class="card-title" data-i18n="dash_chart_curmonth">Current Month — Total Chats</div>
                 <div class="card-sub" id="chart-curmonth-period">Weekly breakdown</div>
               </div>
             </div>
@@ -790,19 +790,19 @@
           <!-- AGENT STATUS TABLE (dashboard snapshot) -->
           <div class="card">
             <div class="card-header">
-              <div><div class="card-title">Agent Status Board</div><div class="card-sub">12 agents on shift today</div></div>
-              <a class="card-action" href="#" onclick="navToAgents();return false;">Manage</a>
+              <div><div class="card-title" data-i18n="dash_agent_board_title">Agent Status Board</div><div class="card-sub">12 agents on shift today</div></div>
+              <a class="card-action" href="#" onclick="navToAgents();return false;" data-i18n="dash_manage">Manage</a>
             </div>
             <div class="card-body">
               <table class="agent-table">
-                <thead><tr><th>Agent</th><th>Status</th><th>Chats</th><th>Load</th></tr></thead>
+                <thead><tr><th data-i18n="tbl_agent">Agent</th><th data-i18n="tbl_status">Status</th><th data-i18n="tbl_chats">Chats</th><th data-i18n="tbl_load">Load</th></tr></thead>
                 <tbody>
-                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#1a56db">LW</div><span>Lena W.</span></div></td><td><span class="status-pill online">Online</span></td><td>4/5</td><td><div class="mini-bar-wrap"><div class="mini-bar" style="width:80%"></div></div></td></tr>
-                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#8b5cf6">JM</div><span>James M.</span></div></td><td><span class="status-pill busy">Busy</span></td><td>5/5</td><td><div class="mini-bar-wrap"><div class="mini-bar red" style="width:100%"></div></div></td></tr>
-                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#10b981">NP</div><span>Nadia P.</span></div></td><td><span class="status-pill online">Online</span></td><td>2/5</td><td><div class="mini-bar-wrap"><div class="mini-bar green" style="width:40%"></div></div></td></tr>
-                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#f59e0b">KA</div><span>Kai A.</span></div></td><td><span class="status-pill away">Away</span></td><td>0/5</td><td><div class="mini-bar-wrap"><div class="mini-bar yellow" style="width:0%"></div></div></td></tr>
-                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#ef4444">RB</div><span>Rita B.</span></div></td><td><span class="status-pill online">Online</span></td><td>3/5</td><td><div class="mini-bar-wrap"><div class="mini-bar" style="width:60%"></div></div></td></tr>
-                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#64748b">TO</div><span>Tom O.</span></div></td><td><span class="status-pill offline">Offline</span></td><td>—/5</td><td><div class="mini-bar-wrap"><div class="mini-bar" style="width:0%;background:#94a3b8"></div></div></td></tr>
+                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#1a56db">LW</div><span>Lena W.</span></div></td><td><span class="status-pill online" data-i18n="status_online">Online</span></td><td>4/5</td><td><div class="mini-bar-wrap"><div class="mini-bar" style="width:80%"></div></div></td></tr>
+                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#8b5cf6">JM</div><span>James M.</span></div></td><td><span class="status-pill busy" data-i18n="status_busy">Busy</span></td><td>5/5</td><td><div class="mini-bar-wrap"><div class="mini-bar red" style="width:100%"></div></div></td></tr>
+                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#10b981">NP</div><span>Nadia P.</span></div></td><td><span class="status-pill online" data-i18n="status_online">Online</span></td><td>2/5</td><td><div class="mini-bar-wrap"><div class="mini-bar green" style="width:40%"></div></div></td></tr>
+                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#f59e0b">KA</div><span>Kai A.</span></div></td><td><span class="status-pill away" data-i18n="status_away">Away</span></td><td>0/5</td><td><div class="mini-bar-wrap"><div class="mini-bar yellow" style="width:0%"></div></div></td></tr>
+                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#ef4444">RB</div><span>Rita B.</span></div></td><td><span class="status-pill online" data-i18n="status_online">Online</span></td><td>3/5</td><td><div class="mini-bar-wrap"><div class="mini-bar" style="width:60%"></div></div></td></tr>
+                  <tr><td><div class="agent-row-name"><div class="mini-avatar" style="background:#64748b">TO</div><span>Tom O.</span></div></td><td><span class="status-pill offline" data-i18n="status_offline">Offline</span></td><td>—/5</td><td><div class="mini-bar-wrap"><div class="mini-bar" style="width:0%;background:#94a3b8"></div></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -811,16 +811,16 @@
           <!-- PLATFORM ISSUES -->
           <div class="card">
             <div class="card-header">
-              <div><div class="card-title">Platform Issues Tracker</div><div class="card-sub">Active incidents &amp; recent resolutions</div></div>
-              <a class="card-action" href="#" onclick="navToIssues();return false;">View All</a>
+              <div><div class="card-title" data-i18n="dash_pi_title">Platform Issues Tracker</div><div class="card-sub" data-i18n="dash_pi_sub">Active incidents &amp; recent resolutions</div></div>
+              <a class="card-action" href="#" onclick="navToIssues();return false;" data-i18n="dash_viewall">View All</a>
             </div>
             <div class="card-body">
               <div class="issue-list">
-                <div class="issue-item"><div class="issue-dot red"></div><div class="issue-info"><div class="issue-title">MT4 Order Execution Lag</div><div class="issue-meta">Reported 08:42 · Affects ~23 clients · Investigating</div></div><span class="issue-badge critical">Critical</span></div>
-                <div class="issue-item"><div class="issue-dot orange"></div><div class="issue-info"><div class="issue-title">WebTrader Login Errors (2FA)</div><div class="issue-meta">Reported 09:05 · 7 reports · Monitoring</div></div><span class="issue-badge high">High</span></div>
-                <div class="issue-item"><div class="issue-dot yellow"></div><div class="issue-info"><div class="issue-title">Incorrect Swap Rates Displayed</div><div class="issue-meta">Reported 09:18 · Data team notified</div></div><span class="issue-badge medium">Medium</span></div>
-                <div class="issue-item"><div class="issue-dot green"></div><div class="issue-info"><div class="issue-title">Deposit Gateway Timeout (Stripe)</div><div class="issue-meta">Resolved 08:30 · Downtime: 14 mins</div></div><span class="issue-badge resolved">Resolved</span></div>
-                <div class="issue-item"><div class="issue-dot green"></div><div class="issue-info"><div class="issue-title">SMS Notifications Delayed</div><div class="issue-meta">Resolved yesterday 22:15 · Provider issue</div></div><span class="issue-badge resolved">Resolved</span></div>
+                <div class="issue-item"><div class="issue-dot red"></div><div class="issue-info"><div class="issue-title">MT4 Order Execution Lag</div><div class="issue-meta"><span data-i18n="issue_reported">Reported</span> 08:42 · <span data-i18n="issue_affects">Affects</span> ~23 <span data-i18n="issue_clients">clients</span> · <span data-i18n="issue_investigating">Investigating</span></div></div><span class="issue-badge critical" data-i18n="badge_critical">Critical</span></div>
+                <div class="issue-item"><div class="issue-dot orange"></div><div class="issue-info"><div class="issue-title">WebTrader Login Errors (2FA)</div><div class="issue-meta"><span data-i18n="issue_reported">Reported</span> 09:05 · 7 reports · <span data-i18n="issue_monitoring">Monitoring</span></div></div><span class="issue-badge high" data-i18n="badge_high">High</span></div>
+                <div class="issue-item"><div class="issue-dot yellow"></div><div class="issue-info"><div class="issue-title">Incorrect Swap Rates Displayed</div><div class="issue-meta"><span data-i18n="issue_reported">Reported</span> 09:18 · <span data-i18n="issue_team_notified">Data team notified</span></div></div><span class="issue-badge medium" data-i18n="badge_medium">Medium</span></div>
+                <div class="issue-item"><div class="issue-dot green"></div><div class="issue-info"><div class="issue-title">Deposit Gateway Timeout (Stripe)</div><div class="issue-meta"><span data-i18n="badge_resolved">Resolved</span> 08:30 · Downtime: 14 mins</div></div><span class="issue-badge resolved" data-i18n="badge_resolved">Resolved</span></div>
+                <div class="issue-item"><div class="issue-dot green"></div><div class="issue-info"><div class="issue-title">SMS Notifications Delayed</div><div class="issue-meta"><span data-i18n="badge_resolved">Resolved</span> yesterday 22:15 · <span data-i18n="issue_provider_issue">Provider issue</span></div></div><span class="issue-badge resolved" data-i18n="badge_resolved">Resolved</span></div>
               </div>
             </div>
           </div>
@@ -837,7 +837,7 @@
 
         <div class="section-header">
           <div>
-            <div class="section-title">Live Chats</div>
+            <div class="section-title" data-i18n="nav_livechats">Live Chats</div>
             <div class="section-sub" id="lc-sub">5 in queue · 9 ongoing</div>
           </div>
         </div>
@@ -851,7 +851,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
               <div>
-                <div class="lc-col-stat-label">Active Chats</div>
+                <div class="lc-col-stat-label" data-i18n="stat_active_chats">Active Chats</div>
                 <div class="lc-col-stat-value" id="lc-active-count">9</div>
               </div>
             </div>
@@ -859,7 +859,7 @@
               <div class="lc-section-head">
                 <div class="lc-section-title">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  Chatting
+                  <span data-i18n="lc_chatting">Chatting</span>
                 </div>
                 <span class="lc-section-badge green" id="lc-active-badge">9</span>
               </div>
@@ -874,7 +874,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
-                <div class="lc-col-stat-label">In Queue</div>
+                <div class="lc-col-stat-label" data-i18n="lc_in_queue">In Queue</div>
                 <div class="lc-col-stat-value" id="lc-queue-count">5</div>
               </div>
             </div>
@@ -882,7 +882,7 @@
               <div class="lc-section-head">
                 <div class="lc-section-title">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  Queue
+                  <span data-i18n="lc_queue_title">Queue</span>
                 </div>
                 <span class="lc-section-badge yellow" id="lc-queue-badge">5</span>
               </div>
@@ -901,12 +901,12 @@
 
         <div class="section-header">
           <div>
-            <div class="section-title">Platform Issues</div>
+            <div class="section-title" data-i18n="page_issues">Platform Issues</div>
             <div class="section-sub" id="pi-sub">Loading…</div>
           </div>
           <div style="display:flex;gap:10px">
-            <button class="btn-outline" style="width:auto;padding:10px 22px;font-size:14px" onclick="exportIssuesToExcel()">↓ Export Excel</button>
-            <button class="btn-primary" style="width:auto;padding:10px 22px;font-size:14px;margin-top:0" onclick="openNewIssueModal()">+ New Issue</button>
+            <button class="btn-outline" style="width:auto;padding:10px 22px;font-size:14px" onclick="exportIssuesToExcel()" data-i18n="pi_export">↓ Export Excel</button>
+            <button class="btn-primary" style="width:auto;padding:10px 22px;font-size:14px;margin-top:0" onclick="openNewIssueModal()" data-i18n="pi_new_issue">+ New Issue</button>
           </div>
         </div>
 
@@ -915,35 +915,35 @@
           <div class="pi-stat-card todo" onclick="piFilterByStatus('todo')">
             <div class="pi-stat-card-top">
               <div class="pi-stat-card-emoji">📋</div>
-              <span class="pi-stat-card-lbl">To Do</span>
+              <span class="pi-stat-card-lbl" data-i18n="pi_todo">To Do</span>
             </div>
             <div class="pi-stat-card-val" id="pi-sc-todo">0</div>
           </div>
           <div class="pi-stat-card inprogress" onclick="piFilterByStatus('inprogress')">
             <div class="pi-stat-card-top">
               <div class="pi-stat-card-emoji">🔄</div>
-              <span class="pi-stat-card-lbl">In Progress</span>
+              <span class="pi-stat-card-lbl" data-i18n="pi_inprogress">In Progress</span>
             </div>
             <div class="pi-stat-card-val" id="pi-sc-inprogress">0</div>
           </div>
           <div class="pi-stat-card pending" onclick="piFilterByStatus('pending')">
             <div class="pi-stat-card-top">
               <div class="pi-stat-card-emoji">⏸</div>
-              <span class="pi-stat-card-lbl">Pending</span>
+              <span class="pi-stat-card-lbl" data-i18n="pi_pending">Pending</span>
             </div>
             <div class="pi-stat-card-val" id="pi-sc-pending">0</div>
           </div>
           <div class="pi-stat-card postponed" onclick="piFilterByStatus('postponed')">
             <div class="pi-stat-card-top">
               <div class="pi-stat-card-emoji">📅</div>
-              <span class="pi-stat-card-lbl">Postponed</span>
+              <span class="pi-stat-card-lbl" data-i18n="pi_postponed">Postponed</span>
             </div>
             <div class="pi-stat-card-val" id="pi-sc-postponed">0</div>
           </div>
           <div class="pi-stat-card resolved" onclick="piFilterByStatus('resolved')">
             <div class="pi-stat-card-top">
               <div class="pi-stat-card-emoji">✅</div>
-              <span class="pi-stat-card-lbl">Resolved</span>
+              <span class="pi-stat-card-lbl" data-i18n="pi_resolved">Resolved</span>
             </div>
             <div class="pi-stat-card-val" id="pi-sc-resolved">0</div>
           </div>
@@ -951,12 +951,12 @@
 
         <!-- Filter bar — by status -->
         <div class="filter-bar" id="pi-filter-bar">
-          <button class="filter-tab active" onclick="filterIssues(this,'all')">All <span class="tab-count" id="pi-count-all">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'todo')">📋 To Do <span class="tab-count" id="pi-count-todo">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'inprogress')">🔄 In Progress <span class="tab-count" id="pi-count-inprogress">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'pending')">⏸ Pending <span class="tab-count" id="pi-count-pending">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'postponed')">📅 Postponed <span class="tab-count" id="pi-count-postponed">0</span></button>
-          <button class="filter-tab" onclick="filterIssues(this,'resolved')">✅ Resolved <span class="tab-count" id="pi-count-resolved">0</span></button>
+          <button class="filter-tab active" onclick="filterIssues(this,'all')"><span data-i18n="pi_filter_all">All</span> <span class="tab-count" id="pi-count-all">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'todo')">📋 <span data-i18n="pi_todo">To Do</span> <span class="tab-count" id="pi-count-todo">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'inprogress')">🔄 <span data-i18n="pi_inprogress">In Progress</span> <span class="tab-count" id="pi-count-inprogress">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'pending')">⏸ <span data-i18n="pi_pending">Pending</span> <span class="tab-count" id="pi-count-pending">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'postponed')">📅 <span data-i18n="pi_postponed">Postponed</span> <span class="tab-count" id="pi-count-postponed">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'resolved')">✅ <span data-i18n="pi_resolved">Resolved</span> <span class="tab-count" id="pi-count-resolved">0</span></button>
         </div>
 
         <!-- Issues grid (populated by JS) -->
@@ -974,17 +974,17 @@
           <!-- LEFT: ticket list panel -->
           <div class="tkt-list-panel">
             <div class="tkt-panel-header">
-              <div class="tkt-panel-title">All Tickets</div>
+              <div class="tkt-panel-title" data-i18n="tkt_all_tickets">All Tickets</div>
               <span class="tkt-total-badge" id="tkt-total-badge">13</span>
             </div>
 
             <!-- Status tabs -->
             <div class="tkt-tabs">
-              <button class="tkt-tab active" onclick="filterTickets(this,'open')">Open <span class="tkt-tab-count" id="tkt-count-open">5</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'pending')">Pending <span class="tkt-tab-count" id="tkt-count-pending">3</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'hold')">On Hold <span class="tkt-tab-count" id="tkt-count-hold">2</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'solved')">Solved <span class="tkt-tab-count" id="tkt-count-solved">2</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'closed')">Closed <span class="tkt-tab-count" id="tkt-count-closed">1</span></button>
+              <button class="tkt-tab active" onclick="filterTickets(this,'open')"><span data-i18n="tkt_open">Open</span> <span class="tkt-tab-count" id="tkt-count-open">5</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'pending')"><span data-i18n="tkt_pending">Pending</span> <span class="tkt-tab-count" id="tkt-count-pending">3</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'hold')"><span data-i18n="tkt_hold">On Hold</span> <span class="tkt-tab-count" id="tkt-count-hold">2</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'solved')"><span data-i18n="tkt_solved">Solved</span> <span class="tkt-tab-count" id="tkt-count-solved">2</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'closed')"><span data-i18n="tkt_closed">Closed</span> <span class="tkt-tab-count" id="tkt-count-closed">1</span></button>
             </div>
 
             <!-- Ticket rows (populated by JS) -->
@@ -1006,47 +1006,47 @@
                 </div>
                 <!-- floating mini cards -->
                 <div class="tkt-empty-chip tkt-empty-chip--hold">
-                  <span class="tkt-empty-chip-dot" style="background:#f97316"></span>On Hold
+                  <span class="tkt-empty-chip-dot" style="background:#f97316"></span><span data-i18n="tkt_hold">On Hold</span>
                 </div>
                 <div class="tkt-empty-chip tkt-empty-chip--open">
-                  <span class="tkt-empty-chip-dot" style="background:#ef4444"></span>Open
+                  <span class="tkt-empty-chip-dot" style="background:#ef4444"></span><span data-i18n="tkt_open">Open</span>
                 </div>
                 <div class="tkt-empty-chip tkt-empty-chip--pending">
-                  <span class="tkt-empty-chip-dot" style="background:#f59e0b"></span>Pending
+                  <span class="tkt-empty-chip-dot" style="background:#f59e0b"></span><span data-i18n="tkt_pending">Pending</span>
                 </div>
                 <div class="tkt-empty-chip tkt-empty-chip--resolved">
-                  <span class="tkt-empty-chip-dot" style="background:#10b981"></span>Resolved
+                  <span class="tkt-empty-chip-dot" style="background:#10b981"></span><span data-i18n="pi_resolved">Resolved</span>
                 </div>
                 <div class="tkt-empty-chip tkt-empty-chip--closed">
-                  <span class="tkt-empty-chip-dot" style="background:#94a3b8"></span>Closed
+                  <span class="tkt-empty-chip-dot" style="background:#94a3b8"></span><span data-i18n="tkt_closed">Closed</span>
                 </div>
               </div>
-              <div class="tkt-empty-title">No ticket selected</div>
-              <div class="tkt-empty-desc">Choose a ticket from the list on the left to view its full conversation, details, and history.</div>
+              <div class="tkt-empty-title" data-i18n="tkt_empty_title">No ticket selected</div>
+              <div class="tkt-empty-desc" data-i18n="tkt_empty_desc">Choose a ticket from the list on the left to view its full conversation, details, and history.</div>
               <div class="tkt-empty-stats">
                 <div class="tkt-empty-stat">
                   <span class="tkt-empty-stat-num" id="tkt-es-open">—</span>
-                  <span class="tkt-empty-stat-lbl">Open</span>
+                  <span class="tkt-empty-stat-lbl" data-i18n="tkt_open">Open</span>
                 </div>
                 <div class="tkt-empty-stat-div"></div>
                 <div class="tkt-empty-stat">
                   <span class="tkt-empty-stat-num" id="tkt-es-pending">—</span>
-                  <span class="tkt-empty-stat-lbl">Pending</span>
+                  <span class="tkt-empty-stat-lbl" data-i18n="tkt_pending">Pending</span>
                 </div>
                 <div class="tkt-empty-stat-div"></div>
                 <div class="tkt-empty-stat">
                   <span class="tkt-empty-stat-num" id="tkt-es-hold">—</span>
-                  <span class="tkt-empty-stat-lbl">On Hold</span>
+                  <span class="tkt-empty-stat-lbl" data-i18n="tkt_hold">On Hold</span>
                 </div>
                 <div class="tkt-empty-stat-div"></div>
                 <div class="tkt-empty-stat">
                   <span class="tkt-empty-stat-num" id="tkt-es-resolved">—</span>
-                  <span class="tkt-empty-stat-lbl">Resolved</span>
+                  <span class="tkt-empty-stat-lbl" data-i18n="pi_resolved">Resolved</span>
                 </div>
                 <div class="tkt-empty-stat-div"></div>
                 <div class="tkt-empty-stat">
                   <span class="tkt-empty-stat-num" id="tkt-es-closed">—</span>
-                  <span class="tkt-empty-stat-lbl">Closed</span>
+                  <span class="tkt-empty-stat-lbl" data-i18n="tkt_closed">Closed</span>
                 </div>
               </div>
             </div>
@@ -1065,15 +1065,15 @@
         <div class="rpt-subnav">
           <button class="rpt-subnav-btn active" onclick="showReportTab(this,'total-chats')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            Total Chats
+            <span data-i18n="rpt_total_chats_tab">Total Chats</span>
           </button>
           <button class="rpt-subnav-btn" onclick="showReportTab(this,'satisfaction')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-            Chat Satisfaction
+            <span data-i18n="rpt_satisfaction_tab">Chat Satisfaction</span>
           </button>
           <button class="rpt-subnav-btn" onclick="showReportTab(this,'agent-perf')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Agent Performance
+            <span data-i18n="rpt_agent_perf_tab">Agent Performance</span>
           </button>
         </div>
 
@@ -1081,16 +1081,16 @@
         <div id="rpt-total-chats" class="rpt-section">
           <div class="rpt-filter-bar">
             <div class="rpt-date-pills" id="tc-date-pills">
-              <button class="rpt-date-pill active" data-period="today"        onclick="setRptPeriod(this,'tc')">Today</button>
-              <button class="rpt-date-pill"         data-period="yesterday"   onclick="setRptPeriod(this,'tc')">Yesterday</button>
-              <button class="rpt-date-pill"         data-period="last7"       onclick="setRptPeriod(this,'tc')">Last 7 Days</button>
-              <button class="rpt-date-pill"         data-period="curMonth"    onclick="setRptPeriod(this,'tc')">Current Month</button>
-              <button class="rpt-date-pill"         data-period="lastMonth"   onclick="setRptPeriod(this,'tc')">Last Month</button>
-              <button class="rpt-date-pill"         data-period="curYear"     onclick="setRptPeriod(this,'tc')">Current Year</button>
-              <button class="rpt-date-pill"         data-period="total"       onclick="setRptPeriod(this,'tc')">Total</button>
+              <button class="rpt-date-pill active" data-period="today"        onclick="setRptPeriod(this,'tc')" data-i18n="period_today">Today</button>
+              <button class="rpt-date-pill"         data-period="yesterday"   onclick="setRptPeriod(this,'tc')" data-i18n="period_yesterday">Yesterday</button>
+              <button class="rpt-date-pill"         data-period="last7"       onclick="setRptPeriod(this,'tc')" data-i18n="period_last7">Last 7 Days</button>
+              <button class="rpt-date-pill"         data-period="curMonth"    onclick="setRptPeriod(this,'tc')" data-i18n="period_curMonth">Current Month</button>
+              <button class="rpt-date-pill"         data-period="lastMonth"   onclick="setRptPeriod(this,'tc')" data-i18n="period_lastMonth">Last Month</button>
+              <button class="rpt-date-pill"         data-period="curYear"     onclick="setRptPeriod(this,'tc')" data-i18n="period_curYear">Current Year</button>
+              <button class="rpt-date-pill"         data-period="total"       onclick="setRptPeriod(this,'tc')" data-i18n="period_total">Total</button>
             </div>
             <select class="rpt-agent-select" id="tc-agent-select" onchange="renderTotalChats()">
-              <option value="">All Agents</option>
+              <option value="" data-i18n="rpt_all_agents">All Agents</option>
             </select>
           </div>
           <div class="rpt-kpi-row" id="tc-kpis"></div>
@@ -1104,7 +1104,7 @@
             </div>
             <div class="rpt-chart-card">
               <div class="rpt-chart-card-header">
-                <div class="rpt-chart-card-title">Total Chats — This Week</div>
+                <div class="rpt-chart-card-title" data-i18n="rpt_this_week_title">Total Chats — This Week</div>
                 <div class="rpt-chart-card-sub" id="tc-week-sub">Daily breakdown</div>
               </div>
               <div class="rpt-bar-wrap" id="tc-week-chart"></div>
@@ -1115,8 +1115,8 @@
           <div class="rpt-chart-card rpt-annual-card">
             <div class="rpt-chart-card-header">
               <div>
-                <div class="rpt-chart-card-title">Annual Chat Analytics</div>
-                <div class="rpt-chart-card-sub">Monthly distribution, MoM trends &amp; year-over-year comparison</div>
+                <div class="rpt-chart-card-title" data-i18n="rpt_annual_title">Annual Chat Analytics</div>
+                <div class="rpt-chart-card-sub" data-i18n="rpt_annual_sub">Monthly distribution, MoM trends &amp; year-over-year comparison</div>
               </div>
               <div class="rpt-year-tabs" id="tc-year-tabs">
                 <button class="rpt-year-tab active" onclick="setYearView(this,'2026')">2026</button>
@@ -1132,16 +1132,16 @@
         <div id="rpt-satisfaction" class="rpt-section hidden">
           <div class="rpt-filter-bar">
             <div class="rpt-date-pills" id="cs-date-pills">
-              <button class="rpt-date-pill active" data-period="today"      onclick="setRptPeriod(this,'cs')">Today</button>
-              <button class="rpt-date-pill"         data-period="yesterday" onclick="setRptPeriod(this,'cs')">Yesterday</button>
-              <button class="rpt-date-pill"         data-period="last7"     onclick="setRptPeriod(this,'cs')">Last 7 Days</button>
-              <button class="rpt-date-pill"         data-period="curMonth"  onclick="setRptPeriod(this,'cs')">Current Month</button>
-              <button class="rpt-date-pill"         data-period="lastMonth" onclick="setRptPeriod(this,'cs')">Last Month</button>
-              <button class="rpt-date-pill"         data-period="curYear"   onclick="setRptPeriod(this,'cs')">Current Year</button>
-              <button class="rpt-date-pill"         data-period="total"     onclick="setRptPeriod(this,'cs')">Total</button>
+              <button class="rpt-date-pill active" data-period="today"      onclick="setRptPeriod(this,'cs')" data-i18n="period_today">Today</button>
+              <button class="rpt-date-pill"         data-period="yesterday" onclick="setRptPeriod(this,'cs')" data-i18n="period_yesterday">Yesterday</button>
+              <button class="rpt-date-pill"         data-period="last7"     onclick="setRptPeriod(this,'cs')" data-i18n="period_last7">Last 7 Days</button>
+              <button class="rpt-date-pill"         data-period="curMonth"  onclick="setRptPeriod(this,'cs')" data-i18n="period_curMonth">Current Month</button>
+              <button class="rpt-date-pill"         data-period="lastMonth" onclick="setRptPeriod(this,'cs')" data-i18n="period_lastMonth">Last Month</button>
+              <button class="rpt-date-pill"         data-period="curYear"   onclick="setRptPeriod(this,'cs')" data-i18n="period_curYear">Current Year</button>
+              <button class="rpt-date-pill"         data-period="total"     onclick="setRptPeriod(this,'cs')" data-i18n="period_total">Total</button>
             </div>
             <select class="rpt-agent-select" id="cs-agent-select" onchange="renderSatisfaction()">
-              <option value="">All Agents</option>
+              <option value="" data-i18n="rpt_all_agents">All Agents</option>
             </select>
           </div>
           <div class="rpt-csat-layout">
@@ -1154,14 +1154,14 @@
           <div class="rpt-charts-row">
             <div class="rpt-chart-card">
               <div class="rpt-chart-card-header">
-                <div class="rpt-chart-card-title">Satisfaction Trend — This Week</div>
+                <div class="rpt-chart-card-title" data-i18n="rpt_sat_week_title">Satisfaction Trend — This Week</div>
                 <div class="rpt-chart-card-sub" id="cs-chart-week-sub">CSAT % per day</div>
               </div>
               <div class="rpt-bar-wrap" id="cs-chart-week"></div>
             </div>
             <div class="rpt-chart-card">
               <div class="rpt-chart-card-header">
-                <div class="rpt-chart-card-title">Satisfaction Trend — Current Month</div>
+                <div class="rpt-chart-card-title" data-i18n="rpt_sat_month_title">Satisfaction Trend — Current Month</div>
                 <div class="rpt-chart-card-sub" id="cs-chart-month-sub">CSAT % per week</div>
               </div>
               <div class="rpt-bar-wrap" id="cs-chart-month"></div>
@@ -1173,13 +1173,13 @@
         <div id="rpt-agent-perf" class="rpt-section hidden">
           <div class="rpt-filter-bar" style="justify-content:flex-start">
             <div class="rpt-date-pills" id="ap-date-pills">
-              <button class="rpt-date-pill active" data-period="today"      onclick="setRptPeriod(this,'ap')">Today</button>
-              <button class="rpt-date-pill"         data-period="yesterday" onclick="setRptPeriod(this,'ap')">Yesterday</button>
-              <button class="rpt-date-pill"         data-period="last7"     onclick="setRptPeriod(this,'ap')">Last 7 Days</button>
-              <button class="rpt-date-pill"         data-period="curMonth"  onclick="setRptPeriod(this,'ap')">Current Month</button>
-              <button class="rpt-date-pill"         data-period="lastMonth" onclick="setRptPeriod(this,'ap')">Last Month</button>
-              <button class="rpt-date-pill"         data-period="curYear"   onclick="setRptPeriod(this,'ap')">Current Year</button>
-              <button class="rpt-date-pill"         data-period="total"     onclick="setRptPeriod(this,'ap')">Total</button>
+              <button class="rpt-date-pill active" data-period="today"      onclick="setRptPeriod(this,'ap')" data-i18n="period_today">Today</button>
+              <button class="rpt-date-pill"         data-period="yesterday" onclick="setRptPeriod(this,'ap')" data-i18n="period_yesterday">Yesterday</button>
+              <button class="rpt-date-pill"         data-period="last7"     onclick="setRptPeriod(this,'ap')" data-i18n="period_last7">Last 7 Days</button>
+              <button class="rpt-date-pill"         data-period="curMonth"  onclick="setRptPeriod(this,'ap')" data-i18n="period_curMonth">Current Month</button>
+              <button class="rpt-date-pill"         data-period="lastMonth" onclick="setRptPeriod(this,'ap')" data-i18n="period_lastMonth">Last Month</button>
+              <button class="rpt-date-pill"         data-period="curYear"   onclick="setRptPeriod(this,'ap')" data-i18n="period_curYear">Current Year</button>
+              <button class="rpt-date-pill"         data-period="total"     onclick="setRptPeriod(this,'ap')" data-i18n="period_total">Total</button>
             </div>
           </div>
           <div class="rpt-chart-card" style="padding:0;overflow:hidden">
@@ -1188,31 +1188,31 @@
               <thead>
                 <tr>
                   <th class="rpt-th" onclick="sortPerfTable('name')">
-                    Agent <span class="sort-icon" id="sort-icon-name"></span>
+                    <span data-i18n="tbl_agent">Agent</span> <span class="sort-icon" id="sort-icon-name"></span>
                   </th>
                   <th class="rpt-th sortable" onclick="sortPerfTable('totalChats')">
-                    Total Chats <span class="sort-icon" id="sort-icon-totalChats">↓</span>
+                    <span data-i18n="tbl_total_chats">Total Chats</span> <span class="sort-icon" id="sort-icon-totalChats">↓</span>
                   </th>
                   <th class="rpt-th sortable" onclick="sortPerfTable('satisfaction')">
-                    Chat Satisfaction <span class="sort-icon" id="sort-icon-satisfaction"></span>
+                    <span data-i18n="tbl_chat_sat">Chat Satisfaction</span> <span class="sort-icon" id="sort-icon-satisfaction"></span>
                   </th>
                   <th class="rpt-th sortable" onclick="sortPerfTable('firstResponse')">
-                    First Response <span class="sort-icon" id="sort-icon-firstResponse"></span>
+                    <span data-i18n="tbl_first_resp">First Response</span> <span class="sort-icon" id="sort-icon-firstResponse"></span>
                   </th>
                   <th class="rpt-th sortable" onclick="sortPerfTable('efficiency')">
-                    Efficiency <span class="sort-icon" id="sort-icon-efficiency"></span>
+                    <span data-i18n="tbl_efficiency">Efficiency</span> <span class="sort-icon" id="sort-icon-efficiency"></span>
                   </th>
                   <th class="rpt-th sortable" onclick="sortPerfTable('chattingTime')">
-                    Avg Chat Time <span class="sort-icon" id="sort-icon-chattingTime"></span>
+                    <span data-i18n="tbl_avg_chat">Avg Chat Time</span> <span class="sort-icon" id="sort-icon-chattingTime"></span>
                   </th>
-                  <th class="rpt-th">Chat Share</th>
+                  <th class="rpt-th"><span data-i18n="tbl_chat_share">Chat Share</span></th>
                   <th class="rpt-th rpt-th-trend">
-                    Monthly Trend
+                    <span data-i18n="tbl_monthly_trend">Monthly Trend</span>
                     <div class="trend-legend-header">
-                      <span style="color:#1a56db">— Chats</span>
-                      <span style="color:#10b981">— 1st Resp</span>
-                      <span style="color:#f59e0b">— Effic.</span>
-                      <span style="color:#8b5cf6">— Duration</span>
+                      <span data-i18n="rpt_trend_chats" style="color:#1a56db">— Chats</span>
+                      <span data-i18n="rpt_trend_1st_resp" style="color:#10b981">— 1st Resp</span>
+                      <span data-i18n="rpt_trend_effic" style="color:#f59e0b">— Effic.</span>
+                      <span data-i18n="rpt_trend_duration" style="color:#8b5cf6">— Duration</span>
                     </div>
                   </th>
                 </tr>
@@ -1233,24 +1233,24 @@
 
         <div class="section-header">
           <div>
-            <div class="section-title">Agent Management</div>
+            <div class="section-title" data-i18n="page_agents">Agent Management</div>
             <div class="section-sub" id="agents-sub">12 agents across day and night shifts</div>
           </div>
           <button class="btn-add" onclick="openEditModal(null)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Agent
+            <span data-i18n="btn_add_agent">Add Agent</span>
           </button>
         </div>
 
         <!-- Filter tabs -->
         <div class="filter-bar">
-          <button class="filter-tab active" onclick="filterAgents(this,'all')">All Agents <span class="tab-count" id="count-all">12</span></button>
-          <button class="filter-tab" onclick="filterAgents(this,'day')">☀ Day Shift <span class="tab-count" id="count-day">6</span></button>
-          <button class="filter-tab" onclick="filterAgents(this,'night')">🌙 Night Shift <span class="tab-count" id="count-night">6</span></button>
-          <button class="filter-tab" onclick="filterAgents(this,'online')">● Online <span class="tab-count" id="count-online">5</span></button>
-          <button class="filter-tab" onclick="filterAgents(this,'busy')">● Busy <span class="tab-count" id="count-busy">2</span></button>
-          <button class="filter-tab" onclick="filterAgents(this,'away')">● Away <span class="tab-count" id="count-away">2</span></button>
-          <button class="filter-tab" onclick="filterAgents(this,'offline')">○ Offline <span class="tab-count" id="count-offline">2</span></button>
+          <button class="filter-tab active" onclick="filterAgents(this,'all')"><span data-i18n="agent_filter_all">All Agents</span> <span class="tab-count" id="count-all">12</span></button>
+          <button class="filter-tab" onclick="filterAgents(this,'day')"><span data-i18n="agent_filter_day">☀ Day Shift</span> <span class="tab-count" id="count-day">6</span></button>
+          <button class="filter-tab" onclick="filterAgents(this,'night')"><span data-i18n="agent_filter_night">🌙 Night Shift</span> <span class="tab-count" id="count-night">6</span></button>
+          <button class="filter-tab" onclick="filterAgents(this,'online')">● <span data-i18n="status_online">Online</span> <span class="tab-count" id="count-online">5</span></button>
+          <button class="filter-tab" onclick="filterAgents(this,'busy')">● <span data-i18n="status_busy">Busy</span> <span class="tab-count" id="count-busy">2</span></button>
+          <button class="filter-tab" onclick="filterAgents(this,'away')">● <span data-i18n="status_away">Away</span> <span class="tab-count" id="count-away">2</span></button>
+          <button class="filter-tab" onclick="filterAgents(this,'offline')">○ <span data-i18n="status_offline">Offline</span> <span class="tab-count" id="count-offline">2</span></button>
         </div>
 
         <!-- Cards grid (populated by JS) -->
@@ -1266,8 +1266,8 @@
 
         <div class="section-header">
           <div>
-            <div class="section-title">My Profile</div>
-            <div class="section-sub" id="profile-header-sub">Manage your account information and preferences</div>
+            <div class="section-title" data-i18n="page_profile">My Profile</div>
+            <div class="section-sub" id="profile-header-sub" data-i18n="profile_sub">Manage your account information and preferences</div>
           </div>
         </div>
 
@@ -1276,7 +1276,7 @@
           <!-- LEFT: Avatar -->
           <div class="profile-left-col">
             <div class="profile-card">
-              <div class="profile-card-title">Profile Picture</div>
+              <div class="profile-card-title" data-i18n="profile_picture">Profile Picture</div>
 
               <!-- Big preview -->
               <div class="profile-avatar-big" id="profile-avatar-preview"></div>
@@ -1285,9 +1285,9 @@
 
               <!-- Actions -->
               <div class="profile-avatar-actions">
-                <button class="profile-avatar-btn upload" onclick="document.getElementById('profile-upload-input').click()">📁 Upload</button>
-                <button class="profile-avatar-btn change" onclick="toggleAvatarPicker()">✏️ Choose</button>
-                <button class="profile-avatar-btn remove" onclick="removeAvatar()">🗑 Remove</button>
+                <button class="profile-avatar-btn upload" onclick="document.getElementById('profile-upload-input').click()" data-i18n="btn_upload_avatar">📁 Upload</button>
+                <button class="profile-avatar-btn change" onclick="toggleAvatarPicker()" data-i18n="btn_choose_avatar">✏️ Choose</button>
+                <button class="profile-avatar-btn remove" onclick="removeAvatar()" data-i18n="btn_remove_avatar">🗑 Remove</button>
               </div>
               <input type="file" id="profile-upload-input" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style="display:none" onchange="handleAvatarUpload(event)" />
 
@@ -1306,33 +1306,33 @@
 
             <!-- Personal info -->
             <div class="profile-card">
-              <div class="profile-card-title">Personal Information</div>
+              <div class="profile-card-title" data-i18n="profile_personal_info">Personal Information</div>
               <div class="profile-fields-row">
                 <div class="form-group" style="flex:1;margin-bottom:0">
-                  <label>Display Name</label>
-                  <input id="profile-name" type="text" placeholder="Your full name" />
+                  <label data-i18n="lbl_display_name">Display Name</label>
+                  <input id="profile-name" type="text" placeholder="Your full name" data-i18n-placeholder="ph_profile_name" />
                   <div class="input-error" id="profile-name-err">Please enter your name.</div>
                 </div>
                 <div class="form-group" style="flex:1;margin-bottom:0">
-                  <label>Email Address</label>
+                  <label data-i18n="lbl_email_addr">Email Address</label>
                   <input id="profile-email" type="email" placeholder="you@forexdesk.io" />
                   <div class="input-error" id="profile-email-err">Please enter a valid email.</div>
                 </div>
               </div>
               <div style="display:flex;justify-content:flex-end;margin-top:18px">
-                <button class="profile-save-btn" onclick="saveProfileInfo()">Save Info</button>
+                <button class="profile-save-btn" onclick="saveProfileInfo()" data-i18n="btn_save_info">Save Info</button>
               </div>
             </div>
 
             <!-- Work shift -->
             <div class="profile-card">
-              <div class="profile-card-title">Work Shift</div>
+              <div class="profile-card-title" data-i18n="profile_work_shift">Work Shift</div>
               <div class="profile-shift-row">
                 <label class="profile-shift-option">
                   <input type="radio" name="profile-shift" value="day" id="shift-day" onchange="selectShift('day')" />
                   <div class="profile-shift-box" id="shift-day-box">
                     <span class="profile-shift-icon">☀️</span>
-                    <span class="profile-shift-name">Day Shift</span>
+                    <span class="profile-shift-name" data-i18n="shift_day">Day Shift</span>
                     <span class="profile-shift-time">06:00 – 18:00</span>
                   </div>
                 </label>
@@ -1340,22 +1340,22 @@
                   <input type="radio" name="profile-shift" value="night" id="shift-night" onchange="selectShift('night')" />
                   <div class="profile-shift-box" id="shift-night-box">
                     <span class="profile-shift-icon">🌙</span>
-                    <span class="profile-shift-name">Night Shift</span>
+                    <span class="profile-shift-name" data-i18n="shift_night">Night Shift</span>
                     <span class="profile-shift-time">18:00 – 06:00</span>
                   </div>
                 </label>
               </div>
               <div style="display:flex;justify-content:flex-end;margin-top:18px">
-                <button class="profile-save-btn" onclick="saveProfileShift()">Save Shift</button>
+                <button class="profile-save-btn" onclick="saveProfileShift()" data-i18n="btn_save_shift">Save Shift</button>
               </div>
             </div>
 
             <!-- Password -->
             <div class="profile-card">
-              <div class="profile-card-title">Password &amp; Security</div>
+              <div class="profile-card-title" data-i18n="profile_security">Password &amp; Security</div>
               <div class="profile-fields-row">
                 <div class="form-group" style="flex:1;margin-bottom:0">
-                  <label>New Password</label>
+                  <label data-i18n="lbl_new_pass">New Password</label>
                   <div class="pass-input-wrap">
                     <input id="profile-new-pass" type="password" placeholder="e.g. MyPass@123" oninput="updatePassStrength(this.value)" />
                     <button type="button" class="pass-toggle-btn" onclick="togglePassVisibility('profile-new-pass', this)" tabindex="-1">
@@ -1365,7 +1365,7 @@
                   <div class="input-error" id="profile-pass-err"></div>
                   <div class="pass-hint">
                     <span class="pass-hint-icon">ℹ️</span>
-                    Min. 6 characters with at least one letter, one number, and one special character (e.g. <code>@  #  $  !  %</code>)
+                    <span id="pass-hint-text">Min. 6 characters with at least one letter, one number, and one special character (e.g. <code>@&nbsp;&nbsp;#&nbsp;&nbsp;$&nbsp;&nbsp;!&nbsp;&nbsp;%</code>)</span>
                   </div>
                   <div class="pass-strength-bar" id="pass-strength-bar">
                     <div class="pass-strength-fill" id="pass-strength-fill"></div>
@@ -1373,9 +1373,9 @@
                   <div class="pass-strength-label" id="pass-strength-label"></div>
                 </div>
                 <div class="form-group" style="flex:1;margin-bottom:0">
-                  <label>Confirm Password</label>
+                  <label data-i18n="lbl_confirm_pass">Confirm Password</label>
                   <div class="pass-input-wrap">
-                    <input id="profile-confirm-pass" type="password" placeholder="Repeat new password" />
+                    <input id="profile-confirm-pass" type="password" placeholder="Repeat new password" data-i18n-placeholder="ph_profile_confirm_pass" />
                     <button type="button" class="pass-toggle-btn" onclick="togglePassVisibility('profile-confirm-pass', this)" tabindex="-1">
                       <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
@@ -1384,8 +1384,8 @@
                 </div>
               </div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;flex-wrap:wrap;gap:10px">
-                <button class="profile-reset-btn" onclick="resetPassword()">📧 Send Reset Link</button>
-                <button class="profile-save-btn" onclick="savePassword()">Set Password</button>
+                <button class="profile-reset-btn" onclick="resetPassword()" data-i18n="btn_send_reset">📧 Send Reset Link</button>
+                <button class="profile-save-btn" onclick="savePassword()" data-i18n="btn_set_password">Set Password</button>
               </div>
               <div class="profile-msg" id="profile-pass-msg" style="display:none"></div>
             </div>
@@ -1420,8 +1420,8 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
               </div>
               <div>
-                <h2 class="settings-section-title">Appearance</h2>
-                <p class="settings-section-sub">Choose your preferred color theme</p>
+                <h2 class="settings-section-title" data-i18n="settings_appearance">Appearance</h2>
+                <p class="settings-section-sub" data-i18n="settings_appearance_sub">Choose your preferred color theme</p>
               </div>
             </div>
             <div class="theme-options">
@@ -1436,7 +1436,7 @@
                 <div class="theme-option-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 </div>
-                <div class="theme-option-label">Light</div>
+                <div class="theme-option-label" data-i18n="theme_light">Light</div>
                 <div class="theme-option-check">✓</div>
               </button>
               <button class="theme-option" data-theme="dark" onclick="applyTheme('dark')">
@@ -1450,7 +1450,7 @@
                 <div class="theme-option-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 </div>
-                <div class="theme-option-label">Dark</div>
+                <div class="theme-option-label" data-i18n="theme_dark">Dark</div>
                 <div class="theme-option-check">✓</div>
               </button>
             </div>
@@ -1589,12 +1589,12 @@
           <div>
             <button class="btn-back" onclick="goBack()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              Back
+              <span data-i18n="btn_back">Back</span>
             </button>
-            <div class="section-title" style="margin-top:6px">All Notifications</div>
+            <div class="section-title" style="margin-top:6px" data-i18n="page_notifications">All Notifications</div>
             <div class="section-sub" id="notif-page-sub">3 unread</div>
           </div>
-          <button class="btn-outline" onclick="markAllRead()">Mark All as Read</button>
+          <button class="btn-outline" onclick="markAllRead()" data-i18n="notif_mark_all_btn">Mark All as Read</button>
         </div>
 
         <div class="notif-page-card">
@@ -1627,36 +1627,36 @@
           <div class="avatar-preview-dot online" id="modal-avatar-dot"></div>
         </div>
         <div class="gender-selector">
-          <label>Default Avatar Style</label>
+          <label data-i18n="lbl_avatar_style">Default Avatar Style</label>
           <div class="gender-btns">
-            <button class="gender-btn" data-gender="male" onclick="selectGender(this)">👨 Male</button>
-            <button class="gender-btn" data-gender="female" onclick="selectGender(this)">👩 Female</button>
+            <button class="gender-btn" data-gender="male" onclick="selectGender(this)" data-i18n="gender_male">👨 Male</button>
+            <button class="gender-btn" data-gender="female" onclick="selectGender(this)" data-i18n="gender_female">👩 Female</button>
           </div>
         </div>
       </div>
 
       <div class="form-group">
-        <label>Full Name</label>
+        <label data-i18n="lbl_full_name">Full Name</label>
         <input type="text" id="modal-name" placeholder="e.g. Jane Smith" />
         <div class="input-error" id="modal-name-err">Please enter a name.</div>
       </div>
 
       <div class="form-group">
-        <label>Email Address</label>
+        <label data-i18n="lbl_email_addr">Email Address</label>
         <input type="email" id="modal-email" placeholder="e.g. jane.s@forexdesk.io" />
         <div class="input-error" id="modal-email-err">Please enter a valid email.</div>
       </div>
 
       <div class="form-group">
-        <label>Shift</label>
+        <label data-i18n="lbl_shift">Shift</label>
         <div class="shift-toggle">
-          <button class="shift-btn day" data-shift="day" onclick="selectShift(this)">☀ Day Shift</button>
-          <button class="shift-btn night" data-shift="night" onclick="selectShift(this)">🌙 Night Shift</button>
+          <button class="shift-btn day" data-shift="day" onclick="selectShift(this)" data-i18n="agent_filter_day">☀ Day Shift</button>
+          <button class="shift-btn night" data-shift="night" onclick="selectShift(this)" data-i18n="agent_filter_night">🌙 Night Shift</button>
         </div>
       </div>
 
       <div class="form-group">
-        <label>Status</label>
+        <label data-i18n="tbl_status">Status</label>
         <div class="status-select-wrap">
           <select id="modal-status" onchange="updateModalAvatarDot()">
             <option value="online">● Online</option>
@@ -1669,8 +1669,8 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeEditModal()">Cancel</button>
-      <button class="btn-primary" style="width:auto;padding:11px 28px;margin-top:0" onclick="saveAgent()">Save Changes</button>
+      <button class="btn-ghost" onclick="closeEditModal()" data-i18n="btn_cancel">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:11px 28px;margin-top:0" onclick="saveAgent()" data-i18n="btn_save_changes">Save Changes</button>
     </div>
   </div>
 </div>
@@ -1697,22 +1697,22 @@
       <!-- Priority & Status bar -->
       <div class="id-fields-bar">
         <div class="id-field-group">
-          <span class="id-field-label">Priority</span>
+          <span class="id-field-label" data-i18n="lbl_priority">Priority</span>
           <select class="id-field-select priority" id="id-priority-select" onchange="changeIssuePriority(this.value)">
-            <option value="critical">🔴 Critical</option>
-            <option value="high">🟠 High</option>
-            <option value="medium">🟡 Medium</option>
+            <option value="critical" data-i18n="priority_critical">🔴 Critical</option>
+            <option value="high" data-i18n="priority_high">🟠 High</option>
+            <option value="medium" data-i18n="priority_medium">🟡 Medium</option>
           </select>
         </div>
         <div class="id-field-sep"></div>
         <div class="id-field-group">
-          <span class="id-field-label">Status</span>
+          <span class="id-field-label" data-i18n="tbl_status">Status</span>
           <select class="id-field-select status" id="id-status-select" onchange="changeIssueStatus(this.value)">
-            <option value="todo">📋 To Do</option>
-            <option value="inprogress">🔄 In Progress</option>
-            <option value="pending">⏸ Pending</option>
-            <option value="postponed">📅 Postponed</option>
-            <option value="resolved">✅ Resolved</option>
+            <option value="todo" data-i18n="pi_todo">📋 To Do</option>
+            <option value="inprogress" data-i18n="pi_inprogress">🔄 In Progress</option>
+            <option value="pending" data-i18n="pi_pending">⏸ Pending</option>
+            <option value="postponed" data-i18n="pi_postponed">📅 Postponed</option>
+            <option value="resolved" data-i18n="pi_resolved">✅ Resolved</option>
           </select>
         </div>
       </div>
@@ -1721,13 +1721,13 @@
       <div class="id-section">
         <div class="id-section-title">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Comments
+          <span data-i18n="lbl_comments">Comments</span>
         </div>
         <div class="id-comment-input-wrap">
-          <textarea id="id-comment-input" class="id-comment-textarea" placeholder="Add a comment…" rows="2"></textarea>
+          <textarea id="id-comment-input" class="id-comment-textarea" placeholder="Add a comment…" rows="2" data-i18n-placeholder="ph_comment"></textarea>
           <button class="id-comment-btn" onclick="addIssueComment()">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Post
+            <span data-i18n="btn_post">Post</span>
           </button>
         </div>
         <div class="id-comments-list" id="id-comments-list"></div>
@@ -1737,7 +1737,7 @@
       <div class="id-section">
         <div class="id-section-title">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Description
+          <span data-i18n="lbl_description">Description</span>
         </div>
         <p class="id-description" id="id-description"></p>
       </div>
@@ -1749,7 +1749,7 @@
       <div class="id-section">
         <div class="id-section-title">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Resolution Timeline
+          <span data-i18n="lbl_timeline">Resolution Timeline</span>
         </div>
         <div class="id-timeline" id="id-timeline"></div>
       </div>
@@ -1757,7 +1757,7 @@
     </div>
 
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeIssueModal()">Close</button>
+      <button class="btn-ghost" onclick="closeIssueModal()" data-i18n="btn_close">Close</button>
     </div>
   </div>
 </div>
@@ -1772,22 +1772,22 @@
       <div style="display:flex;align-items:center;gap:10px">
         <div style="width:36px;height:36px;background:#fee2e2;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px">🔴</div>
         <div>
-          <h2 class="modal-title">Report New Issue</h2>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:1px">All fields marked * are required</div>
+          <h2 class="modal-title" data-i18n="modal_new_issue_title">Report New Issue</h2>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:1px" data-i18n="modal_fields_required">All fields marked * are required</div>
         </div>
       </div>
       <button class="modal-close" onclick="closeNewIssueModal()">✕</button>
     </div>
     <div class="new-issue-body">
       <div class="form-group">
-        <label>Title *</label>
-        <input id="ni-title" type="text" placeholder="Brief description of the issue" />
+        <label data-i18n="lbl_ni_title">Title *</label>
+        <input id="ni-title" type="text" placeholder="Brief description of the issue" data-i18n-placeholder="ph_ni_title_ph" />
         <div class="input-error" id="ni-title-err">Please enter a title.</div>
       </div>
       <div class="form-group">
-        <label>Platform *</label>
+        <label data-i18n="lbl_ni_platform">Platform *</label>
         <select id="ni-platform">
-          <option value="">Select platform…</option>
+          <option value="" data-i18n="ph_platform_select">Select platform…</option>
           <option value="mt4">MT4 Platform</option>
           <option value="mt5">MT5 Platform</option>
           <option value="ctrader">cTrader</option>
@@ -1804,40 +1804,40 @@
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
-          <label>Priority *</label>
+          <label data-i18n="lbl_ni_priority">Priority *</label>
           <select id="ni-priority">
-            <option value="">Select priority…</option>
-            <option value="critical">🔴 Critical</option>
-            <option value="high">🟠 High</option>
-            <option value="medium">🟡 Medium</option>
+            <option value="" data-i18n="ph_priority_select">Select priority…</option>
+            <option value="critical" data-i18n="priority_critical">🔴 Critical</option>
+            <option value="high" data-i18n="priority_high">🟠 High</option>
+            <option value="medium" data-i18n="priority_medium">🟡 Medium</option>
           </select>
           <div class="input-error" id="ni-priority-err">Please select a priority.</div>
         </div>
         <div class="form-group">
-          <label>Status</label>
+          <label data-i18n="tbl_status">Status</label>
           <select id="ni-status">
-            <option value="todo">📋 To Do</option>
-            <option value="inprogress">🔄 In Progress</option>
-            <option value="resolved">✅ Resolved</option>
+            <option value="todo" data-i18n="pi_todo">📋 To Do</option>
+            <option value="inprogress" data-i18n="pi_inprogress">🔄 In Progress</option>
+            <option value="resolved" data-i18n="pi_resolved">✅ Resolved</option>
           </select>
         </div>
       </div>
       <div class="form-group">
-        <label>Summary *</label>
-        <input id="ni-summary" type="text" placeholder="One-line summary of the issue" />
+        <label data-i18n="lbl_ni_summary">Summary *</label>
+        <input id="ni-summary" type="text" placeholder="One-line summary of the issue" data-i18n-placeholder="ph_ni_summary_ph" />
         <div class="input-error" id="ni-summary-err">Please enter a summary.</div>
       </div>
       <div class="form-group">
-        <label>Description</label>
-        <textarea id="ni-description" class="id-comment-textarea" placeholder="Detailed description, affected clients, steps to reproduce…" rows="4" style="width:100%"></textarea>
+        <label data-i18n="lbl_ni_desc">Description</label>
+        <textarea id="ni-description" class="id-comment-textarea" placeholder="Detailed description, affected clients, steps to reproduce…" rows="4" style="width:100%" data-i18n-placeholder="ph_ni_desc_ph"></textarea>
       </div>
       <div class="form-group">
-        <label>Reported By</label>
+        <label data-i18n="lbl_ni_reporter">Reported By</label>
         <input id="ni-reporter" type="text" readonly style="background:#f8fafc;color:var(--text-muted)" />
       </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px">
-        <button class="btn-outline" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="closeNewIssueModal()">Cancel</button>
-        <button class="btn-primary" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="saveNewIssue()">Submit Issue</button>
+        <button class="btn-outline" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="closeNewIssueModal()" data-i18n="btn_cancel">Cancel</button>
+        <button class="btn-primary" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="saveNewIssue()" data-i18n="btn_submit_issue">Submit Issue</button>
       </div>
     </div>
   </div>
@@ -1859,7 +1859,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <span class="lc-stat-pill green" style="font-size:12px">
-          <span class="pulse-dot"></span> Live
+          <span class="pulse-dot"></span> <span data-i18n="dash_live">Live</span>
         </span>
         <button class="modal-close" onclick="closeSupervisePanel()">✕</button>
       </div>
@@ -1872,21 +1872,21 @@
     <div class="supervise-note-area">
       <div class="supervise-note-label">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Private note to agent — only you and the agent can see this
+        <span data-i18n="sv_note_label">Private note to agent — only you and the agent can see this</span>
       </div>
       <div class="supervise-note-input-row">
-        <textarea id="sv-note-input" class="supervise-textarea" placeholder="Type a coaching note or instruction for the agent…" rows="2"></textarea>
+        <textarea id="sv-note-input" class="supervise-textarea" placeholder="Type a coaching note or instruction for the agent…" rows="2" data-i18n-placeholder="ph_sv_note"></textarea>
         <button class="btn-send-note" onclick="sendManagerNote()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeSupervisePanel()">Close</button>
+      <button class="btn-ghost" onclick="closeSupervisePanel()" data-i18n="btn_close">Close</button>
     </div>
   </div>
 </div>
 
-<script src="app.js?v=16"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

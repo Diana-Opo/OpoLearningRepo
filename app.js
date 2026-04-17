@@ -21,6 +21,7 @@ let agents = [
 let nextId = 13;
 let editingId = null;
 let currentFilter = 'all';
+let _rtInterval = null;
 
 // ────────────────────────────────────────────────────────
 //  SVG AVATAR GENERATOR
@@ -97,7 +98,8 @@ function _syncThemeUI() {
 // ────────────────────────────────────────────────────────
 let currentUser = {};
 
-const SESSION_KEY = 'forexdesk_session';
+const SESSION_KEY        = 'forexdesk_session';
+const LAST_ACTIVITY_KEY  = 'forexdesk_last_activity';
 
 function saveSession() {
   const { name, email, avatarCustom, avatarIdx, shift } = currentUser;
@@ -111,6 +113,7 @@ function saveSession() {
 
 function clearSession() {
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
 }
 
 function showScreen(s) {
@@ -152,8 +155,15 @@ function handleSignup(e) {
 
 function enterDashboard(name, email) {
   currentUser = { name, email };
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
   _applyUserToDOM();
   saveSession();
+}
+
+function _getLangLocale() {
+  if (currentLang === 'ar') return 'ar-u-ca-gregory';
+  if (currentLang === 'fa') return 'fa-u-ca-gregory';
+  return 'en-US';
 }
 
 function _applyUserToDOM() {
@@ -166,7 +176,7 @@ function _applyUserToDOM() {
   document.getElementById('greeting-name').textContent  = name.split(' ')[0];
   const now = new Date();
   document.getElementById('today-date').textContent =
-    now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    now.toLocaleDateString(_getLangLocale(),{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('auth-wrap').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   if (currentUser.avatarCustom) updateHeaderAvatarImage();
@@ -318,8 +328,9 @@ function updateTabCounts() {
   document.getElementById('count-busy').textContent    = agents.filter(a=>a.status==='busy').length;
   document.getElementById('count-away').textContent    = agents.filter(a=>a.status==='away').length;
   document.getElementById('count-offline').textContent = agents.filter(a=>a.status==='offline').length;
-  document.getElementById('agents-sub').textContent   =
-    `${agents.length} agents · ${agents.filter(a=>a.shift==='day').length} day · ${agents.filter(a=>a.shift==='night').length} night`;
+  const _ta = translations[currentLang];
+  document.getElementById('agents-sub').textContent =
+    `${agents.length} ${_ta.lbl_agents_word} · ${agents.filter(a=>a.shift==='day').length} ${_ta.lbl_day_word} · ${agents.filter(a=>a.shift==='night').length} ${_ta.lbl_night_word}`;
 }
 
 const STATUS_LABELS = { online:'Online', busy:'Busy', away:'Away', offline:'Offline' };
@@ -337,14 +348,17 @@ function renderAgents(filter) {
   const grid = document.getElementById('agent-grid');
 
   if (list.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted);font-size:15px">No agents match this filter.</div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted);font-size:15px">${translations[currentLang].no_agents_match}</div>`;
     return;
   }
 
+  const _t = translations[currentLang];
   grid.innerHTML = list.map(a => {
     const pct    = a.chats / a.maxChats;
     const barClr = loadBarColor(pct);
     const svg    = avatarSVG(a.gender, a.color);
+    const statusLabel = _t['status_' + a.status] || STATUS_LABELS[a.status];
+    const shiftLabel  = a.shift === 'day' ? _t.shift_day : _t.shift_night;
     return `
     <div class="agent-card">
       <div class="agent-card-stripe ${a.shift}"></div>
@@ -352,22 +366,22 @@ function renderAgents(filter) {
 
         <div class="agent-avatar-wrap">
           <div class="agent-avatar-img">${svg}</div>
-          <div class="agent-status-dot ${a.status}" title="${STATUS_LABELS[a.status]}"></div>
+          <div class="agent-status-dot ${a.status}" title="${statusLabel}"></div>
         </div>
 
         <div class="agent-name">${escHtml(a.name)}</div>
         <div class="agent-email">${escHtml(a.email)}</div>
 
-        <span class="shift-badge ${a.shift}">${SHIFT_ICONS[a.shift]} ${a.shift === 'day' ? 'Day Shift' : 'Night Shift'}</span>
+        <span class="shift-badge ${a.shift}">${SHIFT_ICONS[a.shift]} ${shiftLabel}</span>
 
         <div class="agent-status-row">
-          <span class="agent-status-label ${a.status}">${STATUS_LABELS[a.status]}</span>
-          ${a.status !== 'offline' ? `<span style="color:var(--text-muted);font-size:11px">· ${a.chats}/${a.maxChats} chats</span>` : ''}
+          <span class="agent-status-label ${a.status}">${statusLabel}</span>
+          ${a.status !== 'offline' ? `<span style="color:var(--text-muted);font-size:11px">· ${a.chats}/${a.maxChats} ${_t.lbl_chats_word}</span>` : ''}
         </div>
 
         <div class="agent-load-row">
           <div class="agent-load-header">
-            <span>Chat load</span>
+            <span>${_t.lbl_chat_load}</span>
             <span>${a.status === 'offline' ? '—' : Math.round(pct*100) + '%'}</span>
           </div>
           <div class="agent-load-track">
@@ -377,7 +391,7 @@ function renderAgents(filter) {
 
         <button class="btn-edit" onclick="openEditModal(${a.id})">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Edit Agent
+          ${_t.btn_edit_agent}
         </button>
       </div>
     </div>`;
@@ -395,8 +409,9 @@ function openEditModal(id) {
   editingId = id;
   const isNew = id === null;
 
-  document.getElementById('modal-title').textContent = isNew ? 'Add New Agent' : 'Edit Agent';
-  document.querySelector('.btn-primary[onclick="saveAgent()"]').textContent = isNew ? 'Add Agent' : 'Save Changes';
+  const _t = translations[currentLang];
+  document.getElementById('modal-title').textContent = isNew ? _t.modal_add_agent_title : _t.modal_edit_agent_title;
+  document.querySelector('.btn-primary[onclick="saveAgent()"]').textContent = isNew ? _t.btn_add_agent_modal : _t.btn_save_changes;
 
   // Reset errors
   ['modal-name-err','modal-email-err'].forEach(hideErr);
@@ -642,11 +657,11 @@ function renderYearlyCharts(year) {
   body.innerHTML = `
     <div class="rpt-yearly-grid">
       <div class="rpt-donut-wrap">
-        <div class="rpt-chart-section-title">Monthly Distribution</div>
+        <div class="rpt-chart-section-title">${translations[currentLang].rpt_monthly_dist}</div>
         ${buildDonutChart(active, total)}
       </div>
       <div class="rpt-mom-wrap">
-        <div class="rpt-chart-section-title">Month-over-Month Trend</div>
+        <div class="rpt-chart-section-title">${translations[currentLang].rpt_mom_trend}</div>
         ${buildMomChart(allMonths)}
       </div>
     </div>`;
@@ -682,7 +697,7 @@ function buildDonutChart(active, total) {
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f1f5f9" stroke-width="${sw}"/>
       ${segs}
       <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="22" font-weight="700" style="fill:var(--text-primary)">${total.toLocaleString()}</text>
-      <text x="${cx}" y="${cy + 13}" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">total chats</text>
+      <text x="${cx}" y="${cy + 13}" text-anchor="middle" font-size="10" style="fill:var(--text-muted)">${translations[currentLang].rpt_total_chats_svg}</text>
     </svg>
   </div>${legend}`;
 }
@@ -774,10 +789,11 @@ function renderCompareCharts() {
     }
   });
   const svg = `<svg viewBox="0 0 ${W} ${H}" class="yoy-svg" preserveAspectRatio="xMidYMid meet">${grid}${b25}${b26}${labs}${diff}</svg>`;
+  const _trc = translations[currentLang];
   const legend = `<div class="yoy-legend">
-    <span class="yoy-legend-dot" style="background:#94a3b8"></span><span>2025</span>
-    <span class="yoy-legend-dot" style="background:#1a56db"></span><span>2026</span>
-    <span class="yoy-legend-note">% = YoY change</span>
+    <span class="yoy-legend-dot" style="background:#94a3b8"></span><span>${_trc.rpt_legend_2025}</span>
+    <span class="yoy-legend-dot" style="background:#1a56db"></span><span>${_trc.rpt_legend_2026}</span>
+    <span class="yoy-legend-note">${_trc.rpt_yoy_change}</span>
   </div>`;
   body.innerHTML = `<div class="rpt-yoy-wrap">${legend}${svg}</div>`;
 }
@@ -870,7 +886,8 @@ function renderTotalChats() {
   const data  = periodChartData[period];
   const adjBars = data.bars.map(b => ({ l:b.l, v: Math.round(b.v * share) }));
 
-  const periodLabelMap = { today:'Today', yesterday:'Yesterday', last7:'Last 7 Days', curMonth:'Current Month', lastMonth:'Last Month', curYear:'Current Year', total:'All Time' };
+  const _t = translations[currentLang];
+  const periodLabelMap = { today:_t.period_today, yesterday:_t.period_yesterday, last7:_t.period_last7, curMonth:_t.period_curMonth, lastMonth:_t.period_lastMonth, curYear:_t.period_curYear, total:_t.period_total };
 
   // KPIs
   const avgPerBar = total / adjBars.length;
@@ -880,10 +897,10 @@ function renderTotalChats() {
   const deltaPct  = Math.abs(Math.round((total - prevTotal) / Math.max(prevTotal,1) * 100));
 
   document.getElementById('tc-kpis').innerHTML = [
-    { icon:'chat', cls:'blue',   val: total.toLocaleString(), lbl:'Total Chats',   delta:`${deltaDir==='up'?'↑':'↓'} ${deltaPct}%`, dCls: deltaDir },
-    { icon:'avg',  cls:'green',  val: avgPerBar.toFixed(1),   lbl:`Avg / ${data.xLabel}`, delta:'vs prev', dCls:'neu' },
-    { icon:'peak', cls:'orange', val: peakBar.v,              lbl:`Peak (${peakBar.l})`, delta:'Highest', dCls:'neu' },
-    { icon:'rate', cls:'purple', val: ((total / Math.max(periodTotals[period],1))*100).toFixed(0)+'%', lbl:'Share of Team', delta: agentId ? agents.find(a=>a.id===agentId)?.name.split(' ')[0]||'' : 'All agents', dCls:'neu' },
+    { icon:'chat', cls:'blue',   val: total.toLocaleString(), lbl:_t.rpt_kpi_total_chats,   delta:`${deltaDir==='up'?'↑':'↓'} ${deltaPct}%`, dCls: deltaDir },
+    { icon:'avg',  cls:'green',  val: avgPerBar.toFixed(1),   lbl:`${_t.rpt_avg_per} ${data.xLabel}`, delta:_t.rpt_vs_prev, dCls:'neu' },
+    { icon:'peak', cls:'orange', val: peakBar.v,              lbl:`${_t.rpt_peak} (${peakBar.l})`, delta:_t.rpt_highest, dCls:'neu' },
+    { icon:'rate', cls:'purple', val: ((total / Math.max(periodTotals[period],1))*100).toFixed(0)+'%', lbl:_t.rpt_share_of_team, delta: agentId ? agents.find(a=>a.id===agentId)?.name.split(' ')[0]||'' : _t.rpt_all_agents_delta, dCls:'neu' },
   ].map(k => {
     const icons = {
       chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
@@ -902,8 +919,8 @@ function renderTotalChats() {
   }).join('');
 
   const agentLabel = agentId ? ` — ${agents.find(a=>a.id===agentId)?.name || ''}` : '';
-  document.getElementById('tc-chart-title').textContent = `Total Chats — ${periodLabelMap[period]}${agentLabel}`;
-  document.getElementById('tc-chart-sub').textContent   = `${total.toLocaleString()} chats · per ${data.xLabel.toLowerCase()}`;
+  document.getElementById('tc-chart-title').textContent = `${_t.kpi_total_chats} — ${periodLabelMap[period]}${agentLabel}`;
+  document.getElementById('tc-chart-sub').textContent   = `${total.toLocaleString()} ${_t.lbl_chats_word} · ${_t.lbl_per_day}`;
 
   renderBarChart('tc-chart', adjBars, '#1a56db');
   renderThisWeekChart();
@@ -917,7 +934,7 @@ function renderThisWeekChart() {
   const bars = periodChartData.last7.bars.map(b => ({ l: b.l, v: Math.round(b.v * share) }));
   const total = bars.reduce((s, b) => s + b.v, 0);
   const sub = document.getElementById('tc-week-sub');
-  if (sub) sub.textContent = `${total.toLocaleString()} chats · per day`;
+  if (sub) { const _t2 = translations[currentLang]; sub.textContent = `${total.toLocaleString()} ${_t2.lbl_chats_word} · ${_t2.lbl_per_day}`; }
   renderBarChart('tc-week-chart', bars, '#8b5cf6');
 }
 
@@ -947,18 +964,19 @@ function renderSatisfaction() {
   renderDonut('cs-donut', csat, csat >= 90 ? '#10b981' : csat >= 80 ? '#f59e0b' : '#ef4444');
 
   // Legend
+  const _tsat = translations[currentLang];
   document.getElementById('cs-legend').innerHTML = `
-    <div class="rpt-legend-row"><div class="rpt-legend-dot" style="background:#10b981"></div><span>Positive</span><span class="rpt-legend-val">${positive}</span></div>
-    <div class="rpt-legend-row"><div class="rpt-legend-dot" style="background:#ef4444"></div><span>Negative</span><span class="rpt-legend-val">${negative}</span></div>
-    <div class="rpt-legend-row"><div class="rpt-legend-dot" style="background:#94a3b8"></div><span>No rating</span><span class="rpt-legend-val">${Math.round(positive * .08)}</span></div>`;
+    <div class="rpt-legend-row"><div class="rpt-legend-dot" style="background:#10b981"></div><span>${_tsat.rpt_positive}</span><span class="rpt-legend-val">${positive}</span></div>
+    <div class="rpt-legend-row"><div class="rpt-legend-dot" style="background:#ef4444"></div><span>${_tsat.rpt_negative}</span><span class="rpt-legend-val">${negative}</span></div>
+    <div class="rpt-legend-row"><div class="rpt-legend-dot" style="background:#94a3b8"></div><span>${_tsat.rpt_no_rating}</span><span class="rpt-legend-val">${Math.round(positive * .08)}</span></div>`;
 
   // KPI cards
   const npsScore = Math.round(csat - 35);
   document.getElementById('cs-kpis').innerHTML = [
-    { val:`${csat}%`,         lbl:'CSAT Score',       cls:'green',  delta: csat>=90?'↑ Excellent':'↑ Good', dCls: csat>=90?'up':'neu' },
-    { val:`${positive}`,      lbl:'Positive Ratings',  cls:'blue',   delta:'😊 Happy clients', dCls:'up' },
-    { val:`${negative}`,      lbl:'Negative Ratings',  cls:'orange', delta: negative>5?'↑ Review needed':'↓ Low', dCls: negative>5?'down':'up' },
-    { val:`${npsScore}`,      lbl:'NPS Score',         cls:'purple', delta: npsScore>=50?'↑ Promoters':'Passives', dCls: npsScore>=50?'up':'neu' },
+    { val:`${csat}%`,         lbl:_tsat.rpt_csat_score,       cls:'green',  delta: csat>=90?_tsat.rpt_excellent:_tsat.rpt_good_delta, dCls: csat>=90?'up':'neu' },
+    { val:`${positive}`,      lbl:_tsat.rpt_positive_ratings,  cls:'blue',   delta:_tsat.rpt_happy_clients, dCls:'up' },
+    { val:`${negative}`,      lbl:_tsat.rpt_negative_ratings,  cls:'orange', delta: negative>5?_tsat.rpt_review_needed:_tsat.rpt_low_delta, dCls: negative>5?'down':'up' },
+    { val:`${npsScore}`,      lbl:_tsat.rpt_nps_score,         cls:'purple', delta: npsScore>=50?_tsat.rpt_promoters:_tsat.rpt_passives, dCls: npsScore>=50?'up':'neu' },
   ].map(k => `<div class="rpt-kpi-card">
     <div class="rpt-kpi-top"><div class="rpt-kpi-icon ${k.cls}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
       <span class="rpt-kpi-label">${k.lbl}</span></div>
@@ -981,7 +999,7 @@ function renderSatisfaction() {
     l: b.l, v: Math.min(100, Math.max(70, b.v + agentOffset))
   }));
   const weekSub = document.getElementById('cs-chart-week-sub');
-  if (weekSub) weekSub.textContent = `CSAT % per day${agentName ? ' · ' + agentName : ''}`;
+  if (weekSub) { const _tcs = translations[currentLang]; weekSub.textContent = `${_tcs.lbl_csat_per_day}${agentName ? ' · ' + agentName : ''}`; }
   renderBarChart('cs-chart-week', weekBars, '#10b981');
 
   // Current Month chart (curMonth — fixed)
@@ -989,7 +1007,7 @@ function renderSatisfaction() {
     l: b.l, v: Math.min(100, Math.max(70, b.v + agentOffset))
   }));
   const monthSub = document.getElementById('cs-chart-month-sub');
-  if (monthSub) monthSub.textContent = `CSAT % per week${agentName ? ' · ' + agentName : ''}`;
+  if (monthSub) { const _tcs2 = translations[currentLang]; monthSub.textContent = `${_tcs2.lbl_csat_per_week}${agentName ? ' · ' + agentName : ''}`; }
   renderBarChart('cs-chart-month', monthBars, '#10b981');
 }
 
@@ -1275,20 +1293,22 @@ let supervisingChatId = null;
 //  LIVE CHATS RENDER
 // ────────────────────────────────────────────────────────
 function renderLiveChats() {
+  const t = translations[currentLang];
+
   // Update counts
   document.getElementById('lc-queue-count').textContent  = queueChats.length;
   document.getElementById('lc-active-count').textContent = activeChats.length;
   document.getElementById('lc-queue-badge').textContent  = queueChats.length;
   document.getElementById('lc-active-badge').textContent = activeChats.length;
   document.getElementById('lc-sub').textContent =
-    `${queueChats.length} in queue · ${activeChats.length} ongoing`;
+    `${queueChats.length} ${t.lc_in_queue.toLowerCase()} · ${activeChats.length} ${t.lc_ongoing}`;
   document.getElementById('nav-livechats-badge').textContent =
     queueChats.length + activeChats.length;
 
   // Render queue
   const qList = document.getElementById('lc-queue-list');
   if (queueChats.length === 0) {
-    qList.innerHTML = `<div class="lc-empty">No chats waiting in queue.</div>`;
+    qList.innerHTML = `<div class="lc-empty">${t.lc_no_queue}</div>`;
   } else {
     qList.innerHTML = queueChats.map(c => {
       const urgency = c.waitMins >= 5 ? 'urgent' : 'normal';
@@ -1304,11 +1324,11 @@ function renderLiveChats() {
         </div>
         <div class="lc-card-meta">
           <span class="lc-channel-tag">${escHtml(c.channel)}</span>
-          <span class="lc-wait-tag ${urgency}">⏱ ${c.waitMins}m waiting</span>
+          <span class="lc-wait-tag ${urgency}">⏱ ${c.waitMins}m ${t.lc_waiting}</span>
         </div>
         <button class="btn-pickup" onclick="pickUpChat('${c.id}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Pick Up
+          ${t.lc_pick_up}
         </button>
       </div>`;
     }).join('');
@@ -1317,7 +1337,7 @@ function renderLiveChats() {
   // Render active chats
   const aList = document.getElementById('lc-active-list');
   if (activeChats.length === 0) {
-    aList.innerHTML = `<div class="lc-empty">No active chats right now.</div>`;
+    aList.innerHTML = `<div class="lc-empty">${t.lc_no_active}</div>`;
   } else {
     aList.innerHTML = activeChats.map(c => {
       const agent = agents.find(a => a.id === c.agentId);
@@ -1341,7 +1361,7 @@ function renderLiveChats() {
         </div>
         <button class="btn-supervise" onclick="openSupervisePanel('${c.id}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          Supervise
+          ${t.lc_supervise}
         </button>
       </div>`;
     }).join('');
@@ -1396,8 +1416,9 @@ function openSupervisePanel(chatId) {
 
   document.getElementById('sv-client-avatar').textContent = chat.initials;
   document.getElementById('sv-client-name').textContent   = chat.client;
+  const _t = translations[currentLang];
   document.getElementById('sv-meta').textContent =
-    `Agent: ${agentName} · ${chat.channel} · ${chat.durationMins}m ongoing`;
+    `${_t.lbl_agent_label}: ${agentName} · ${chat.channel} · ${chat.durationMins}m ${_t.lc_ongoing}`;
 
   renderTranscript(chat);
 
@@ -1628,15 +1649,51 @@ function ensureIssueFields() {
 }
 
 function issueStatusLabel(s) {
-  return s === 'todo' ? 'To Do'
-    : s === 'inprogress' ? 'In Progress'
-    : s === 'pending'   ? 'Pending'
-    : s === 'postponed' ? 'Postponed'
-    : 'Resolved';
+  const t = translations[currentLang];
+  return s === 'todo'      ? t.pi_todo
+    : s === 'inprogress'   ? t.pi_inprogress
+    : s === 'pending'      ? t.pi_pending
+    : s === 'postponed'    ? t.pi_postponed
+    : t.pi_resolved;
+}
+
+function translateTimeStr(str) {
+  const t = translations[currentLang];
+  if (currentLang === 'en') return str;
+  return str
+    .replace(/\bToday\b/g,     t.day_today      || 'Today')
+    .replace(/\bYesterday\b/g, t.period_yesterday || 'Yesterday')
+    .replace(/\b(\d+) days ago\b/g, (_, n) => `${n} ${t.pi_days_ago || 'days ago'}`)
+    .replace(/\bMon\b/g, t.day_mon || 'Mon')
+    .replace(/\bTue\b/g, t.day_tue || 'Tue')
+    .replace(/\bWed\b/g, t.day_wed || 'Wed')
+    .replace(/\bThu\b/g, t.day_thu || 'Thu')
+    .replace(/\bFri\b/g, t.day_fri || 'Fri')
+    .replace(/\bSat\b/g, t.day_sat || 'Sat')
+    .replace(/\bSun\b/g,       t.day_sun      || 'Sun')
+    .replace(/\bMonday\b/g,    t.day_long_mon  || 'Monday')
+    .replace(/\bLast week\b/g, t.tkt_last_week || 'Last week');
+}
+
+function translateAuthor(str) {
+  const t = translations[currentLang];
+  if (currentLang === 'en') return str;
+  const map = {
+    'Support Team':    t.team_support,
+    'Support Manager': t.role_label,
+    'Mobile Dev Team': t.team_mobile_dev,
+    'Data Team':       t.team_data,
+    'IT Security':     t.team_it_security,
+    'Dev Team':        t.team_dev,
+    'Finance Team':    t.team_finance,
+    'IT Ops':          t.team_it_ops,
+  };
+  return map[str] || str;
 }
 
 function renderIssues(filter) {
   ensureIssueFields();
+  const t = translations[currentLang];
 
   const filtered = filter === 'all' ? platformIssues
     : platformIssues.filter(i => i.status === filter);
@@ -1649,9 +1706,11 @@ function renderIssues(filter) {
     if (el) el.textContent = platformIssues.filter(i => i.status === k).length;
   });
 
-  const active = platformIssues.filter(i => i.status !== 'resolved').length;
+  const active   = platformIssues.filter(i => i.status !== 'resolved').length;
+  const resolved = platformIssues.filter(i => i.status === 'resolved').length;
+  const activeLabel = active !== 1 ? t.pi_active_issues : t.pi_active_issue;
   document.getElementById('pi-sub').textContent =
-    `${active} active issue${active!==1?'s':''} · ${platformIssues.filter(i=>i.status==='resolved').length} resolved`;
+    `${active} ${activeLabel} · ${resolved} ${t.pi_resolved_word}`;
 
   const navBadge = document.getElementById('nav-issues-badge');
   if (navBadge) navBadge.textContent = active;
@@ -1667,22 +1726,24 @@ function renderIssues(filter) {
 
   const grid = document.getElementById('pi-grid');
   if (sorted.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted);font-size:15px">No issues match this filter.</div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted);font-size:15px">${t.pi_no_match}</div>`;
     return;
   }
 
+  const priorityLabelMap = { critical: t.badge_critical, high: t.badge_high, medium: t.badge_medium };
+
   grid.innerHTML = sorted.map(issue => {
-    const pm   = PLATFORM_META[issue.platform] || { label: issue.platform, icon:'🔧', cls:'portal' };
-    const last = issue.timeline[issue.timeline.length - 1];
+    const pm     = PLATFORM_META[issue.platform] || { label: issue.platform, icon:'🔧', cls:'portal' };
+    const last   = issue.timeline[issue.timeline.length - 1];
     const sLabel = issueStatusLabel(issue.status);
-    const pLabel = (issue.priority||'medium').charAt(0).toUpperCase() + (issue.priority||'medium').slice(1);
+    const pLabel = priorityLabelMap[issue.priority||'medium'] || (issue.priority||'medium');
     return `
     <div class="pi-card ${issue.priority||'medium'}">
       <div class="pi-card-header">
         <div class="pi-platform-icon ${pm.cls}" title="${pm.label}">${pm.icon}</div>
         <div class="pi-card-header-info">
           <div class="pi-card-title">${escHtml(issue.title)}</div>
-          <div class="pi-card-platform">${pm.label} · ${escHtml(issue.reportedAt)}</div>
+          <div class="pi-card-platform">${pm.label} · ${escHtml(translateTimeStr(issue.reportedAt))}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
           <span class="pi-status-badge ${issue.status}">${sLabel}</span>
@@ -1691,15 +1752,15 @@ function renderIssues(filter) {
       </div>
       <div class="pi-card-body">
         <div class="pi-meta-row">
-          <span class="pi-meta-tag">${issue.impact.clients} clients affected</span>
-          <span class="pi-meta-tag ${issue.status!=='resolved'?'orange':''}">${issue.impact.tickets} tickets</span>
+          <span class="pi-meta-tag">${issue.impact.clients} ${t.pi_clients_affected}</span>
+          <span class="pi-meta-tag ${issue.status!=='resolved'?'orange':''}">${issue.impact.tickets} ${t.pi_tickets_word}</span>
           <span class="pi-meta-tag">⏱ ${issue.impact.downtime}</span>
         </div>
         <div class="pi-summary">${escHtml(issue.summary)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Last update: ${escHtml(last.time)} · ${escHtml(last.author)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.pi_last_update}: ${escHtml(translateTimeStr(last.time))} · ${escHtml(translateAuthor(last.author))}</div>
         <button class="btn-details" onclick="openIssueModal('${issue.id}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          More Details
+          ${t.pi_more_details}
         </button>
       </div>
     </div>`;
@@ -1722,8 +1783,9 @@ function openIssueModal(id) {
   iconEl.textContent  = pm.icon;
   iconEl.className    = `pi-platform-icon ${pm.cls}`;
   document.getElementById('id-title').textContent       = issue.title;
+  const _t = translations[currentLang];
   document.getElementById('id-platform-meta').textContent =
-    `${pm.label} · Reported ${issue.reportedAt} by ${issue.reportedBy}`;
+    `${pm.label} · ${_t.issue_reported} ${translateTimeStr(issue.reportedAt)} ${_t.pi_by_word} ${translateAuthor(issue.reportedBy)}`;
   document.getElementById('id-priority-select').value = issue.priority || 'medium';
   document.getElementById('id-status-select').value   = issue.status  || 'todo';
 
@@ -1732,20 +1794,20 @@ function openIssueModal(id) {
 
   // Impact
   document.getElementById('id-impact-row').innerHTML = `
-    <div class="id-impact-pill"><div class="id-impact-value">${issue.impact.clients}</div><div class="id-impact-label">Clients Affected</div></div>
-    <div class="id-impact-pill"><div class="id-impact-value">${issue.impact.tickets}</div><div class="id-impact-label">Tickets Opened</div></div>
-    <div class="id-impact-pill"><div class="id-impact-value">${issue.impact.downtime}</div><div class="id-impact-label">Downtime</div></div>
-    <div class="id-impact-pill"><div class="id-impact-value">${issue.timeline.length}</div><div class="id-impact-label">Updates</div></div>
+    <div class="id-impact-pill"><div class="id-impact-value">${issue.impact.clients}</div><div class="id-impact-label">${_t.pi_clients_affected_label}</div></div>
+    <div class="id-impact-pill"><div class="id-impact-value">${issue.impact.tickets}</div><div class="id-impact-label">${_t.pi_tickets_opened}</div></div>
+    <div class="id-impact-pill"><div class="id-impact-value">${issue.impact.downtime}</div><div class="id-impact-label">${_t.pi_impact_downtime}</div></div>
+    <div class="id-impact-pill"><div class="id-impact-value">${issue.timeline.length}</div><div class="id-impact-label">${_t.pi_impact_updates}</div></div>
   `;
 
   // Timeline
-  document.getElementById('id-timeline').innerHTML = issue.timeline.map(t => `
+  document.getElementById('id-timeline').innerHTML = issue.timeline.map(entry => `
     <div class="id-timeline-item">
-      <div class="id-tl-dot ${t.color}"></div>
+      <div class="id-tl-dot ${entry.color}"></div>
       <div class="id-tl-content">
-        <div class="id-tl-time">${escHtml(t.time)}</div>
-        <div class="id-tl-author">${escHtml(t.author)}</div>
-        <div class="id-tl-text">${escHtml(t.text)}</div>
+        <div class="id-tl-time">${escHtml(translateTimeStr(entry.time))}</div>
+        <div class="id-tl-author">${escHtml(translateAuthor(entry.author))}</div>
+        <div class="id-tl-text">${escHtml(entry.text)}</div>
       </div>
     </div>
   `).join('');
@@ -1762,7 +1824,7 @@ let currentModalIssueId = null;
 function renderIssueComments(issue) {
   const list = document.getElementById('id-comments-list');
   if (!issue.comments || issue.comments.length === 0) {
-    list.innerHTML = `<div class="id-no-comments">No comments yet. Be the first to comment.</div>`;
+    list.innerHTML = `<div class="id-no-comments">${translations[currentLang].pi_no_comments}</div>`;
     return;
   }
   list.innerHTML = issue.comments.map(c => {
@@ -2396,6 +2458,8 @@ function filterTickets(btn, status) {
 
 const PRIORITY_LABELS = { urgent:'Urgent', high:'High', normal:'Normal', low:'Low' };
 const STATUS_DISPLAY  = { open:'Open', pending:'Pending', hold:'On Hold', solved:'Solved', closed:'Closed' };
+function getPriorityLabel(p) { const t = translations[currentLang]; return { urgent:t.tkt_priority_urgent, high:t.tkt_priority_high, normal:t.tkt_priority_normal, low:t.tkt_priority_low }[p] || PRIORITY_LABELS[p]; }
+function getStatusLabel(s)   { const t = translations[currentLang]; return { open:t.tkt_open, pending:t.tkt_pending, hold:t.tkt_hold, solved:t.tkt_solved, closed:t.tkt_closed }[s] || STATUS_DISPLAY[s]; }
 
 function renderTicketList(filter) {
   updateTicketCounts();
@@ -2403,7 +2467,7 @@ function renderTicketList(filter) {
   const listEl = document.getElementById('tkt-list');
 
   if (list.length === 0) {
-    listEl.innerHTML = `<div class="tkt-list-empty">No ${STATUS_DISPLAY[filter].toLowerCase()} tickets.</div>`;
+    listEl.innerHTML = `<div class="tkt-list-empty">${translations[currentLang].tkt_no_tickets}</div>`;
     return;
   }
 
@@ -2417,8 +2481,8 @@ function renderTicketList(filter) {
       ${t.unread ? '<div class="tkt-unread-dot"></div>' : ''}
       <div class="tkt-row-top">
         <span class="tkt-row-id">${t.id}</span>
-        <span class="tkt-priority ${t.priority}">${PRIORITY_LABELS[t.priority]}</span>
-        <span class="tkt-row-time">${t.updatedAt}</span>
+        <span class="tkt-priority ${t.priority}">${getPriorityLabel(t.priority)}</span>
+        <span class="tkt-row-time">${translateTimeStr(t.updatedAt)}</span>
       </div>
       <div class="tkt-row-subject">${escHtml(t.subject)}</div>
       <div class="tkt-row-meta">
@@ -2465,21 +2529,21 @@ function selectTicket(id) {
       <div class="tkt-detail-header-top">
         <div class="tkt-detail-subject">${escHtml(t.subject)}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <span class="tkt-priority ${t.priority}">${PRIORITY_LABELS[t.priority]}</span>
-          <span class="tkt-status-badge ${t.status}" id="tkt-status-badge-display">${STATUS_DISPLAY[t.status]}</span>
+          <span class="tkt-priority ${t.priority}">${getPriorityLabel(t.priority)}</span>
+          <span class="tkt-status-badge ${t.status}" id="tkt-status-badge-display">${getStatusLabel(t.status)}</span>
         </div>
       </div>
       <div class="tkt-detail-parties">
         <div class="tkt-party">
           <div class="tkt-party-avatar" style="background:#cbd5e1;color:#475569">${escHtml(t.client.initials)}</div>
-          <span class="tkt-party-label">Client:</span>
+          <span class="tkt-party-label">${translations[currentLang].lbl_client}:</span>
           <span class="tkt-party-name">${escHtml(t.client.name)}</span>
           <span style="font-size:12px;color:var(--text-muted)">${escHtml(t.client.email)}</span>
         </div>
         <div style="width:1px;height:18px;background:var(--border)"></div>
         <div class="tkt-party">
           <div class="tkt-party-avatar" style="background:${agentColor}">${agentInitials}</div>
-          <span class="tkt-party-label">Agent:</span>
+          <span class="tkt-party-label">${translations[currentLang].lbl_agent_label}:</span>
           <div class="tkt-assign-btn" onclick="toggleAssignDropdown(event)" id="tkt-assign-btn-wrap">
             <span id="tkt-assigned-name">${escHtml(agentName)}</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -2488,7 +2552,7 @@ function selectTicket(id) {
             </div>
           </div>
         </div>
-        <div style="margin-left:auto;font-size:12px;color:var(--text-muted)">${escHtml(t.channel)} · ${escHtml(t.createdAt)}</div>
+        <div style="margin-left:auto;font-size:12px;color:var(--text-muted)">${escHtml(t.channel)} · ${escHtml(translateTimeStr(t.createdAt))}</div>
       </div>
     </div>
 
@@ -2502,28 +2566,28 @@ function selectTicket(id) {
       <div class="tkt-reply-mode-toggle">
         <button class="tkt-reply-mode-btn reply active" onclick="setTicketReplyMode(this,'reply')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
-          Reply to Client
+          ${translations[currentLang].tkt_reply_to_client}
         </button>
         <button class="tkt-reply-mode-btn internal" onclick="setTicketReplyMode(this,'internal')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Internal Note
+          ${translations[currentLang].tkt_internal_note}
         </button>
       </div>
-      <textarea class="tkt-reply-textarea" id="tkt-reply-input" rows="3" placeholder="Type your reply to the client…"></textarea>
+      <textarea class="tkt-reply-textarea" id="tkt-reply-input" rows="3" placeholder="${translations[currentLang].ph_tkt_reply}"></textarea>
       <div class="tkt-reply-actions">
         <div class="tkt-reply-actions-left">
           <select class="tkt-status-select" id="tkt-status-action" onchange="changeTicketStatus('${id}',this.value)">
-            <option value="">Change status…</option>
-            <option value="open"   ${t.status==='open'   ?'disabled':''}>→ Open</option>
-            <option value="pending"${t.status==='pending'?'disabled':''}>→ Pending</option>
-            <option value="hold"   ${t.status==='hold'   ?'disabled':''}>→ On Hold</option>
-            <option value="solved" ${t.status==='solved' ?'disabled':''}>→ Solved</option>
-            <option value="closed" ${t.status==='closed' ?'disabled':''}>→ Closed</option>
+            <option value="">${translations[currentLang].tkt_change_status}</option>
+            <option value="open"   ${t.status==='open'   ?'disabled':''}>${translations[currentLang].tkt_status_open}</option>
+            <option value="pending"${t.status==='pending'?'disabled':''}>${translations[currentLang].tkt_status_pending}</option>
+            <option value="hold"   ${t.status==='hold'   ?'disabled':''}>${translations[currentLang].tkt_status_hold}</option>
+            <option value="solved" ${t.status==='solved' ?'disabled':''}>${translations[currentLang].tkt_status_solved}</option>
+            <option value="closed" ${t.status==='closed' ?'disabled':''}>${translations[currentLang].tkt_status_closed}</option>
           </select>
         </div>
         <button class="btn-send-reply reply" id="tkt-send-btn" onclick="sendTicketReply('${id}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Send Reply
+          ${translations[currentLang].btn_send_reply}
         </button>
       </div>
     </div>`;
@@ -2542,7 +2606,7 @@ function renderTicketMessages(t) {
         <div class="tkt-internal-wrap">
           <div class="tkt-internal-label">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Internal Note · ${escHtml(m.sender)} · ${escHtml(m.time)}
+            ${translations[currentLang].tkt_internal_note} · ${escHtml(m.sender)} · ${escHtml(m.time)}
           </div>
           <div class="tkt-internal-text">${escHtml(m.text)}</div>
         </div>
@@ -2561,16 +2625,17 @@ function setTicketReplyMode(btn, mode) {
   btn.classList.add('active');
   const textarea = document.getElementById('tkt-reply-input');
   const sendBtn  = document.getElementById('tkt-send-btn');
+  const _t = translations[currentLang];
   if (mode === 'internal') {
     textarea.classList.add('internal');
-    textarea.placeholder = 'Write an internal note — not visible to the client…';
+    textarea.placeholder = _t.ph_tkt_internal;
     sendBtn.className    = 'btn-send-reply internal';
-    sendBtn.innerHTML    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Add Note`;
+    sendBtn.innerHTML    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> ${_t.tkt_add_note}`;
   } else {
     textarea.classList.remove('internal');
-    textarea.placeholder = 'Type your reply to the client…';
+    textarea.placeholder = _t.ph_tkt_reply;
     sendBtn.className    = 'btn-send-reply reply';
-    sendBtn.innerHTML    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Reply`;
+    sendBtn.innerHTML    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> ${_t.btn_send_reply}`;
   }
 }
 
@@ -2610,7 +2675,7 @@ function changeTicketStatus(id, newStatus) {
   // Update badge in detail header
   const badge = document.getElementById('tkt-status-badge-display');
   if (badge) {
-    badge.textContent = STATUS_DISPLAY[newStatus];
+    badge.textContent = getStatusLabel(newStatus);
     badge.className   = `tkt-status-badge ${newStatus}`;
   }
   // Reset select
@@ -2759,8 +2824,9 @@ function goBack() {
 
 function renderNotifPage() {
   const unread = getUnreadCount();
+  const _tn = translations[currentLang];
   const sub = document.getElementById('notif-page-sub');
-  if (sub) sub.textContent = unread > 0 ? `${unread} unread` : 'All caught up';
+  if (sub) sub.textContent = unread > 0 ? `${unread} ${_tn.notif_unread_word}` : _tn.notif_all_caught_up;
 
   const list = document.getElementById('notif-page-list');
   if (!list) return;
@@ -2777,8 +2843,8 @@ function renderNotifPage() {
       </div>
       <div class="notif-page-meta">
         ${!n.read
-          ? `<button class="notif-mark-read-btn" onclick="markReadOnPage(${n.id})">Mark as read</button>`
-          : '<span class="notif-read-label">✓ Read</span>'
+          ? `<button class="notif-mark-read-btn" onclick="markReadOnPage(${n.id})">${_tn.notif_mark_read}</button>`
+          : `<span class="notif-read-label">${_tn.notif_read_label}</span>`
         }
       </div>
     </div>`;
@@ -2800,16 +2866,24 @@ let currentLang = (() => {
 
 const translations = {
   en: {
+    // Navigation
     nav_overview:'Overview', nav_operations:'Operations',
     nav_dashboard:'Dashboard', nav_livechats:'Live Chats',
     nav_agents:'Agent Management', nav_issues:'Platform Issues',
     nav_tickets:'Tickets', nav_performance:'Performance',
     nav_reports:'Reports', nav_escalations:'Escalations',
     nav_settings:'Settings', role_label:'Support Manager',
+    // Page titles
     page_dashboard:'Dashboard', page_livechats:'Live Chats',
     page_agents:'Agent Management', page_issues:'Platform Issues',
     page_tickets:'Tickets', page_reports:'Reports', page_settings:'Settings',
+    page_profile:'My Profile', page_notifications:'All Notifications',
+    // Settings
     settings_title:'Settings', settings_sub:'Manage your preferences and configurations',
+    settings_appearance:'Appearance', settings_appearance_sub:'Choose your preferred color theme',
+    theme_light:'Light', theme_dark:'Dark',
+    lang_title:'Language & Region', lang_sub:'Select your preferred display language',
+    // Notifications settings
     notif_title:'Notification Settings', notif_sub:'Choose which events trigger notifications',
     notif_new_chat:'New chat assigned to an agent', notif_new_chat_desc:'Alert when a queued chat is picked up',
     notif_agent_offline:'Agent goes offline during shift', notif_agent_offline_desc:'Alert when an active agent drops offline',
@@ -2818,7 +2892,254 @@ const translations = {
     notif_queue_alert:'Chat queue exceeds 10 clients', notif_queue_alert_desc:'Alert when waiting queue is critically long',
     notif_perf_drop:'Agent satisfaction drops below 85%', notif_perf_drop_desc:'Alert when CSAT score falls under threshold',
     notif_sla:'Ticket SLA breach detected', notif_sla_desc:'Alert when a ticket exceeds its response SLA',
-    lang_title:'Language & Region', lang_sub:'Select your preferred display language',
+    // Notification panel/page
+    notif_dd_title:'Notifications', notif_mark_all:'Mark all read',
+    notif_view_all:'View All Notifications', notif_mark_all_btn:'Mark All as Read',
+    // Dashboard
+    dash_export:'↓ Export Report', dash_live:'Live',
+    dash_customers_online:'Customers Online', dash_ongoing_chats:'Ongoing Chats', dash_logged_agents:'Logged-in Agents',
+    stat_active_chats:'Active Chats', stat_agents_online:'Agents Online',
+    stat_avg_response:'Avg. First Response', stat_csat:'CSAT Score',
+    perf_overview_title:'Performance Overview', perf_updated:'↻ Updated every Monday',
+    kpi_total_chats:'Total Chats', kpi_satisfaction:'Satisfaction',
+    kpi_response_time:'Response Time', kpi_efficiency:'Efficiency',
+    kpi_chat_vol_tip:'Chat volume is growing. Ensure sufficient agent coverage during peak hours.',
+    kpi_sat_tip:'CSAT is above target. Maintain response quality and empathy in conversations.',
+    kpi_resp_tip:'Response time improved. Keep encouraging quick first replies from agents.',
+    kpi_eff_tip:'Efficiency is at a high level. Monitor chat concurrency to avoid agent fatigue.',
+    dash_agent_board_title:'Agent Status Board', dash_manage:'Manage',
+    tbl_agent:'Agent', tbl_status:'Status', tbl_chats:'Chats', tbl_load:'Load',
+    dash_pi_title:'Platform Issues Tracker', dash_pi_sub:'Active incidents & recent resolutions', dash_viewall:'View All',
+    // Live Chats
+    lc_in_queue:'In Queue', lc_chatting:'Chatting', lc_queue_title:'Queue',
+    lc_ongoing:'ongoing', lc_pick_up:'Pick Up', lc_supervise:'Supervise',
+    lc_waiting:'waiting', lc_no_queue:'No chats waiting in queue.', lc_no_active:'No active chats right now.',
+    // Platform Issues
+    pi_export:'↓ Export Excel', pi_new_issue:'+ New Issue', pi_filter_all:'All',
+    pi_todo:'To Do', pi_inprogress:'In Progress', pi_pending:'Pending',
+    pi_postponed:'Postponed', pi_resolved:'Resolved',
+    pi_active_issue:'active issue', pi_active_issues:'active issues',
+    pi_resolved_word:'resolved',
+    pi_clients_affected:'clients affected', pi_tickets_word:'tickets',
+    pi_last_update:'Last update', pi_more_details:'More Details',
+    pi_no_comments:'No comments yet. Be the first to comment.',
+    pi_no_match:'No issues match this filter.',
+    pi_clients_affected_label:'Clients Affected', pi_tickets_opened:'Tickets Opened',
+    pi_impact_downtime:'Downtime', pi_impact_updates:'Updates',
+    pi_by_word:'by', pi_days_ago:'days ago',
+    team_support:'Support Team', team_mobile_dev:'Mobile Dev Team',
+    team_data:'Data Team', team_it_security:'IT Security',
+    team_dev:'Dev Team', team_finance:'Finance Team', team_it_ops:'IT Ops',
+    // Tickets
+    tkt_all_tickets:'All Tickets', tkt_open:'Open', tkt_hold:'On Hold',
+    tkt_solved:'Solved', tkt_closed:'Closed',
+    tkt_empty_title:'No ticket selected',
+    tkt_empty_desc:'Choose a ticket from the list on the left to view its full conversation, details, and history.',
+    // Reports
+    rpt_total_chats_tab:'Total Chats', rpt_satisfaction_tab:'Chat Satisfaction', rpt_agent_perf_tab:'Agent Performance',
+    period_today:'Today', period_yesterday:'Yesterday', period_last7:'Last 7 Days',
+    period_curMonth:'Current Month', period_lastMonth:'Last Month',
+    period_curYear:'Current Year', period_total:'Total',
+    rpt_all_agents:'All Agents',
+    rpt_annual_title:'Annual Chat Analytics',
+    rpt_annual_sub:'Monthly distribution, MoM trends & year-over-year comparison',
+    rpt_sat_week_title:'Satisfaction Trend — This Week',
+    rpt_sat_month_title:'Satisfaction Trend — Current Month',
+    rpt_this_week_title:'Total Chats — This Week',
+    tbl_total_chats:'Total Chats', tbl_chat_sat:'Chat Satisfaction',
+    tbl_first_resp:'First Response', tbl_efficiency:'Efficiency',
+    tbl_avg_chat:'Avg Chat Time', tbl_chat_share:'Chat Share', tbl_monthly_trend:'Monthly Trend',
+    rpt_kpi_total_chats:'Total Chats', rpt_avg_per:'Avg /', rpt_peak:'Peak', rpt_share_of_team:'Share of Team',
+    rpt_all_agents_delta:'All agents', rpt_vs_prev:'vs prev', rpt_highest:'Highest',
+    rpt_monthly_dist:'Monthly Distribution', rpt_mom_trend:'Month-over-Month Trend',
+    rpt_yoy_change:'% = YoY change', rpt_legend_2025:'2025', rpt_legend_2026:'2026',
+    rpt_total_chats_svg:'total chats',
+    rpt_positive:'Positive', rpt_negative:'Negative', rpt_no_rating:'No rating',
+    rpt_csat_score:'CSAT Score', rpt_positive_ratings:'Positive Ratings', rpt_negative_ratings:'Negative Ratings',
+    rpt_nps_score:'NPS Score', rpt_excellent:'↑ Excellent', rpt_good_delta:'↑ Good',
+    rpt_happy_clients:'😊 Happy clients', rpt_review_needed:'↑ Review needed', rpt_low_delta:'↓ Low',
+    rpt_promoters:'↑ Promoters', rpt_passives:'Passives',
+    rpt_trend_chats:'— Chats', rpt_trend_1st_resp:'— 1st Resp', rpt_trend_effic:'— Effic.', rpt_trend_duration:'— Duration',
+    // Agent filters / statuses
+    agent_filter_all:'All Agents', agent_filter_day:'☀ Day Shift', agent_filter_night:'🌙 Night Shift',
+    status_online:'Online', status_busy:'Busy', status_away:'Away', status_offline:'Offline',
+    // Profile
+    profile_sub:'Manage your account information and preferences',
+    profile_picture:'Profile Picture', profile_personal_info:'Personal Information',
+    lbl_display_name:'Display Name', lbl_email_addr:'Email Address',
+    btn_save_info:'Save Info',
+    profile_work_shift:'Work Shift', shift_day:'Day Shift', shift_night:'Night Shift',
+    btn_save_shift:'Save Shift',
+    profile_security:'Password & Security',
+    lbl_new_pass:'New Password', lbl_confirm_pass:'Confirm Password',
+    btn_send_reset:'📧 Send Reset Link', btn_set_password:'Set Password',
+    // Notifications page
+    btn_back:'Back',
+    // Agent modal
+    modal_add_agent_title:'Add New Agent', modal_edit_agent_title:'Edit Agent',
+    btn_add_agent_modal:'Add Agent', btn_save_changes:'Save Changes',
+    // Error messages
+    err_email_invalid:'Please enter a valid email address (e.g. you@company.com).',
+    err_password_invalid:'Password must be 6+ characters with a letter, number, and special character.',
+    err_name_required:'Please enter your full name.',
+    err_agent_name:'Please enter a name.',
+    err_agent_email:'Please enter a valid email address.',
+    err_profile_name_short:'Display name must be at least 3 characters.',
+    err_profile_email:'Enter a valid email (must include @ and .).',
+    err_password_weak:'Min. 6 characters with a letter, number, and special character (e.g. @#$!).',
+    err_passwords_mismatch:'Passwords do not match.',
+    err_issue_title:'Please enter a title.',
+    err_issue_platform:'Please select a platform.',
+    err_issue_priority:'Please select a priority.',
+    err_issue_summary:'Please enter a summary.',
+    // Password strength
+    pass_weak:'Weak', pass_fair:'Fair', pass_good:'Good', pass_strong:'Strong',
+    // Success / info messages
+    msg_saved:'Saved',
+    msg_password_updated:'✓ Password updated successfully.',
+    msg_reset_sent_prefix:'📧 Reset link sent to',
+    no_agents_match:'No agents match this filter.',
+    // Add agent button in header
+    btn_add_agent:'Add Agent',
+    // Auth page
+    auth_headline:'Command your support team with confidence',
+    auth_desc:'Real-time supervision, agent analytics, and ticket management — unified in one powerful dashboard.',
+    auth_feat_chat_title:'Live Chat Supervision',
+    auth_feat_chat_sub:'Monitor and guide agents in real time',
+    auth_feat_analytics_title:'Performance Analytics',
+    auth_feat_analytics_sub:'Deep insights into agent efficiency',
+    auth_feat_tickets_title:'Ticket Management',
+    auth_feat_tickets_sub:'Track and resolve client issues fast',
+    auth_stat_agents:'Agents Online',
+    auth_stat_satisfaction:'Satisfaction',
+    auth_stat_response:'Avg Response',
+    auth_login_title:'Welcome back',
+    auth_login_sub:'Sign in to your support dashboard',
+    auth_lbl_email:'Email address',
+    auth_lbl_password:'Password',
+    auth_lbl_fullname:'Full name',
+    auth_login_btn:'Sign In',
+    auth_no_account:"Don't have an account?",
+    auth_create_link:'Create one',
+    auth_signup_title:'Create account',
+    auth_signup_sub:'Join the OpoSupportDesk support team',
+    auth_signup_btn:'Create Account',
+    auth_have_account:'Already have an account?',
+    auth_signin_link:'Sign In',
+    // Logout popup
+    logout_title:'Sign out?',
+    logout_sub:"You'll need to sign back in to access your dashboard.",
+    btn_cancel:'Cancel',
+    btn_sign_out:'Sign Out',
+    // Idle warning
+    idle_title:'Session Expiring',
+    idle_sub:"You've been inactive. Your session will automatically end in",
+    idle_unit:'sec',
+    idle_stay:'Stay Logged In',
+    idle_logout:'Log Out Now',
+    // Dashboard
+    dash_greeting:'Good morning',
+    dash_chart_7days:'Last 7 Days — Total Chats',
+    dash_chart_curmonth:'Current Month — Total Chats',
+    // Navigation
+    nav_profile:'Profile',
+    // Tickets
+    tkt_pending:'Pending',
+    // Agent modal
+    lbl_avatar_style:'Default Avatar Style',
+    gender_male:'👨 Male',
+    gender_female:'👩 Female',
+    lbl_full_name:'Full Name',
+    lbl_shift:'Shift',
+    btn_close:'Close',
+    // Issue detail modal
+    lbl_priority:'Priority',
+    priority_critical:'🔴 Critical',
+    priority_high:'🟠 High',
+    priority_medium:'🟡 Medium',
+    lbl_comments:'Comments',
+    btn_post:'Post',
+    lbl_description:'Description',
+    lbl_timeline:'Resolution Timeline',
+    // New issue modal
+    modal_new_issue_title:'Report New Issue',
+    modal_fields_required:'All fields marked * are required',
+    lbl_ni_title:'Title *',
+    lbl_ni_platform:'Platform *',
+    lbl_ni_priority:'Priority *',
+    lbl_ni_summary:'Summary *',
+    lbl_ni_desc:'Description',
+    lbl_ni_reporter:'Reported By',
+    btn_submit_issue:'Submit Issue',
+    ph_platform_select:'Select platform…',
+    ph_priority_select:'Select priority…',
+    // Supervise panel
+    sv_note_label:'Private note to agent — only you and the agent can see this',
+    // Profile avatar buttons
+    btn_upload_avatar:'📁 Upload', btn_choose_avatar:'✏️ Choose', btn_remove_avatar:'🗑 Remove',
+    // Notifications
+    notif_mark_read:'Mark as read', notif_read_label:'✓ Read',
+    notif_unread_word:'unread', notif_all_caught_up:'All caught up',
+    // Help modal
+    help_title:'Quick Help',
+    help_pages_title:'Pages',
+    help_tips_title:'Tips',
+    help_demo_title:'Demo Credentials',
+    help_pg_dashboard:'Dashboard', help_pg_dashboard_desc:'Overview of live stats, agent status, and platform issues.',
+    help_pg_livechats:'Live Chats', help_pg_livechats_desc:'Supervise active conversations and pick up queued chats.',
+    help_pg_agents:'Agents', help_pg_agents_desc:'Manage agents, shifts, and statuses.',
+    help_pg_issues:'Platform Issues', help_pg_issues_desc:'Track and resolve technical incidents by platform.',
+    help_pg_tickets:'Tickets', help_pg_tickets_desc:'Handle client support tickets with full conversation history.',
+    help_pg_reports:'Reports', help_pg_reports_desc:'Analyse chat volumes, satisfaction scores, and agent performance.',
+    help_tip_1:'🔍 Use the <strong>search bar</strong> in the header to jump to any page or record instantly.',
+    help_tip_2:'🌙 Toggle <strong>Light / Dark</strong> mode with the sun/moon icon in the header or in Settings.',
+    help_tip_3:'🌐 Switch language (English / Arabic / Persian) via the globe icon or Settings → Language.',
+    help_tip_4:'📤 Export reports or issue data using the <strong>Export</strong> button on Dashboard and Platform Issues.',
+    help_tip_5:'⏱️ Your session auto-expires after <strong>10 minutes</strong> of inactivity — a warning appears at 9 min.',
+    help_tip_6:'👤 Edit your profile, avatar, and password in the <strong>Profile</strong> page.',
+    help_cred_email_label:'Email', help_cred_email_val:'any valid email address',
+    help_cred_pass_label:'Password', help_cred_pass_val:'6+ chars · letter · number · special char',
+    // Placeholders
+    ph_login_password:'Enter your password',
+    ph_su_password:'6+ chars, letter, number & symbol',
+    ph_profile_name:'Your full name',
+    ph_profile_confirm_pass:'Repeat new password',
+    ph_ni_title_ph:'Brief description of the issue',
+    ph_ni_summary_ph:'One-line summary of the issue',
+    ph_ni_desc_ph:'Detailed description, affected clients, steps to reproduce…',
+    ph_comment:'Add a comment…',
+    ph_sv_note:'Type a coaching note or instruction for the agent…',
+    ph_search:'Search anything…',
+    // Dashboard — platform issue items
+    issue_reported:'Reported', issue_affects:'Affects', issue_clients:'clients',
+    issue_investigating:'Investigating', issue_monitoring:'Monitoring',
+    issue_team_notified:'Data team notified', issue_provider_issue:'Provider issue',
+    badge_critical:'Critical', badge_high:'High', badge_medium:'Medium', badge_resolved:'Resolved',
+    // Dashboard — chart day labels
+    day_today:'Today', day_sun:'Sun', day_mon:'Mon', day_tue:'Tue',
+    day_wed:'Wed', day_thu:'Thu', day_fri:'Fri', day_sat:'Sat',
+    // Dashboard — chart week label
+    lbl_wk:'Wk',
+    // Agent cards & management
+    btn_edit_agent:'Edit Agent', lbl_chat_load:'Chat load',
+    lbl_agents_word:'agents', lbl_day_word:'day', lbl_night_word:'night',
+    lbl_chats_word:'chats', lbl_per_day:'per day',
+    // Ticket detail
+    lbl_client:'Client', lbl_agent_label:'Agent',
+    tkt_reply_to_client:'Reply to Client', tkt_internal_note:'Internal Note',
+    ph_tkt_reply:'Type your reply to the client…',
+    ph_tkt_internal:'Write an internal note — not visible to the client…',
+    tkt_add_note:'Add Note', tkt_last_week:'Last week', day_long_mon:'Monday',
+    tkt_change_status:'Change status…',
+    tkt_status_open:'→ Open', tkt_status_pending:'→ Pending',
+    tkt_status_hold:'→ On Hold', tkt_status_solved:'→ Solved', tkt_status_closed:'→ Closed',
+    btn_send_reply:'Send Reply',
+    tkt_priority_urgent:'Urgent', tkt_priority_high:'High', tkt_priority_normal:'Normal', tkt_priority_low:'Low',
+    tkt_no_tickets:'No tickets found.',
+    // Report chart subs
+    lbl_csat_per_day:'CSAT % per day', lbl_csat_per_week:'CSAT % per week',
+    // Password hint
+    pass_hint:'Min. 6 characters with at least one letter, one number, and one special character (e.g. <code>@&nbsp;&nbsp;#&nbsp;&nbsp;$&nbsp;&nbsp;!&nbsp;&nbsp;%</code>)',
   },
   ar: {
     nav_overview:'نظرة عامة', nav_operations:'العمليات',
@@ -2830,7 +3151,11 @@ const translations = {
     page_dashboard:'لوحة التحكم', page_livechats:'المحادثات المباشرة',
     page_agents:'إدارة الوكلاء', page_issues:'مشكلات المنصة',
     page_tickets:'التذاكر', page_reports:'التقارير', page_settings:'الإعدادات',
+    page_profile:'ملفي الشخصي', page_notifications:'جميع الإشعارات',
     settings_title:'الإعدادات', settings_sub:'إدارة تفضيلاتك وإعداداتك',
+    settings_appearance:'المظهر', settings_appearance_sub:'اختر مظهر الألوان المفضل',
+    theme_light:'فاتح', theme_dark:'داكن',
+    lang_title:'اللغة والمنطقة', lang_sub:'اختر لغة العرض المفضلة لديك',
     notif_title:'إعدادات الإشعارات', notif_sub:'اختر الأحداث التي تُنشئ إشعارات',
     notif_new_chat:'تعيين محادثة جديدة لوكيل', notif_new_chat_desc:'تنبيه عند انتزاع محادثة من القائمة',
     notif_agent_offline:'الوكيل يتوقف عن الاتصال أثناء الوردية', notif_agent_offline_desc:'تنبيه عندما يصبح الوكيل النشط غير متصل',
@@ -2839,7 +3164,236 @@ const translations = {
     notif_queue_alert:'قائمة المحادثة تتجاوز 10 عملاء', notif_queue_alert_desc:'تنبيه عندما تكون قائمة الانتظار حرجة',
     notif_perf_drop:'رضا الوكيل ينخفض عن 85%', notif_perf_drop_desc:'تنبيه عندما تنخفض درجة CSAT عن الحد الأدنى',
     notif_sla:'تم رصد خرق مستوى الخدمة', notif_sla_desc:'تنبيه عندما تتجاوز تذكرة وقت استجابة SLA',
-    lang_title:'اللغة والمنطقة', lang_sub:'اختر لغة العرض المفضلة لديك',
+    notif_dd_title:'الإشعارات', notif_mark_all:'تحديد الكل كمقروء',
+    notif_view_all:'عرض جميع الإشعارات', notif_mark_all_btn:'تحديد الكل كمقروء',
+    dash_export:'↓ تصدير التقرير', dash_live:'مباشر',
+    dash_customers_online:'العملاء المتصلون', dash_ongoing_chats:'المحادثات الجارية', dash_logged_agents:'الوكلاء المسجلون',
+    stat_active_chats:'المحادثات النشطة', stat_agents_online:'الوكلاء المتصلون',
+    stat_avg_response:'متوسط وقت الرد الأول', stat_csat:'درجة رضا العملاء',
+    perf_overview_title:'نظرة عامة على الأداء', perf_updated:'↻ يُحدَّث كل اثنين',
+    kpi_total_chats:'إجمالي المحادثات', kpi_satisfaction:'الرضا',
+    kpi_response_time:'وقت الاستجابة', kpi_efficiency:'الكفاءة',
+    kpi_chat_vol_tip:'حجم المحادثات آخذ في التزايد. تأكد من توفر تغطية وكلاء كافية خلال ساعات الذروة.',
+    kpi_sat_tip:'معدل رضا العملاء فوق الهدف. حافظ على جودة الردود والتعاطف في المحادثات.',
+    kpi_resp_tip:'تحسّن وقت الاستجابة. واصل تشجيع الردود الأولى السريعة من الوكلاء.',
+    kpi_eff_tip:'الكفاءة عالية. راقب التزامن في المحادثات لتجنب إجهاد الوكلاء.',
+    dash_agent_board_title:'لوحة حالة الوكلاء', dash_manage:'إدارة',
+    tbl_agent:'الوكيل', tbl_status:'الحالة', tbl_chats:'محادثات', tbl_load:'الحمل',
+    dash_pi_title:'متتبع مشكلات المنصة', dash_pi_sub:'الحوادث النشطة والحلول الأخيرة', dash_viewall:'عرض الكل',
+    lc_in_queue:'في قائمة الانتظار', lc_chatting:'محادثة', lc_queue_title:'قائمة الانتظار',
+    lc_ongoing:'جارية', lc_pick_up:'استلام', lc_supervise:'إشراف',
+    lc_waiting:'انتظار', lc_no_queue:'لا توجد محادثات في قائمة الانتظار.', lc_no_active:'لا توجد محادثات نشطة الآن.',
+    pi_export:'↓ تصدير إلى Excel', pi_new_issue:'+ مشكلة جديدة', pi_filter_all:'الكل',
+    pi_todo:'قيد التنفيذ', pi_inprogress:'قيد المعالجة', pi_pending:'معلق',
+    pi_postponed:'مؤجل', pi_resolved:'تم الحل',
+    pi_active_issue:'مشكلة نشطة', pi_active_issues:'مشكلات نشطة',
+    pi_resolved_word:'محلولة',
+    pi_clients_affected:'عميل متأثر', pi_tickets_word:'تذاكر',
+    pi_last_update:'آخر تحديث', pi_more_details:'مزيد من التفاصيل',
+    pi_no_comments:'لا توجد تعليقات بعد. كن أول من يعلق.',
+    pi_no_match:'لا توجد مشكلات تطابق هذا المرشح.',
+    pi_clients_affected_label:'العملاء المتأثرون', pi_tickets_opened:'تذاكر مفتوحة',
+    pi_impact_downtime:'وقت التوقف', pi_impact_updates:'تحديثات',
+    pi_by_word:'بواسطة', pi_days_ago:'أيام مضت',
+    team_support:'فريق الدعم', team_mobile_dev:'فريق تطوير الجوال',
+    team_data:'فريق البيانات', team_it_security:'أمن تقنية المعلومات',
+    team_dev:'فريق التطوير', team_finance:'فريق المالية', team_it_ops:'عمليات IT',
+    tkt_all_tickets:'جميع التذاكر', tkt_open:'مفتوح', tkt_hold:'قيد الانتظار',
+    tkt_solved:'تم الحل', tkt_closed:'مغلق',
+    tkt_empty_title:'لم يتم اختيار تذكرة',
+    tkt_empty_desc:'اختر تذكرة من القائمة على اليسار لعرض محادثتها الكاملة وتفاصيلها وتاريخها.',
+    rpt_total_chats_tab:'إجمالي المحادثات', rpt_satisfaction_tab:'رضا المحادثة', rpt_agent_perf_tab:'أداء الوكيل',
+    period_today:'اليوم', period_yesterday:'أمس', period_last7:'آخر 7 أيام',
+    period_curMonth:'الشهر الحالي', period_lastMonth:'الشهر الماضي',
+    period_curYear:'السنة الحالية', period_total:'الإجمالي',
+    rpt_all_agents:'جميع الوكلاء',
+    rpt_annual_title:'تحليلات المحادثات السنوية',
+    rpt_annual_sub:'التوزيع الشهري واتجاهات MoM ومقارنة سنة بأخرى',
+    rpt_sat_week_title:'اتجاه الرضا — هذا الأسبوع',
+    rpt_sat_month_title:'اتجاه الرضا — الشهر الحالي',
+    rpt_this_week_title:'إجمالي المحادثات — هذا الأسبوع',
+    tbl_total_chats:'إجمالي المحادثات', tbl_chat_sat:'رضا المحادثة',
+    tbl_first_resp:'أول رد', tbl_efficiency:'الكفاءة',
+    tbl_avg_chat:'متوسط وقت المحادثة', tbl_chat_share:'حصة المحادثة', tbl_monthly_trend:'الاتجاه الشهري',
+    rpt_kpi_total_chats:'إجمالي المحادثات', rpt_avg_per:'متوسط /', rpt_peak:'ذروة', rpt_share_of_team:'حصة الفريق',
+    rpt_all_agents_delta:'جميع الوكلاء', rpt_vs_prev:'مقابل السابق', rpt_highest:'الأعلى',
+    rpt_monthly_dist:'التوزيع الشهري', rpt_mom_trend:'اتجاه شهر على شهر',
+    rpt_yoy_change:'% = تغيير سنوي', rpt_legend_2025:'2025', rpt_legend_2026:'2026',
+    rpt_total_chats_svg:'إجمالي المحادثات',
+    rpt_positive:'إيجابي', rpt_negative:'سلبي', rpt_no_rating:'بدون تقييم',
+    rpt_csat_score:'درجة رضا العملاء', rpt_positive_ratings:'التقييمات الإيجابية', rpt_negative_ratings:'التقييمات السلبية',
+    rpt_nps_score:'درجة NPS', rpt_excellent:'↑ ممتاز', rpt_good_delta:'↑ جيد',
+    rpt_happy_clients:'😊 عملاء سعداء', rpt_review_needed:'↑ يحتاج مراجعة', rpt_low_delta:'↓ منخفض',
+    rpt_promoters:'↑ المروجون', rpt_passives:'المحايدون',
+    rpt_trend_chats:'— محادثات', rpt_trend_1st_resp:'— الرد الأول', rpt_trend_effic:'— الكفاءة', rpt_trend_duration:'— المدة',
+    agent_filter_all:'جميع الوكلاء', agent_filter_day:'☀ وردية النهار', agent_filter_night:'🌙 وردية الليل',
+    status_online:'متصل', status_busy:'مشغول', status_away:'بعيد', status_offline:'غير متصل',
+    profile_sub:'إدارة معلومات حسابك وتفضيلاتك',
+    profile_picture:'صورة الملف الشخصي', profile_personal_info:'المعلومات الشخصية',
+    lbl_display_name:'اسم العرض', lbl_email_addr:'عنوان البريد الإلكتروني',
+    btn_save_info:'حفظ المعلومات',
+    profile_work_shift:'وردية العمل', shift_day:'وردية النهار', shift_night:'وردية الليل',
+    btn_save_shift:'حفظ الوردية',
+    profile_security:'كلمة المرور والأمان',
+    lbl_new_pass:'كلمة المرور الجديدة', lbl_confirm_pass:'تأكيد كلمة المرور',
+    btn_send_reset:'📧 إرسال رابط إعادة التعيين', btn_set_password:'تعيين كلمة المرور',
+    btn_back:'رجوع',
+    modal_add_agent_title:'إضافة وكيل جديد', modal_edit_agent_title:'تعديل الوكيل',
+    btn_add_agent_modal:'إضافة وكيل', btn_save_changes:'حفظ التغييرات',
+    err_email_invalid:'يرجى إدخال عنوان بريد إلكتروني صالح.',
+    err_password_invalid:'يجب أن تتكون كلمة المرور من 6 أحرف أو أكثر مع حرف ورقم ورمز خاص.',
+    err_name_required:'يرجى إدخال اسمك الكامل.',
+    err_agent_name:'يرجى إدخال اسم.',
+    err_agent_email:'يرجى إدخال عنوان بريد إلكتروني صالح.',
+    err_profile_name_short:'يجب أن يتكون اسم العرض من 3 أحرف على الأقل.',
+    err_profile_email:'أدخل بريدًا إلكترونيًا صالحًا (يجب أن يحتوي على @ و.).',
+    err_password_weak:'6 أحرف على الأقل مع حرف ورقم ورمز خاص.',
+    err_passwords_mismatch:'كلمتا المرور غير متطابقتين.',
+    err_issue_title:'يرجى إدخال عنوان.',
+    err_issue_platform:'يرجى تحديد منصة.',
+    err_issue_priority:'يرجى تحديد أولوية.',
+    err_issue_summary:'يرجى إدخال ملخص.',
+    pass_weak:'ضعيف', pass_fair:'متوسط', pass_good:'جيد', pass_strong:'قوي',
+    msg_saved:'تم الحفظ',
+    msg_password_updated:'✓ تم تحديث كلمة المرور بنجاح.',
+    msg_reset_sent_prefix:'📧 تم إرسال رابط إعادة التعيين إلى',
+    no_agents_match:'لا يوجد وكلاء يطابقون هذا الفلتر.',
+    btn_add_agent:'إضافة وكيل',
+    // Auth page
+    auth_headline:'أدِر فريق الدعم بثقة واقتدار',
+    auth_desc:'إشراف فوري وتحليلات الوكلاء وإدارة التذاكر — كل ذلك في لوحة تحكم واحدة قوية.',
+    auth_feat_chat_title:'الإشراف على المحادثات المباشرة',
+    auth_feat_chat_sub:'مراقبة وتوجيه الوكلاء في الوقت الفعلي',
+    auth_feat_analytics_title:'تحليلات الأداء',
+    auth_feat_analytics_sub:'رؤى عميقة حول كفاءة الوكلاء',
+    auth_feat_tickets_title:'إدارة التذاكر',
+    auth_feat_tickets_sub:'تتبع مشكلات العملاء وحلها بسرعة',
+    auth_stat_agents:'الوكلاء المتصلون',
+    auth_stat_satisfaction:'الرضا',
+    auth_stat_response:'متوسط وقت الرد',
+    auth_login_title:'مرحباً بعودتك',
+    auth_login_sub:'سجّل دخولك إلى لوحة التحكم',
+    auth_lbl_email:'البريد الإلكتروني',
+    auth_lbl_password:'كلمة المرور',
+    auth_lbl_fullname:'الاسم الكامل',
+    auth_login_btn:'تسجيل الدخول',
+    auth_no_account:'ليس لديك حساب؟',
+    auth_create_link:'أنشئ حساباً',
+    auth_signup_title:'إنشاء حساب',
+    auth_signup_sub:'انضم إلى فريق دعم OpoSupportDesk',
+    auth_signup_btn:'إنشاء حساب',
+    auth_have_account:'هل لديك حساب بالفعل؟',
+    auth_signin_link:'تسجيل الدخول',
+    // Logout popup
+    logout_title:'تسجيل الخروج؟',
+    logout_sub:'ستحتاج إلى تسجيل الدخول مرة أخرى للوصول إلى لوحة التحكم.',
+    btn_cancel:'إلغاء',
+    btn_sign_out:'تسجيل الخروج',
+    // Idle warning
+    idle_title:'انتهاء صلاحية الجلسة',
+    idle_sub:'كنت غير نشط. ستنتهي جلستك تلقائياً في',
+    idle_unit:'ثانية',
+    idle_stay:'البقاء متصلاً',
+    idle_logout:'تسجيل الخروج الآن',
+    // Dashboard
+    dash_greeting:'صباح الخير',
+    dash_chart_7days:'آخر 7 أيام — إجمالي المحادثات',
+    dash_chart_curmonth:'الشهر الحالي — إجمالي المحادثات',
+    // Navigation
+    nav_profile:'الملف الشخصي',
+    // Tickets
+    tkt_pending:'معلق',
+    // Agent modal
+    lbl_avatar_style:'نمط الصورة الافتراضية',
+    gender_male:'👨 ذكر',
+    gender_female:'👩 أنثى',
+    lbl_full_name:'الاسم الكامل',
+    lbl_shift:'الوردية',
+    btn_close:'إغلاق',
+    // Issue detail modal
+    lbl_priority:'الأولوية',
+    priority_critical:'🔴 حرجة',
+    priority_high:'🟠 عالية',
+    priority_medium:'🟡 متوسطة',
+    lbl_comments:'التعليقات',
+    btn_post:'نشر',
+    lbl_description:'الوصف',
+    lbl_timeline:'جدول الحل الزمني',
+    // New issue modal
+    modal_new_issue_title:'الإبلاغ عن مشكلة جديدة',
+    modal_fields_required:'جميع الحقول المميزة بـ * إلزامية',
+    lbl_ni_title:'العنوان *',
+    lbl_ni_platform:'المنصة *',
+    lbl_ni_priority:'الأولوية *',
+    lbl_ni_summary:'الملخص *',
+    lbl_ni_desc:'الوصف',
+    lbl_ni_reporter:'تم الإبلاغ بواسطة',
+    btn_submit_issue:'إرسال المشكلة',
+    ph_platform_select:'اختر المنصة…',
+    ph_priority_select:'اختر الأولوية…',
+    // Supervise panel
+    sv_note_label:'ملاحظة خاصة للوكيل — لا يمكن لأحد سواك وللوكيل رؤية هذا',
+    // Profile avatar buttons
+    btn_upload_avatar:'📁 رفع', btn_choose_avatar:'✏️ اختيار', btn_remove_avatar:'🗑 إزالة',
+    // Notifications
+    notif_mark_read:'تحديد كمقروء', notif_read_label:'✓ مقروء',
+    notif_unread_word:'غير مقروء', notif_all_caught_up:'لا توجد إشعارات جديدة',
+    // Help modal
+    help_title:'مساعدة سريعة',
+    help_pages_title:'الصفحات',
+    help_tips_title:'نصائح',
+    help_demo_title:'بيانات تجريبية',
+    help_pg_dashboard:'لوحة التحكم', help_pg_dashboard_desc:'نظرة عامة على الإحصائيات المباشرة وحالة الوكلاء والمشكلات.',
+    help_pg_livechats:'المحادثات المباشرة', help_pg_livechats_desc:'الإشراف على المحادثات النشطة والتقاط المحادثات المنتظرة.',
+    help_pg_agents:'الوكلاء', help_pg_agents_desc:'إدارة الوكلاء والورديات والحالات.',
+    help_pg_issues:'مشكلات المنصة', help_pg_issues_desc:'تتبع الحوادث التقنية وحلها حسب المنصة.',
+    help_pg_tickets:'التذاكر', help_pg_tickets_desc:'معالجة تذاكر دعم العملاء مع سجل المحادثة الكامل.',
+    help_pg_reports:'التقارير', help_pg_reports_desc:'تحليل أحجام المحادثات ودرجات الرضا وأداء الوكلاء.',
+    help_tip_1:'🔍 استخدم <strong>شريط البحث</strong> في الرأس للانتقال إلى أي صفحة أو سجل فوراً.',
+    help_tip_2:'🌙 بدّل بين الوضع <strong>الفاتح / الداكن</strong> بأيقونة الشمس/القمر في الرأس أو الإعدادات.',
+    help_tip_3:'🌐 غيّر اللغة (الإنجليزية / العربية / الفارسية) عبر أيقونة الكرة الأرضية أو الإعدادات ← اللغة.',
+    help_tip_4:'📤 صدّر التقارير أو بيانات المشكلات باستخدام زر <strong>التصدير</strong> في لوحة التحكم والمشكلات.',
+    help_tip_5:'⏱️ تنتهي جلستك تلقائياً بعد <strong>10 دقائق</strong> من عدم النشاط — تظهر تحذيرات عند الدقيقة 9.',
+    help_tip_6:'👤 عدّل ملفك الشخصي والصورة الرمزية وكلمة المرور في صفحة <strong>الملف الشخصي</strong>.',
+    help_cred_email_label:'البريد الإلكتروني', help_cred_email_val:'أي عنوان بريد إلكتروني صالح',
+    help_cred_pass_label:'كلمة المرور', help_cred_pass_val:'6 أحرف أو أكثر · حرف · رقم · رمز خاص',
+    // Placeholders
+    ph_login_password:'أدخل كلمة المرور',
+    ph_su_password:'6+ أحرف وحرف ورقم ورمز خاص',
+    ph_profile_name:'اسمك الكامل',
+    ph_profile_confirm_pass:'كرر كلمة المرور الجديدة',
+    ph_ni_title_ph:'وصف موجز للمشكلة',
+    ph_ni_summary_ph:'ملخص في سطر واحد للمشكلة',
+    ph_ni_desc_ph:'وصف مفصل والعملاء المتأثرون وخطوات التكرار…',
+    ph_comment:'أضف تعليقاً…',
+    ph_sv_note:'اكتب ملاحظة أو تعليمات للوكيل…',
+    ph_search:'ابحث عن أي شيء…',
+    // Dashboard — platform issue items
+    issue_reported:'تم الإبلاغ', issue_affects:'يؤثر على', issue_clients:'عملاء',
+    issue_investigating:'قيد التحقيق', issue_monitoring:'قيد المراقبة',
+    issue_team_notified:'تم إخطار فريق البيانات', issue_provider_issue:'مشكلة مزود الخدمة',
+    badge_critical:'حرج', badge_high:'عالي', badge_medium:'متوسط', badge_resolved:'تم الحل',
+    // Dashboard — chart day labels
+    day_today:'اليوم', day_sun:'أحد', day_mon:'إثن', day_tue:'ثلث',
+    day_wed:'أرب', day_thu:'خمس', day_fri:'جمع', day_sat:'سبت',
+    // Dashboard — chart week label
+    lbl_wk:'أسب',
+    btn_edit_agent:'تعديل الوكيل', lbl_chat_load:'حمل المحادثات',
+    lbl_agents_word:'وكيل', lbl_day_word:'نهار', lbl_night_word:'ليل',
+    lbl_chats_word:'محادثات', lbl_per_day:'يومياً',
+    lbl_client:'العميل', lbl_agent_label:'الوكيل',
+    tkt_reply_to_client:'الرد على العميل', tkt_internal_note:'ملاحظة داخلية',
+    ph_tkt_reply:'اكتب ردك على العميل…',
+    ph_tkt_internal:'اكتب ملاحظة داخلية — غير مرئية للعميل…',
+    tkt_add_note:'إضافة ملاحظة', tkt_last_week:'الأسبوع الماضي', day_long_mon:'الاثنين',
+    tkt_change_status:'تغيير الحالة…',
+    tkt_status_open:'→ مفتوح', tkt_status_pending:'→ معلق',
+    tkt_status_hold:'→ قيد الانتظار', tkt_status_solved:'→ تم الحل', tkt_status_closed:'→ مغلق',
+    btn_send_reply:'إرسال الرد',
+    tkt_priority_urgent:'عاجل', tkt_priority_high:'عالية', tkt_priority_normal:'عادي', tkt_priority_low:'منخفض',
+    tkt_no_tickets:'لا توجد تذاكر.',
+    lbl_csat_per_day:'CSAT % يومياً', lbl_csat_per_week:'CSAT % أسبوعياً',
+    pass_hint:'الحد الأدنى 6 أحرف مع حرف واحد ورقم واحد ورمز خاص (مثل <code>@&nbsp;&nbsp;#&nbsp;&nbsp;$&nbsp;&nbsp;!&nbsp;&nbsp;%</code>)',
   },
   fa: {
     nav_overview:'نمای کلی', nav_operations:'عملیات',
@@ -2851,7 +3405,11 @@ const translations = {
     page_dashboard:'داشبورد', page_livechats:'چت‌های زنده',
     page_agents:'مدیریت عوامل', page_issues:'مشکلات پلتفرم',
     page_tickets:'تیکت‌ها', page_reports:'گزارش‌ها', page_settings:'تنظیمات',
+    page_profile:'پروفایل من', page_notifications:'همه اعلان‌ها',
     settings_title:'تنظیمات', settings_sub:'مدیریت تنظیمات و ترجیحات شما',
+    settings_appearance:'ظاهر', settings_appearance_sub:'تم رنگی مورد نظر را انتخاب کنید',
+    theme_light:'روشن', theme_dark:'تیره',
+    lang_title:'زبان و منطقه', lang_sub:'زبان نمایش مورد نظر خود را انتخاب کنید',
     notif_title:'تنظیمات اعلان‌ها', notif_sub:'انتخاب رویدادهایی که اعلان ایجاد می‌کنند',
     notif_new_chat:'تخصیص چت جدید به عامل', notif_new_chat_desc:'هشدار هنگام دریافت چت از صف',
     notif_agent_offline:'آفلاین شدن عامل در طول شیفت', notif_agent_offline_desc:'هشدار هنگامی که عامل فعال آفلاین می‌شود',
@@ -2860,7 +3418,236 @@ const translations = {
     notif_queue_alert:'صف چت بیش از ۱۰ کلاینت', notif_queue_alert_desc:'هشدار هنگامی که صف انتظار بحرانی طولانی است',
     notif_perf_drop:'افت رضایت عامل زیر ۸۵٪', notif_perf_drop_desc:'هشدار هنگامی که امتیاز CSAT زیر حد آستانه می‌افتد',
     notif_sla:'نقض SLA تیکت شناسایی شد', notif_sla_desc:'هشدار هنگامی که تیکت از زمان پاسخ SLA تجاوز می‌کند',
-    lang_title:'زبان و منطقه', lang_sub:'زبان نمایش مورد نظر خود را انتخاب کنید',
+    notif_dd_title:'اعلان‌ها', notif_mark_all:'علامت‌گذاری همه به‌عنوان خوانده‌شده',
+    notif_view_all:'مشاهده همه اعلان‌ها', notif_mark_all_btn:'علامت‌گذاری همه به‌عنوان خوانده‌شده',
+    dash_export:'↓ خروجی گزارش', dash_live:'زنده',
+    dash_customers_online:'مشتریان آنلاین', dash_ongoing_chats:'چت‌های در جریان', dash_logged_agents:'عوامل وارد شده',
+    stat_active_chats:'چت‌های فعال', stat_agents_online:'عوامل آنلاین',
+    stat_avg_response:'میانگین اولین پاسخ', stat_csat:'امتیاز CSAT',
+    perf_overview_title:'نمای کلی عملکرد', perf_updated:'↻ هر دوشنبه به‌روز می‌شود',
+    kpi_total_chats:'مجموع چت‌ها', kpi_satisfaction:'رضایت',
+    kpi_response_time:'زمان پاسخ', kpi_efficiency:'کارایی',
+    kpi_chat_vol_tip:'حجم چت در حال رشد است. اطمینان حاصل کنید که در ساعات اوج تقاضا پوشش کافی وجود دارد.',
+    kpi_sat_tip:'CSAT بالاتر از هدف است. کیفیت پاسخ و همدلی را در مکالمات حفظ کنید.',
+    kpi_resp_tip:'زمان پاسخ بهبود یافت. به تشویق پاسخ‌های سریع اول از عوامل ادامه دهید.',
+    kpi_eff_tip:'کارایی در سطح بالایی است. تعداد چت‌های همزمان را برای جلوگیری از خستگی عوامل رصد کنید.',
+    dash_agent_board_title:'تابلوی وضعیت عوامل', dash_manage:'مدیریت',
+    tbl_agent:'عامل', tbl_status:'وضعیت', tbl_chats:'چت‌ها', tbl_load:'بار',
+    dash_pi_title:'ردیاب مشکلات پلتفرم', dash_pi_sub:'حوادث فعال و حل‌های اخیر', dash_viewall:'مشاهده همه',
+    lc_in_queue:'در صف انتظار', lc_chatting:'در حال گفتگو', lc_queue_title:'صف انتظار',
+    lc_ongoing:'در جریان', lc_pick_up:'دریافت', lc_supervise:'نظارت',
+    lc_waiting:'در انتظار', lc_no_queue:'هیچ چتی در صف انتظار نیست.', lc_no_active:'هیچ چت فعالی در حال حاضر وجود ندارد.',
+    pi_export:'↓ خروجی Excel', pi_new_issue:'+ مشکله جدید', pi_filter_all:'همه',
+    pi_todo:'انجام دادنی', pi_inprogress:'در حال انجام', pi_pending:'معلق',
+    pi_postponed:'به تعویق افتاده', pi_resolved:'حل‌شده',
+    pi_active_issue:'مشکل فعال', pi_active_issues:'مشکل فعال',
+    pi_resolved_word:'حل‌شده',
+    pi_clients_affected:'کلاینت تحت تأثیر', pi_tickets_word:'تیکت',
+    pi_last_update:'آخرین به‌روزرسانی', pi_more_details:'جزئیات بیشتر',
+    pi_no_comments:'هنوز نظری ثبت نشده. اولین نفر باشید.',
+    pi_no_match:'هیچ مشکلی با این فیلتر مطابقت ندارد.',
+    pi_clients_affected_label:'کلاینت‌های تحت تأثیر', pi_tickets_opened:'تیکت‌های باز',
+    pi_impact_downtime:'زمان توقف', pi_impact_updates:'به‌روزرسانی‌ها',
+    pi_by_word:'توسط', pi_days_ago:'روز پیش',
+    team_support:'تیم پشتیبانی', team_mobile_dev:'تیم توسعه موبایل',
+    team_data:'تیم داده', team_it_security:'امنیت IT',
+    team_dev:'تیم توسعه', team_finance:'تیم مالی', team_it_ops:'عملیات IT',
+    tkt_all_tickets:'همه تیکت‌ها', tkt_open:'باز', tkt_hold:'در انتظار',
+    tkt_solved:'حل‌شده', tkt_closed:'بسته‌شده',
+    tkt_empty_title:'هیچ تیکتی انتخاب نشده',
+    tkt_empty_desc:'یک تیکت از فهرست سمت چپ انتخاب کنید تا مکالمه کامل، جزئیات و تاریخچه آن را مشاهده کنید.',
+    rpt_total_chats_tab:'مجموع چت‌ها', rpt_satisfaction_tab:'رضایت از چت', rpt_agent_perf_tab:'عملکرد عامل',
+    period_today:'امروز', period_yesterday:'دیروز', period_last7:'۷ روز گذشته',
+    period_curMonth:'ماه جاری', period_lastMonth:'ماه گذشته',
+    period_curYear:'سال جاری', period_total:'کل',
+    rpt_all_agents:'همه عوامل',
+    rpt_annual_title:'تحلیل سالانه چت',
+    rpt_annual_sub:'توزیع ماهانه، روندهای MoM و مقایسه سال به سال',
+    rpt_sat_week_title:'روند رضایت — این هفته',
+    rpt_sat_month_title:'روند رضایت — ماه جاری',
+    rpt_this_week_title:'مجموع چت‌ها — این هفته',
+    tbl_total_chats:'مجموع چت‌ها', tbl_chat_sat:'رضایت از چت',
+    tbl_first_resp:'اولین پاسخ', tbl_efficiency:'کارایی',
+    tbl_avg_chat:'میانگین زمان چت', tbl_chat_share:'سهم چت', tbl_monthly_trend:'روند ماهانه',
+    rpt_kpi_total_chats:'مجموع چت‌ها', rpt_avg_per:'میانگین /', rpt_peak:'اوج', rpt_share_of_team:'سهم تیم',
+    rpt_all_agents_delta:'همه عوامل', rpt_vs_prev:'در مقابل قبلی', rpt_highest:'بالاترین',
+    rpt_monthly_dist:'توزیع ماهانه', rpt_mom_trend:'روند ماه به ماه',
+    rpt_yoy_change:'% = تغییر سالانه', rpt_legend_2025:'2025', rpt_legend_2026:'2026',
+    rpt_total_chats_svg:'مجموع چت‌ها',
+    rpt_positive:'مثبت', rpt_negative:'منفی', rpt_no_rating:'بدون رتبه',
+    rpt_csat_score:'امتیاز CSAT', rpt_positive_ratings:'رتبه‌بندی‌های مثبت', rpt_negative_ratings:'رتبه‌بندی‌های منفی',
+    rpt_nps_score:'امتیاز NPS', rpt_excellent:'↑ عالی', rpt_good_delta:'↑ خوب',
+    rpt_happy_clients:'😊 مشتریان خوشحال', rpt_review_needed:'↑ نیاز به بررسی', rpt_low_delta:'↓ پایین',
+    rpt_promoters:'↑ مروجان', rpt_passives:'خنثی',
+    rpt_trend_chats:'— چت‌ها', rpt_trend_1st_resp:'— پاسخ اول', rpt_trend_effic:'— کارایی', rpt_trend_duration:'— مدت',
+    agent_filter_all:'همه عوامل', agent_filter_day:'☀ شیفت روز', agent_filter_night:'🌙 شیفت شب',
+    status_online:'آنلاین', status_busy:'مشغول', status_away:'دور', status_offline:'آفلاین',
+    profile_sub:'مدیریت اطلاعات حساب و ترجیحات',
+    profile_picture:'عکس پروفایل', profile_personal_info:'اطلاعات شخصی',
+    lbl_display_name:'نام نمایشی', lbl_email_addr:'آدرس ایمیل',
+    btn_save_info:'ذخیره اطلاعات',
+    profile_work_shift:'شیفت کاری', shift_day:'شیفت روز', shift_night:'شیفت شب',
+    btn_save_shift:'ذخیره شیفت',
+    profile_security:'رمز عبور و امنیت',
+    lbl_new_pass:'رمز عبور جدید', lbl_confirm_pass:'تأیید رمز عبور',
+    btn_send_reset:'📧 ارسال لینک بازنشانی', btn_set_password:'تنظیم رمز عبور',
+    btn_back:'بازگشت',
+    modal_add_agent_title:'افزودن عامل جدید', modal_edit_agent_title:'ویرایش عامل',
+    btn_add_agent_modal:'افزودن عامل', btn_save_changes:'ذخیره تغییرات',
+    err_email_invalid:'لطفاً یک آدرس ایمیل معتبر وارد کنید.',
+    err_password_invalid:'رمز عبور باید حداقل ۶ کاراکتر با یک حرف، عدد و کاراکتر خاص باشد.',
+    err_name_required:'لطفاً نام کامل خود را وارد کنید.',
+    err_agent_name:'لطفاً یک نام وارد کنید.',
+    err_agent_email:'لطفاً یک آدرس ایمیل معتبر وارد کنید.',
+    err_profile_name_short:'نام نمایشی باید حداقل ۳ کاراکتر باشد.',
+    err_profile_email:'یک ایمیل معتبر وارد کنید (باید شامل @ و . باشد).',
+    err_password_weak:'حداقل ۶ کاراکتر با حرف، عدد و کاراکتر خاص.',
+    err_passwords_mismatch:'رمزهای عبور مطابقت ندارند.',
+    err_issue_title:'لطفاً یک عنوان وارد کنید.',
+    err_issue_platform:'لطفاً یک پلتفرم انتخاب کنید.',
+    err_issue_priority:'لطفاً یک اولویت انتخاب کنید.',
+    err_issue_summary:'لطفاً یک خلاصه وارد کنید.',
+    pass_weak:'ضعیف', pass_fair:'متوسط', pass_good:'خوب', pass_strong:'قوی',
+    msg_saved:'ذخیره شد',
+    msg_password_updated:'✓ رمز عبور با موفقیت به‌روز شد.',
+    msg_reset_sent_prefix:'📧 لینک بازنشانی به',
+    no_agents_match:'هیچ عاملی با این فیلتر مطابقت ندارد.',
+    btn_add_agent:'افزودن عامل',
+    // Auth page
+    auth_headline:'تیم پشتیبانی خود را با اطمینان مدیریت کنید',
+    auth_desc:'نظارت لحظه‌ای، تحلیل عوامل، و مدیریت تیکت — همه در یک داشبورد قدرتمند.',
+    auth_feat_chat_title:'نظارت بر چت زنده',
+    auth_feat_chat_sub:'نظارت و هدایت عوامل در لحظه',
+    auth_feat_analytics_title:'تحلیل عملکرد',
+    auth_feat_analytics_sub:'بینش عمیق درباره کارایی عوامل',
+    auth_feat_tickets_title:'مدیریت تیکت',
+    auth_feat_tickets_sub:'پیگیری و حل سریع مشکلات کلاینت',
+    auth_stat_agents:'عوامل آنلاین',
+    auth_stat_satisfaction:'رضایت',
+    auth_stat_response:'میانگین پاسخ',
+    auth_login_title:'خوش آمدید',
+    auth_login_sub:'به داشبورد پشتیبانی وارد شوید',
+    auth_lbl_email:'آدرس ایمیل',
+    auth_lbl_password:'رمز عبور',
+    auth_lbl_fullname:'نام کامل',
+    auth_login_btn:'ورود',
+    auth_no_account:'حساب کاربری ندارید؟',
+    auth_create_link:'بسازید',
+    auth_signup_title:'ایجاد حساب',
+    auth_signup_sub:'به تیم پشتیبانی OpoSupportDesk بپیوندید',
+    auth_signup_btn:'ایجاد حساب',
+    auth_have_account:'قبلاً حساب دارید؟',
+    auth_signin_link:'ورود',
+    // Logout popup
+    logout_title:'خروج از سیستم؟',
+    logout_sub:'برای دسترسی مجدد به داشبورد باید وارد شوید.',
+    btn_cancel:'لغو',
+    btn_sign_out:'خروج',
+    // Idle warning
+    idle_title:'انقضای جلسه',
+    idle_sub:'غیرفعال بودید. جلسه شما به‌طور خودکار در این مدت پایان می‌یابد',
+    idle_unit:'ثانیه',
+    idle_stay:'ادامه جلسه',
+    idle_logout:'خروج همین حالا',
+    // Dashboard
+    dash_greeting:'صبح بخیر',
+    dash_chart_7days:'۷ روز گذشته — مجموع چت‌ها',
+    dash_chart_curmonth:'ماه جاری — مجموع چت‌ها',
+    // Navigation
+    nav_profile:'پروفایل',
+    // Tickets
+    tkt_pending:'معلق',
+    // Agent modal
+    lbl_avatar_style:'سبک آواتار پیش‌فرض',
+    gender_male:'👨 مرد',
+    gender_female:'👩 زن',
+    lbl_full_name:'نام کامل',
+    lbl_shift:'شیفت',
+    btn_close:'بستن',
+    // Issue detail modal
+    lbl_priority:'اولویت',
+    priority_critical:'🔴 بحرانی',
+    priority_high:'🟠 بالا',
+    priority_medium:'🟡 متوسط',
+    lbl_comments:'نظرات',
+    btn_post:'ارسال',
+    lbl_description:'توضیحات',
+    lbl_timeline:'جدول زمانی حل',
+    // New issue modal
+    modal_new_issue_title:'گزارش مشکل جدید',
+    modal_fields_required:'تمام فیلدهای علامت‌گذاری شده با * الزامی هستند',
+    lbl_ni_title:'عنوان *',
+    lbl_ni_platform:'پلتفرم *',
+    lbl_ni_priority:'اولویت *',
+    lbl_ni_summary:'خلاصه *',
+    lbl_ni_desc:'توضیحات',
+    lbl_ni_reporter:'گزارش‌دهنده',
+    btn_submit_issue:'ارسال مشکله',
+    ph_platform_select:'پلتفرم را انتخاب کنید…',
+    ph_priority_select:'اولویت را انتخاب کنید…',
+    // Supervise panel
+    sv_note_label:'یادداشت خصوصی برای عامل — فقط شما و عامل می‌توانید این را ببینید',
+    // Profile avatar buttons
+    btn_upload_avatar:'📁 بارگذاری', btn_choose_avatar:'✏️ انتخاب', btn_remove_avatar:'🗑 حذف',
+    // Notifications
+    notif_mark_read:'علامت‌گذاری به‌عنوان خوانده‌شده', notif_read_label:'✓ خوانده شد',
+    notif_unread_word:'خوانده‌نشده', notif_all_caught_up:'همه خوانده شده',
+    // Help modal
+    help_title:'راهنمای سریع',
+    help_pages_title:'صفحات',
+    help_tips_title:'نکات',
+    help_demo_title:'اعتبارنامه‌های آزمایشی',
+    help_pg_dashboard:'داشبورد', help_pg_dashboard_desc:'نمای کلی از آمار زنده، وضعیت عوامل و مشکلات پلتفرم.',
+    help_pg_livechats:'چت‌های زنده', help_pg_livechats_desc:'نظارت بر مکالمات فعال و پاسخ به چت‌های در صف انتظار.',
+    help_pg_agents:'عوامل', help_pg_agents_desc:'مدیریت عوامل، شیفت‌ها و وضعیت‌ها.',
+    help_pg_issues:'مشکلات پلتفرم', help_pg_issues_desc:'ردیابی و حل حوادث فنی بر اساس پلتفرم.',
+    help_pg_tickets:'تیکت‌ها', help_pg_tickets_desc:'رسیدگی به تیکت‌های پشتیبانی مشتری با تاریخچه کامل مکالمه.',
+    help_pg_reports:'گزارش‌ها', help_pg_reports_desc:'تحلیل حجم چت‌ها، امتیاز رضایت و عملکرد عوامل.',
+    help_tip_1:'🔍 از <strong>نوار جستجو</strong> در هدر برای رفتن سریع به هر صفحه یا رکورد استفاده کنید.',
+    help_tip_2:'🌙 حالت <strong>روشن / تاریک</strong> را با آیکون خورشید/ماه در هدر یا تنظیمات تغییر دهید.',
+    help_tip_3:'🌐 زبان (انگلیسی / عربی / فارسی) را از طریق آیکون کره زمین یا تنظیمات ← زبان تغییر دهید.',
+    help_tip_4:'📤 گزارش‌ها یا داده‌های مشکل را با دکمه <strong>خروجی</strong> در داشبورد و مشکلات صادر کنید.',
+    help_tip_5:'⏱️ جلسه شما بعد از <strong>۱۰ دقیقه</strong> عدم فعالیت منقضی می‌شود — در دقیقه ۹ هشدار نمایش داده می‌شود.',
+    help_tip_6:'👤 پروفایل، آواتار و رمز عبور خود را در صفحه <strong>پروفایل</strong> ویرایش کنید.',
+    help_cred_email_label:'ایمیل', help_cred_email_val:'هر آدرس ایمیل معتبر',
+    help_cred_pass_label:'رمز عبور', help_cred_pass_val:'۶+ کاراکتر · حرف · عدد · کاراکتر خاص',
+    // Placeholders
+    ph_login_password:'رمز عبور را وارد کنید',
+    ph_su_password:'۶+ کاراکتر با حرف، عدد و کاراکتر خاص',
+    ph_profile_name:'نام کامل شما',
+    ph_profile_confirm_pass:'رمز عبور جدید را تکرار کنید',
+    ph_ni_title_ph:'توضیح مختصر مشکله',
+    ph_ni_summary_ph:'خلاصه یک خطی مشکله',
+    ph_ni_desc_ph:'توضیح مفصل، کلاینت‌های تحت تأثیر، مراحل بازتولید…',
+    ph_comment:'نظر بگذارید…',
+    ph_sv_note:'یادداشت آموزشی یا دستورالعمل برای عامل بنویسید…',
+    ph_search:'جستجو کنید…',
+    // Dashboard — platform issue items
+    issue_reported:'گزارش', issue_affects:'تأثیر بر', issue_clients:'کلاینت',
+    issue_investigating:'در حال بررسی', issue_monitoring:'در حال رصد',
+    issue_team_notified:'تیم داده مطلع شد', issue_provider_issue:'مشکل ارائه‌دهنده',
+    badge_critical:'بحرانی', badge_high:'بالا', badge_medium:'متوسط', badge_resolved:'حل‌شده',
+    // Dashboard — chart day labels
+    day_today:'امروز', day_sun:'یکش', day_mon:'دوش', day_tue:'سه‌ش',
+    day_wed:'چهار', day_thu:'پنج', day_fri:'جمع', day_sat:'شنب',
+    // Dashboard — chart week label
+    lbl_wk:'هف',
+    btn_edit_agent:'ویرایش عامل', lbl_chat_load:'بار چت',
+    lbl_agents_word:'عامل', lbl_day_word:'روز', lbl_night_word:'شب',
+    lbl_chats_word:'چت', lbl_per_day:'در روز',
+    lbl_client:'کلاینت', lbl_agent_label:'عامل',
+    tkt_reply_to_client:'پاسخ به کلاینت', tkt_internal_note:'یادداشت داخلی',
+    ph_tkt_reply:'پاسخ خود را برای کلاینت بنویسید…',
+    ph_tkt_internal:'یادداشت داخلی بنویسید — برای کلاینت نمایش داده نمی‌شود…',
+    tkt_add_note:'افزودن یادداشت', tkt_last_week:'هفته گذشته', day_long_mon:'دوشنبه',
+    tkt_change_status:'تغییر وضعیت…',
+    tkt_status_open:'→ باز', tkt_status_pending:'→ معلق',
+    tkt_status_hold:'→ در انتظار', tkt_status_solved:'→ حل‌شده', tkt_status_closed:'→ بسته‌شده',
+    btn_send_reply:'ارسال پاسخ',
+    tkt_priority_urgent:'فوری', tkt_priority_high:'بالا', tkt_priority_normal:'معمولی', tkt_priority_low:'پایین',
+    tkt_no_tickets:'تیکتی یافت نشد.',
+    lbl_csat_per_day:'CSAT % در روز', lbl_csat_per_week:'CSAT % در هفته',
+    pass_hint:'حداقل ۶ کاراکتر با یک حرف، یک عدد، و یک کاراکتر خاص (مثل <code>@&nbsp;&nbsp;#&nbsp;&nbsp;$&nbsp;&nbsp;!&nbsp;&nbsp;%</code>)',
   }
 };
 
@@ -2906,6 +3693,18 @@ function applyLanguage(lang, btn) {
     if (t[key] !== undefined) el.textContent = t[key];
   });
 
+  // Translate elements that contain inner HTML markup
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.dataset.i18nHtml;
+    if (t[key] !== undefined) el.innerHTML = t[key];
+  });
+
+  // Translate placeholder attributes
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (t[key] !== undefined) el.placeholder = t[key];
+  });
+
   // Update page header title for current page
   const activeNav = document.querySelector('.nav-item.active');
   if (activeNav && activeNav.dataset.page) {
@@ -2929,6 +3728,38 @@ function applyLanguage(lang, btn) {
 
   // Sync global lang switcher labels
   _syncLangUI();
+
+  // Password hint (contains HTML)
+  const passHint = document.getElementById('pass-hint-text');
+  if (passHint) passHint.innerHTML = t.pass_hint;
+
+  // Agent modal status options
+  const statusOpts = { online: t.status_online, busy: t.status_busy, away: t.status_away, offline: t.status_offline };
+  ['online','busy','away','offline'].forEach(s => {
+    const opt = document.querySelector(`#modal-status option[value="${s}"]`);
+    if (opt && statusOpts[s]) opt.textContent = (s === 'offline' ? '○ ' : '● ') + statusOpts[s];
+  });
+
+  // Re-render dynamic pages if currently visible
+  if (!document.getElementById('page-livechats')?.classList.contains('hidden')) renderLiveChats();
+  if (!document.getElementById('page-issues')?.classList.contains('hidden')) renderIssues(currentIssueFilter);
+  if (!document.getElementById('page-dashboard')?.classList.contains('hidden')) {
+    const todayEl = document.getElementById('today-date');
+    if (todayEl) todayEl.textContent =
+      new Date().toLocaleDateString(_getLangLocale(), {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    initDashboardOverview();
+  }
+  if (!document.getElementById('page-agents')?.classList.contains('hidden')) renderAgents();
+  if (!document.getElementById('page-tickets')?.classList.contains('hidden')) {
+    renderTicketList();
+    if (selectedTicketId) renderTicketDetail(selectedTicketId);
+  }
+  if (!document.getElementById('page-notifications')?.classList.contains('hidden')) renderNotifPage();
+  if (!document.getElementById('page-reports')?.classList.contains('hidden')) {
+    if (rptActiveSub === 'total-chats') { renderTotalChats(); renderYearlyCharts(tcYearView === 'compare' ? '2026' : tcYearView); }
+    if (rptActiveSub === 'satisfaction') renderSatisfaction();
+    if (rptActiveSub === 'agent-perf') renderAgentPerf();
+  }
 }
 
 // Apply saved language on startup
@@ -3223,12 +4054,18 @@ function getLastWeekPeriod() {
 }
 
 function getLast7DayLabels() {
+  const t = translations[currentLang];
+  const dayKeys = ['day_sun','day_mon','day_tue','day_wed','day_thu','day_fri','day_sat'];
   const labels = [];
   const now = new Date();
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+    if (i === 0) {
+      labels.push(t.day_today || 'Today');
+    } else {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      labels.push(t[dayKeys[d.getDay()]] || d.toLocaleDateString('en-US', { weekday: 'short' }));
+    }
   }
   return labels;
 }
@@ -3250,15 +4087,20 @@ function render7DayChart() {
   const textCol = isDark ? '#94a3b8' : '#64748b';
   const valCol  = isDark ? '#e2e8f0' : '#1e293b';
 
+  const todayCol  = '#1a56db';
+  const todayText = isDark ? '#60a5fa' : '#1a56db';
+
   let bars = '', vals = '', texts = '';
   data.forEach((v, i) => {
+    const isToday = i === data.length - 1;
     const x  = padL + i * (barW + 12);
     const bh = (v / max) * chartH;
     const y  = padT + chartH - bh;
-    const op = (0.45 + 0.55 * (v / max)).toFixed(2);
-    bars  += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="5" fill="#1a56db" opacity="${op}"/>`;
-    vals  += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${valCol}">${v}</text>`;
-    texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="${textCol}">${labels[i]}</text>`;
+    const op = isToday ? '1' : (0.35 + 0.45 * (v / max)).toFixed(2);
+    const fill = isToday ? todayCol : '#1a56db';
+    bars  += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="5" fill="${fill}" opacity="${op}"/>`;
+    vals  += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${isToday ? todayCol : valCol}">${v}</text>`;
+    texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="${isToday ? 11 : 11}" font-weight="${isToday ? '700' : '400'}" fill="${isToday ? todayText : textCol}">${labels[i]}</text>`;
   });
 
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${bars}${vals}${texts}</svg>`;
@@ -3268,6 +4110,8 @@ function renderCurMonthChart() {
   const wrap = document.getElementById('chats-curmonth-chart');
   if (!wrap) return;
   const data   = periodChartData.curMonth.bars;
+  const t      = translations[currentLang];
+  const wkStr  = t.lbl_wk || 'Wk';
   const W = 580, H = 180, padB = 32, padT = 20, padL = 8, padR = 8;
   const chartH = H - padB - padT;
   const n      = data.length;
@@ -3278,13 +4122,14 @@ function renderCurMonthChart() {
   const valCol  = isDark ? '#e2e8f0' : '#1e293b';
   let bars = '', vals = '', texts = '';
   data.forEach((b, i) => {
+    const label = b.l.replace(/^Wk/, wkStr);
     const x  = padL + i * (barW + 16);
     const bh = (b.v / max) * chartH;
     const y  = padT + chartH - bh;
     const op = (0.45 + 0.55 * (b.v / max)).toFixed(2);
     bars  += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="5" fill="#8b5cf6" opacity="${op}"/>`;
     vals  += `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${valCol}">${b.v}</text>`;
-    texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="${textCol}">${b.l}</text>`;
+    texts += `<text x="${(x + barW / 2).toFixed(1)}" y="${(H - 8).toFixed(1)}" text-anchor="middle" font-size="11" fill="${textCol}">${label}</text>`;
   });
   wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${bars}${vals}${texts}</svg>`;
 }
@@ -3701,8 +4546,6 @@ function exportDashboardReport() {
   URL.revokeObjectURL(url);
 }
 
-let _rtInterval = null;
-
 function startRealTimeSim() {
   if (_rtInterval) clearInterval(_rtInterval);
   function tick() {
@@ -3729,7 +4572,7 @@ function initDashboardOverview() {
     const now = new Date();
     const start = new Date(now);
     start.setDate(now.getDate() - 6);
-    const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const fmt = d => d.toLocaleDateString(_getLangLocale(), { month: 'short', day: 'numeric' });
     chartEl.textContent = `${fmt(start)} – ${fmt(now)}`;
   }
 
@@ -3737,7 +4580,7 @@ function initDashboardOverview() {
   const monthEl = document.getElementById('chart-curmonth-period');
   if (monthEl) {
     const now = new Date();
-    monthEl.textContent = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    monthEl.textContent = now.toLocaleDateString(_getLangLocale(), { month: 'long', year: 'numeric' });
   }
 
   render7DayChart();
@@ -3772,6 +4615,7 @@ function _resetIdleTimers() {
   // Only act when the app is visible and the warning is not already showing
   if (document.getElementById('app').classList.contains('hidden')) return;
   if (!document.getElementById('idle-warning').classList.contains('hidden')) return;
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
   _startIdleTimers();
 }
 
@@ -3802,6 +4646,7 @@ function dismissIdleWarning() {
   const overlay = document.getElementById('idle-warning');
   overlay.classList.remove('idle-overlay--visible');
   overlay.addEventListener('transitionend', () => overlay.classList.add('hidden'), { once: true });
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
   _startIdleTimers();          // fresh 10-minute window
 }
 
@@ -3824,6 +4669,18 @@ IDLE_EVENTS.forEach(evt =>
   let saved;
   try { saved = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) {}
   if (!saved || !saved.name || !saved.email) return;
+
+  // Check how long the user has been inactive
+  const lastActivity = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY) || '0', 10);
+  if (lastActivity) {
+    const elapsed = Date.now() - lastActivity;
+    if (elapsed >= IDLE_TIMEOUT_MS) {
+      // Inactive for 10+ minutes — treat as expired session
+      clearSession();
+      return;
+    }
+  }
+
   currentUser = {
     name:         saved.name,
     email:        saved.email,
@@ -3832,4 +4689,18 @@ IDLE_EVENTS.forEach(evt =>
     shift:        saved.shift        || 'day'
   };
   _applyUserToDOM();
+
+  // If lastActivity is known, override timers with the actual remaining window
+  if (lastActivity) {
+    const elapsed    = Date.now() - lastActivity;
+    const remaining  = IDLE_TIMEOUT_MS - elapsed;
+    const warnIn     = IDLE_WARN_MS    - elapsed;
+    _clearIdleTimers();
+    _idleTimer = setTimeout(forceLogout, remaining);
+    if (warnIn > 0) {
+      _warnTimer = setTimeout(_showIdleWarning, warnIn);
+    } else {
+      _showIdleWarning();
+    }
+  }
 })();
