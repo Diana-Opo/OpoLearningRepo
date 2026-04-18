@@ -2,6 +2,7 @@
 //  DATA
 // ────────────────────────────────────────────────────────
 const COLORS = ['#1a56db','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899','#f97316','#6366f1','#14b8a6','#a855f7','#0ea5e9'];
+const API_BASE = 'http://localhost:3000/api';
 
 let agents = [
   { id:1,  name:'Lena Williams',   email:'lena.w@forexdesk.io',   shift:'day',   status:'online',  gender:'female', chats:4, maxChats:5, color:COLORS[0]  },
@@ -102,12 +103,15 @@ const SESSION_KEY        = 'forexdesk_session';
 const LAST_ACTIVITY_KEY  = 'forexdesk_last_activity';
 
 function saveSession() {
-  const { name, email, avatarCustom, avatarIdx, shift } = currentUser;
+  const { id, name, email, role, status, avatarCustom, avatarIdx, shift } = currentUser;
   localStorage.setItem(SESSION_KEY, JSON.stringify({
+    id:           id            ?? null,
     name, email,
-    avatarCustom: avatarCustom || null,
-    avatarIdx:    avatarIdx    ?? null,
-    shift:        shift        || 'day'
+    role:         role          || 'agent',
+    status:       status        || 'pending',
+    avatarCustom: avatarCustom  || null,
+    avatarIdx:    avatarIdx     ?? null,
+    shift:        shift         || 'day'
   }));
 }
 
@@ -117,53 +121,139 @@ function clearSession() {
 }
 
 function showScreen(s) {
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('signup-screen').classList.add('hidden');
+  ['login', 'signup', 'pending', 'rejected'].forEach(id => {
+    document.getElementById(id + '-screen').classList.add('hidden');
+  });
   document.getElementById(s + '-screen').classList.remove('hidden');
 }
 
 function showErr(id, msg) { const e=document.getElementById(id); e.textContent=msg; e.style.display='block'; }
 function hideErr(id) { const e=document.getElementById(id); if(e) e.style.display='none'; }
 
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-password').value;
-  let ok = true;
   hideErr('login-email-err'); hideErr('login-pass-err');
-  if (!emailValid(email)) { showErr('login-email-err','Please enter a valid email address (e.g. you@company.com).'); ok=false; }
-  if (!passwordValid(pass)) { showErr('login-pass-err','Password must be 6+ characters with a letter, number, and special character (e.g. @#$!).'); ok=false; }
-  if (ok) {
-    const localPart = email.split('@')[0].replace(/[._]/g,' ');
-    const name = localPart.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ') || 'User';
-    enterDashboard(name, email);
+  if (!emailValid(email)) { showErr('login-email-err','Please enter a valid email address (e.g. you@company.com).'); return; }
+  if (!pass) { showErr('login-pass-err','Password is required.'); return; }
+  const btn = e.target.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
+  try {
+    const res  = await fetch(`${API_BASE}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pass }) });
+    const json = await res.json();
+    if (!res.ok) { showErr('login-pass-err', json.message || 'Login failed. Please check your credentials.'); }
+    else         { enterDashboard(json.data.name, email, json.data.role, json.data.id, json.data.avatarData, json.data.status); }
+  } catch (err) {
+    showErr('login-pass-err', 'Could not connect to server. Make sure the backend is running.');
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
-function handleSignup(e) {
+function selectSignupRole(btn) {
+  document.querySelectorAll('#signup-screen .gender-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function handleSignup(e) {
   e.preventDefault();
   const name  = document.getElementById('su-name').value.trim();
   const email = document.getElementById('su-email').value.trim();
   const pass  = document.getElementById('su-password').value;
-  let ok = true;
   hideErr('su-name-err'); hideErr('su-email-err'); hideErr('su-pass-err');
-  if (!name)              { showErr('su-name-err','Please enter your full name.'); ok=false; }
-  if (!emailValid(email)) { showErr('su-email-err','Please enter a valid email address (e.g. you@company.com).'); ok=false; }
-  if (!passwordValid(pass)) { showErr('su-pass-err','Password must be 6+ characters with a letter, number, and special character (e.g. @#$!).'); ok=false; }
-  if (ok) enterDashboard(name, email);
+  if (!name)              { showErr('su-name-err',  'Please enter your full name.'); return; }
+  if (!emailValid(email)) { showErr('su-email-err', 'Please enter a valid email address (e.g. you@company.com).'); return; }
+  if (!passwordValid(pass)) { showErr('su-pass-err', 'Password must be 6+ characters with a letter, number, and special character (e.g. @#$!).'); return; }
+  const btn = e.target.querySelector('button[type="submit"]');
+  if (btn) btn.disabled = true;
+  try {
+    const res  = await fetch(`${API_BASE}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, email, password: pass }) });
+    const json = await res.json();
+    if (!res.ok) { showErr('su-email-err', json.message || 'Sign up failed. Please try again.'); }
+    else         { enterDashboard(json.data.name, email, json.data.role, json.data.id, json.data.avatarData, json.data.status); }
+  } catch (err) {
+    showErr('su-email-err', 'Could not connect to server. Make sure the backend is running.');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
-function enterDashboard(name, email) {
-  currentUser = { name, email };
+function _parseAvatarData(avatarData) {
+  if (!avatarData) return { avatarCustom: null, avatarIdx: null };
+  if (avatarData.startsWith('svg:')) return { avatarCustom: null, avatarIdx: parseInt(avatarData.slice(4), 10) };
+  return { avatarCustom: avatarData, avatarIdx: null };
+}
+
+function enterDashboard(name, email, role, id, avatarData, status) {
+  let { avatarCustom, avatarIdx } = _parseAvatarData(avatarData);
+
+  // If the DB has no avatar, check whether a previous local session for this
+  // same email already had one (e.g. set before the DB column existed).
+  // Migrate it to the DB so it is never lost again.
+  if (!avatarData) {
+    let prev;
+    try { prev = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e) {}
+    if (prev && prev.email === email) {
+      if (prev.avatarCustom)       { avatarCustom = prev.avatarCustom; avatarIdx = null; }
+      else if (prev.avatarIdx != null) { avatarIdx = prev.avatarIdx; avatarCustom = null; }
+    }
+    if (avatarCustom || avatarIdx != null) {
+      const toSave = avatarCustom ? avatarCustom : `svg:${avatarIdx}`;
+      setTimeout(() => _saveAvatarToAPI(toSave), 0);
+    }
+  }
+
+  const resolvedStatus = status || 'pending';
+  currentUser = { id: id ?? null, name, email, role: role || 'agent', status: resolvedStatus, avatarCustom, avatarIdx, shift: currentUser.shift || 'day' };
   localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
-  _applyUserToDOM();
   saveSession();
+
+  if (resolvedStatus === 'pending')  { _showPendingScreen(name, email);  return; }
+  if (resolvedStatus === 'rejected') { _showRejectedScreen(name, email); return; }
+
+  _applyUserToDOM();
+}
+
+function _showPendingScreen(name, email) {
+  document.getElementById('pending-user-name').textContent  = name;
+  document.getElementById('pending-user-email').textContent = email;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('auth-wrap').classList.remove('hidden');
+  showScreen('pending');
+  applyLanguage(currentLang);
+}
+
+function _showRejectedScreen(name, email) {
+  document.getElementById('rejected-user-name').textContent  = name;
+  document.getElementById('rejected-user-email').textContent = email;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('auth-wrap').classList.remove('hidden');
+  showScreen('rejected');
+  applyLanguage(currentLang);
 }
 
 function _getLangLocale() {
   if (currentLang === 'ar') return 'ar-u-ca-gregory';
   if (currentLang === 'fa') return 'fa-u-ca-gregory';
   return 'en-US';
+}
+
+function _applyRolePermissions() {
+  const isAgent = currentUser.role === 'agent';
+  const isAdmin = currentUser.role === 'admin';
+  // Agents cannot see Reports or Agent Management
+  ['agents', 'reports'].forEach(page => {
+    const el = document.querySelector(`.nav-item[data-page="${page}"]`);
+    if (el) el.style.display = isAgent ? 'none' : '';
+  });
+  // Users page — admin only
+  const usersNav = document.querySelector('.nav-item[data-page="users"]');
+  if (usersNav) usersNav.style.display = isAdmin ? '' : 'none';
+  // Admin-only elements (Create User button, etc.)
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
 }
 
 function _applyUserToDOM() {
@@ -181,6 +271,7 @@ function _applyUserToDOM() {
   document.getElementById('app').classList.remove('hidden');
   if (currentUser.avatarCustom) updateHeaderAvatarImage();
   else if (currentUser.avatarIdx != null) updateHeaderAvatarSVG();
+  _applyRolePermissions();
   const savedPage = localStorage.getItem('forexdesk_page') || 'dashboard';
   showPage(savedPage);
   updateNotifDot();
@@ -249,9 +340,16 @@ function handleLogout() {
 // ────────────────────────────────────────────────────────
 //  PAGE SWITCHING
 // ────────────────────────────────────────────────────────
-const PAGE_TITLES = { dashboard:'Dashboard', agents:'Agent Management', livechats:'Live Chats', issues:'Platform Issues', tickets:'Tickets', reports:'Reports', settings:'Settings', notifications:'Notifications', profile:'My Profile' };
+const PAGE_TITLES = { dashboard:'Dashboard', agents:'Agent Management', livechats:'Live Chats', issues:'Platform Issues', tickets:'Tickets', reports:'Reports', settings:'Settings', notifications:'Notifications', profile:'My Profile', users:'User Management' };
 
 function showPage(pageId) {
+  const AGENT_RESTRICTED = ['agents', 'reports'];
+  if (currentUser.role === 'agent' && AGENT_RESTRICTED.includes(pageId)) {
+    pageId = 'dashboard';
+  }
+  if (currentUser.role !== 'admin' && pageId === 'users') {
+    pageId = 'dashboard';
+  }
   document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
   const target = document.getElementById('page-' + pageId);
   if (target) target.classList.remove('hidden');
@@ -260,15 +358,16 @@ function showPage(pageId) {
   // Sync sidebar active state
   document.querySelectorAll('.nav-item').forEach(n =>
     n.classList.toggle('active', n.dataset.page === pageId));
-  if (pageId === 'agents')        renderAgents(currentFilter);
+  if (pageId === 'agents')        loadAgentsFromAPI();
   if (pageId === 'livechats')     renderLiveChats();
-  if (pageId === 'issues')        renderIssues(currentIssueFilter);
-  if (pageId === 'tickets')       renderTicketList(currentTicketFilter);
+  if (pageId === 'issues')        loadPlatformIssuesFromAPI();
+  if (pageId === 'tickets')       loadTicketsFromAPI();
   if (pageId === 'reports')       initReports();
   if (pageId === 'settings')      initSettings();
   if (pageId === 'profile')       initProfile();
   if (pageId === 'notifications') renderNotifPage();
   if (pageId === 'dashboard')     initDashboardOverview();
+  if (pageId === 'users')         loadUsersFromAPI();
   // Persist the current page so refresh restores it
   localStorage.setItem('forexdesk_page', pageId);
 }
@@ -303,14 +402,21 @@ function navToIssues() {
 // ────────────────────────────────────────────────────────
 //  AGENT MANAGEMENT
 // ────────────────────────────────────────────────────────
+let _archivedAgents = [];
+
 function filterAgents(btn, filter) {
-  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#page-agents .filter-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   currentFilter = filter;
-  renderAgents(filter);
+  if (filter === 'archived') {
+    loadArchivedAgentsFromAPI();
+  } else {
+    renderAgents(filter);
+  }
 }
 
 function getFilteredAgents(filter) {
+  if (filter === 'archived') return _archivedAgents;
   if (filter === 'day')     return agents.filter(a => a.shift === 'day');
   if (filter === 'night')   return agents.filter(a => a.shift === 'night');
   if (filter === 'online')  return agents.filter(a => a.status === 'online');
@@ -321,13 +427,15 @@ function getFilteredAgents(filter) {
 }
 
 function updateTabCounts() {
-  document.getElementById('count-all').textContent    = agents.length;
-  document.getElementById('count-day').textContent    = agents.filter(a=>a.shift==='day').length;
-  document.getElementById('count-night').textContent  = agents.filter(a=>a.shift==='night').length;
-  document.getElementById('count-online').textContent  = agents.filter(a=>a.status==='online').length;
-  document.getElementById('count-busy').textContent    = agents.filter(a=>a.status==='busy').length;
-  document.getElementById('count-away').textContent    = agents.filter(a=>a.status==='away').length;
-  document.getElementById('count-offline').textContent = agents.filter(a=>a.status==='offline').length;
+  document.getElementById('count-all').textContent      = agents.length;
+  document.getElementById('count-day').textContent      = agents.filter(a=>a.shift==='day').length;
+  document.getElementById('count-night').textContent    = agents.filter(a=>a.shift==='night').length;
+  document.getElementById('count-online').textContent   = agents.filter(a=>a.status==='online').length;
+  document.getElementById('count-busy').textContent     = agents.filter(a=>a.status==='busy').length;
+  document.getElementById('count-away').textContent     = agents.filter(a=>a.status==='away').length;
+  document.getElementById('count-offline').textContent  = agents.filter(a=>a.status==='offline').length;
+  const el = document.getElementById('count-archived');
+  if (el) el.textContent = _archivedAgents.length;
   const _ta = translations[currentLang];
   document.getElementById('agents-sub').textContent =
     `${agents.length} ${_ta.lbl_agents_word} · ${agents.filter(a=>a.shift==='day').length} ${_ta.lbl_day_word} · ${agents.filter(a=>a.shift==='night').length} ${_ta.lbl_night_word}`;
@@ -389,10 +497,15 @@ function renderAgents(filter) {
           </div>
         </div>
 
-        <button class="btn-edit" onclick="openEditModal(${a.id})">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          ${_t.btn_edit_agent}
-        </button>
+        <div style="display:flex;gap:6px;margin-top:10px;width:100%">
+          <button class="btn-edit" style="flex:1" onclick="openEditModal(${a.id})">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            ${_t.btn_edit_agent}
+          </button>
+          <button class="btn-edit" style="flex:1;background:#fef3c7;color:#92400e;border-color:#fde68a" onclick="archiveAgent(${a.id})">
+            📦 ${_t.btn_archive}
+          </button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -473,35 +586,166 @@ function closeEditModal() {
 }
 
 
-function saveAgent() {
+async function saveAgent() {
   const name   = document.getElementById('modal-name').value.trim();
   const email  = document.getElementById('modal-email').value.trim();
   const status = document.getElementById('modal-status').value;
   const gender = document.querySelector('.gender-btn.active')?.dataset.gender || 'female';
   const shift  = document.querySelector('.shift-btn.active')?.dataset.shift  || 'day';
 
-  let ok = true;
   hideErr('modal-name-err'); hideErr('modal-email-err');
-  if (!name)  { showErr('modal-name-err','Please enter a name.'); ok=false; }
-  if (!emailValid(email)) { showErr('modal-email-err','Please enter a valid email address (e.g. jane@company.com).'); ok=false; }
-  if (!ok) return;
+  if (!name)  { showErr('modal-name-err','Please enter a name.'); return; }
+  if (!emailValid(email)) { showErr('modal-email-err','Please enter a valid email address (e.g. jane@company.com).'); return; }
 
-  if (editingId === null) {
-    // Add new agent
-    agents.push({
-      id: nextId++, name, email, shift, status, gender,
-      chats: status === 'offline' ? 0 : Math.floor(Math.random()*3),
-      maxChats: 5,
-      color: COLORS[(agents.length) % COLORS.length]
-    });
-  } else {
-    // Update existing
-    const a = agents.find(ag => ag.id === editingId);
-    if (a) { a.name = name; a.email = email; a.shift = shift; a.status = status; a.gender = gender; }
+  const saveBtn = document.querySelector('.btn-primary[onclick="saveAgent()"]');
+  if (saveBtn) saveBtn.disabled = true;
+  try {
+    let res, json;
+    if (editingId === null) {
+      res  = await fetch(`${API_BASE}/agents`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, email, shift, status }) });
+    } else {
+      res  = await fetch(`${API_BASE}/agents/${editingId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, email, shift, status }) });
+    }
+    json = await res.json();
+    if (!res.ok) { showErr('modal-email-err', json.message || 'Could not save agent.'); return; }
+
+    const a = json.data;
+    if (editingId === null) {
+      agents.push({ id: a.id, name: a.name, email: a.email, shift: a.shift, status: a.status, gender, chats: 0, maxChats: 5, color: COLORS[agents.length % COLORS.length] });
+    } else {
+      const ag = agents.find(x => x.id === editingId);
+      if (ag) { ag.name = a.name; ag.email = a.email; ag.shift = a.shift; ag.status = a.status; ag.gender = gender; }
+    }
+    closeEditModal();
+    renderAgents(currentFilter);
+  } catch (err) {
+    showErr('modal-email-err', 'Could not connect to server. Please try again.');
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
   }
+}
 
-  closeEditModal();
+async function loadAgentsFromAPI() {
+  try {
+    const [activeRes, archivedRes] = await Promise.all([
+      fetch(`${API_BASE}/agents`),
+      fetch(`${API_BASE}/agents/archived`)
+    ]);
+    const activeJson   = await activeRes.json();
+    const archivedJson = await archivedRes.json();
+    if (activeJson.success && Array.isArray(activeJson.data)) {
+      agents = activeJson.data.map((a, i) => ({
+        id: a.id, name: a.name, email: a.email,
+        shift: a.shift, status: a.status,
+        gender: i % 2 === 0 ? 'female' : 'male',
+        chats:  a.status === 'offline' ? 0 : Math.floor(Math.random() * 4),
+        maxChats: 5,
+        color: COLORS[i % COLORS.length]
+      }));
+    }
+    if (archivedJson.success && Array.isArray(archivedJson.data)) {
+      _archivedAgents = archivedJson.data.map((a, i) => ({
+        id: a.id, name: a.name, email: a.email,
+        shift: a.shift, status: 'archived',
+        gender: i % 2 === 0 ? 'female' : 'male',
+        chats: 0, maxChats: 5,
+        color: COLORS[i % COLORS.length]
+      }));
+    }
+  } catch (err) {
+    console.error('[loadAgentsFromAPI]', err);
+  }
   renderAgents(currentFilter);
+}
+
+function archiveAgent(id) {
+  const tl = translations[currentLang];
+  showConfirm(
+    tl.confirm_archive_title || 'Archive Agent',
+    tl.confirm_archive_agent_sub || 'This agent will be archived. All their tickets and issues remain intact.',
+    tl.btn_archive,
+    async () => {
+      try {
+        const res  = await fetch(`${API_BASE}/agents/${id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'archived' })
+        });
+        const json = await res.json();
+        if (!res.ok) { alert(json.message || 'Could not archive agent.'); return; }
+        agents = agents.filter(a => a.id !== id);
+        renderAgents(currentFilter);
+      } catch (err) {
+        alert('Could not connect to server. Please try again.');
+      }
+    }
+  );
+}
+
+async function restoreAgent(id) {
+  try {
+    const res  = await fetch(`${API_BASE}/agents/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'offline' })
+    });
+    const json = await res.json();
+    if (!res.ok) { alert(json.message || 'Could not restore agent.'); return; }
+    await loadArchivedAgentsFromAPI();
+  } catch (err) {
+    alert('Could not connect to server. Please try again.');
+  }
+}
+
+async function loadArchivedAgentsFromAPI() {
+  try {
+    const res  = await fetch(`${API_BASE}/agents/archived`);
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      _archivedAgents = json.data.map((a, i) => ({
+        id: a.id, name: a.name, email: a.email,
+        shift: a.shift, status: 'archived',
+        gender: i % 2 === 0 ? 'female' : 'male',
+        chats: 0, maxChats: 5,
+        color: COLORS[i % COLORS.length]
+      }));
+    }
+  } catch (err) {
+    console.error('[loadArchivedAgentsFromAPI]', err);
+  }
+  renderArchivedAgents();
+  updateTabCounts();
+}
+
+function renderArchivedAgents() {
+  const grid = document.getElementById('agent-grid');
+  const _t   = translations[currentLang];
+  if (_archivedAgents.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted);font-size:15px">${_t.no_agents_match}</div>`;
+    return;
+  }
+  grid.innerHTML = _archivedAgents.map(a => {
+    const svg = avatarSVG(a.gender, a.color);
+    return `
+    <div class="agent-card" style="opacity:0.75">
+      <div class="agent-card-stripe ${a.shift}"></div>
+      <div class="agent-card-body">
+        <div class="agent-avatar-wrap">
+          <div class="agent-avatar-img">${svg}</div>
+          <div class="agent-status-dot offline" title="${_t.status_archived}"></div>
+        </div>
+        <div class="agent-name">${escHtml(a.name)}</div>
+        <div class="agent-email">${escHtml(a.email)}</div>
+        <span class="shift-badge ${a.shift}">${SHIFT_ICONS[a.shift]} ${a.shift === 'day' ? _t.shift_day : _t.shift_night}</span>
+        <div class="agent-status-row">
+          <span class="agent-status-label offline">📦 ${_t.status_archived}</span>
+        </div>
+        <div style="margin-top:auto;padding-top:10px;width:100%">
+          <button class="btn-edit" style="width:100%" onclick="restoreAgent(${a.id})">
+            ↩ ${_t.btn_restore_agent}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ────────────────────────────────────────────────────────
@@ -518,7 +762,7 @@ function saveAgent() {
 
 // Keyboard: Esc closes modal
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeEditModal(); closeSupervisePanel(); closeIssueModal(); }
+  if (e.key === 'Escape') { closeEditModal(); closeSupervisePanel(); closeIssueModal(); closeNewIssueModal(); closeTicketModal(); }
 });
 
 // ────────────────────────────────────────────────────────
@@ -1650,10 +1894,11 @@ function ensureIssueFields() {
 
 function issueStatusLabel(s) {
   const t = translations[currentLang];
-  return s === 'todo'      ? t.pi_todo
-    : s === 'inprogress'   ? t.pi_inprogress
-    : s === 'pending'      ? t.pi_pending
-    : s === 'postponed'    ? t.pi_postponed
+  return s === 'todo'       ? t.pi_todo
+    : s === 'inprogress'    ? t.pi_inprogress
+    : s === 'pending'       ? t.pi_pending
+    : s === 'postponed'     ? t.pi_postponed
+    : s === 'archived'      ? t.pi_archived
     : t.pi_resolved;
 }
 
@@ -1695,19 +1940,23 @@ function renderIssues(filter) {
   ensureIssueFields();
   const t = translations[currentLang];
 
-  const filtered = filter === 'all' ? platformIssues
+  const nonArchived = platformIssues.filter(i => i.status !== 'archived');
+  const filtered = filter === 'all'      ? nonArchived
+    : filter === 'archived' ? platformIssues.filter(i => i.status === 'archived')
     : platformIssues.filter(i => i.status === filter);
 
   // Tab counts
   const statusKeys = ['todo','inprogress','pending','postponed','resolved'];
-  document.getElementById('pi-count-all').textContent = platformIssues.length;
+  document.getElementById('pi-count-all').textContent = nonArchived.length;
   statusKeys.forEach(k => {
     const el = document.getElementById('pi-count-' + k);
     if (el) el.textContent = platformIssues.filter(i => i.status === k).length;
   });
+  const archivedCountEl = document.getElementById('pi-count-archived');
+  if (archivedCountEl) archivedCountEl.textContent = platformIssues.filter(i => i.status === 'archived').length;
 
-  const active   = platformIssues.filter(i => i.status !== 'resolved').length;
-  const resolved = platformIssues.filter(i => i.status === 'resolved').length;
+  const active   = nonArchived.filter(i => i.status !== 'resolved').length;
+  const resolved = nonArchived.filter(i => i.status === 'resolved').length;
   const activeLabel = active !== 1 ? t.pi_active_issues : t.pi_active_issue;
   document.getElementById('pi-sub').textContent =
     `${active} ${activeLabel} · ${resolved} ${t.pi_resolved_word}`;
@@ -1758,10 +2007,19 @@ function renderIssues(filter) {
         </div>
         <div class="pi-summary">${escHtml(issue.summary)}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.pi_last_update}: ${escHtml(translateTimeStr(last.time))} · ${escHtml(translateAuthor(last.author))}</div>
-        <button class="btn-details" onclick="openIssueModal('${issue.id}')">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          ${t.pi_more_details}
-        </button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:auto">
+          <button class="btn-details" style="flex:1" onclick="openIssueModal('${issue.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            ${t.pi_more_details}
+          </button>
+          ${issue._apiId && issue.status !== 'archived' ? `
+          <button class="btn-details" style="flex:1;background:#e0f2fe;color:#0369a1;border-color:#bae6fd" onclick="openNewIssueModal(${issue._apiId})">
+            ✏ ${t.btn_edit}
+          </button>
+          <button class="btn-details" style="flex:1;background:#fef3c7;color:#92400e;border-color:#fde68a" onclick="archivePlatformIssue(${issue._apiId},event)">
+            📦 ${t.btn_archive}
+          </button>` : ''}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1770,11 +2028,23 @@ function renderIssues(filter) {
 // ────────────────────────────────────────────────────────
 //  ISSUE DETAILS MODAL
 // ────────────────────────────────────────────────────────
-function openIssueModal(id) {
+async function openIssueModal(id) {
   const issue = platformIssues.find(i => i.id === id);
   if (!issue) return;
   currentModalIssueId = id;
-  if (!issue.comments) issue.comments = [];
+
+  // Fetch comments from API
+  if (issue._apiId) {
+    try {
+      const res  = await fetch(`${API_BASE}/platform_issues/${issue._apiId}/comments`);
+      const json = await res.json();
+      if (json.success) issue.comments = json.data;
+    } catch (e) {
+      if (!issue.comments) issue.comments = [];
+    }
+  } else {
+    if (!issue.comments) issue.comments = [];
+  }
 
   const pm = PLATFORM_META[issue.platform];
 
@@ -1786,8 +2056,13 @@ function openIssueModal(id) {
   const _t = translations[currentLang];
   document.getElementById('id-platform-meta').textContent =
     `${pm.label} · ${_t.issue_reported} ${translateTimeStr(issue.reportedAt)} ${_t.pi_by_word} ${translateAuthor(issue.reportedBy)}`;
-  document.getElementById('id-priority-select').value = issue.priority || 'medium';
-  document.getElementById('id-status-select').value   = issue.status  || 'todo';
+  const _pLabelMap = { critical: _t.badge_critical, high: _t.badge_high, medium: _t.badge_medium };
+  const priorityBadge = document.getElementById('id-priority-badge');
+  priorityBadge.className   = `pi-priority-badge ${issue.priority || 'medium'}`;
+  priorityBadge.textContent = _pLabelMap[issue.priority || 'medium'] || (issue.priority || 'medium');
+  const statusBadge = document.getElementById('id-status-badge');
+  statusBadge.className   = `pi-status-badge ${issue.status || 'todo'}`;
+  statusBadge.textContent = issueStatusLabel(issue.status || 'todo');
 
   // Description
   document.getElementById('id-description').textContent = issue.description;
@@ -1828,31 +2103,53 @@ function renderIssueComments(issue) {
     return;
   }
   list.innerHTML = issue.comments.map(c => {
-    const initials = c.author.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const author   = c.authorName || c.author || 'Unknown';
+    const initials = author.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const date     = c.createdAt
+      ? new Date(c.createdAt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+      : (c.time || '');
     return `
       <div class="id-comment-item">
         <div class="id-comment-meta">
           <div class="id-comment-avatar">${escHtml(initials)}</div>
-          <span class="id-comment-author">${escHtml(c.author)}</span>
-          <span class="id-comment-time">${escHtml(c.time)}</span>
+          <span class="id-comment-author">${escHtml(author)}</span>
+          <span class="id-comment-time">${escHtml(date)}</span>
         </div>
         <div class="id-comment-text">${escHtml(c.text)}</div>
       </div>`;
   }).join('');
 }
 
-function addIssueComment() {
+async function addIssueComment() {
   const input = document.getElementById('id-comment-input');
   const text  = input.value.trim();
   if (!text) return;
   const issue = platformIssues.find(i => i.id === currentModalIssueId);
   if (!issue) return;
-  if (!issue.comments) issue.comments = [];
-  const now = new Date();
-  const time = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
-  issue.comments.push({ author: currentUser.name || 'Manager', time, text });
-  input.value = '';
-  renderIssueComments(issue);
+
+  if (issue._apiId) {
+    try {
+      const res  = await fetch(`${API_BASE}/platform_issues/${issue._apiId}/comments`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ authorName: currentUser.name || 'Manager', text }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json.message || 'Could not save comment.'); return; }
+      if (!issue.comments) issue.comments = [];
+      issue.comments.push(json.data);
+      input.value = '';
+      renderIssueComments(issue);
+    } catch (e) {
+      alert('Could not connect to server. Please try again.');
+    }
+  } else {
+    if (!issue.comments) issue.comments = [];
+    const now = new Date();
+    issue.comments.push({ authorName: currentUser.name || 'Manager', createdAt: now.toISOString(), text });
+    input.value = '';
+    renderIssueComments(issue);
+  }
 }
 
 function changeIssuePriority(newPriority) {
@@ -2148,16 +2445,54 @@ function exportIssuesToExcel() {
   URL.revokeObjectURL(url);
 }
 
-function openNewIssueModal() {
-  document.getElementById('ni-title').value       = '';
-  document.getElementById('ni-platform').value    = '';
-  document.getElementById('ni-priority').value    = '';
-  document.getElementById('ni-status').value      = 'todo';
-  document.getElementById('ni-summary').value     = '';
-  document.getElementById('ni-description').value = '';
-  document.getElementById('ni-reporter').value    = currentUser.name || 'Manager';
+let _editingIssueApiId = null;
+
+async function openNewIssueModal(apiId) {
+  _editingIssueApiId = apiId || null;
+  const isNew = !apiId;
+  const tl = translations[currentLang];
+  const titleEl = document.querySelector('#new-issue-overlay .modal-title');
+  if (titleEl) titleEl.textContent = isNew ? tl.modal_new_issue_title : tl.modal_edit_issue_title || 'Edit Issue';
   ['ni-title-err','ni-platform-err','ni-priority-err','ni-summary-err'].forEach(id => hideErr(id));
+
   document.getElementById('new-issue-overlay').classList.remove('hidden');
+
+  // Populate reporter dropdown
+  const sel = document.getElementById('ni-reporter');
+  sel.innerHTML = `<option value="">${tl.lbl_unassigned_opt || '— Select —'}</option>`;
+  try {
+    const res   = await fetch(`${API_BASE}/users/staff`);
+    const json  = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      json.data.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value       = u.id;
+        opt.textContent = `${u.name} (${u.role})`;
+        sel.appendChild(opt);
+      });
+    }
+  } catch (_) { /* non-fatal */ }
+
+  if (isNew) {
+    document.getElementById('ni-title').value       = '';
+    document.getElementById('ni-platform').value    = '';
+    document.getElementById('ni-priority').value    = '';
+    document.getElementById('ni-status').value      = 'todo';
+    document.getElementById('ni-summary').value     = '';
+    document.getElementById('ni-description').value = '';
+    if (currentUser.id) sel.value = String(currentUser.id);
+  } else {
+    const issue = platformIssues.find(i => i._apiId === apiId);
+    if (issue) {
+      document.getElementById('ni-title').value       = issue.title;
+      document.getElementById('ni-platform').value    = issue.platform;
+      document.getElementById('ni-priority').value    = issue.priority;
+      document.getElementById('ni-status').value      = issue.status;
+      document.getElementById('ni-summary').value     = issue.summary;
+      document.getElementById('ni-description').value = issue.description || '';
+      if (issue._reportedById) sel.value = String(issue._reportedById);
+    }
+  }
 }
 
 function closeNewIssueModal() {
@@ -2165,40 +2500,113 @@ function closeNewIssueModal() {
 }
 
 
-function saveNewIssue() {
+async function saveNewIssue() {
   const title    = document.getElementById('ni-title').value.trim();
   const platform = document.getElementById('ni-platform').value;
-  const priority = document.getElementById('ni-priority').value;
-  const status   = document.getElementById('ni-status').value || 'todo';
+  const uiPriority = document.getElementById('ni-priority').value;
+  const uiStatus   = document.getElementById('ni-status').value || 'todo';
   const summary  = document.getElementById('ni-summary').value.trim();
   const desc     = document.getElementById('ni-description').value.trim();
-  let ok = true;
+  const reporterVal = document.getElementById('ni-reporter').value;
+  const reportedBy  = reporterVal ? parseInt(reporterVal, 10) : null;
   ['ni-title-err','ni-platform-err','ni-priority-err','ni-summary-err'].forEach(id => hideErr(id));
-  if (!title)    { showErr('ni-title-err',    'Please enter a title.');     ok = false; }
-  if (!platform) { showErr('ni-platform-err', 'Please select a platform.'); ok = false; }
-  if (!priority) { showErr('ni-priority-err', 'Please select a priority.'); ok = false; }
-  if (!summary)  { showErr('ni-summary-err',  'Please enter a summary.');   ok = false; }
-  if (!ok) return;
+  if (!title)      { showErr('ni-title-err',    'Please enter a title.');     return; }
+  if (!platform)   { showErr('ni-platform-err', 'Please select a platform.'); return; }
+  if (!uiPriority) { showErr('ni-priority-err', 'Please select a priority.'); return; }
+  if (!summary)    { showErr('ni-summary-err',  'Please enter a summary.');   return; }
 
-  const now     = new Date();
-  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
-  const newId   = 'i' + (platformIssues.length + 1 + Date.now() % 1000);
-  const tColor  = priority === 'critical' ? 'red' : priority === 'high' ? 'orange' : 'yellow';
+  // Map display values to API enums
+  const apiPriority = { critical:'urgent', high:'high', medium:'medium', low:'low' }[uiPriority] || uiPriority;
+  const apiStatus   = { todo:'investigating', inprogress:'identified', pending:'monitoring', postponed:'monitoring', resolved:'resolved' }[uiStatus] || 'investigating';
 
-  platformIssues.unshift({
-    id: newId, platform, severity: priority, priority, status,
-    title, summary,
-    description: desc || summary,
-    reportedAt: 'Today, ' + timeStr,
-    reportedBy: currentUser.name || 'Manager',
-    createdAt: Date.now(),
-    impact: { clients: 0, tickets: 0, downtime: 'TBD' },
-    timeline: [{ time: timeStr, author: currentUser.name || 'Manager', color: tColor, text: `Issue reported. Status: ${issueStatusLabel(status)}.` }],
-    comments: []
-  });
+  const saveBtn = document.querySelector('#new-issue-overlay .btn-primary');
+  if (saveBtn) saveBtn.disabled = true;
+  try {
+    let res, json;
+    const body = { title, platform, priority: apiPriority, status: apiStatus, summary, description: desc || null, reportedBy };
+    if (_editingIssueApiId === null) {
+      res  = await fetch(`${API_BASE}/platform_issues`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    } else {
+      res  = await fetch(`${API_BASE}/platform_issues/${_editingIssueApiId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    }
+    json = await res.json();
+    if (!res.ok) { showErr('ni-summary-err', json.message || 'Could not save issue.'); return; }
+    closeNewIssueModal();
+    await loadPlatformIssuesFromAPI();
+  } catch (err) {
+    showErr('ni-summary-err', 'Could not connect to server. Please try again.');
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
 
-  closeNewIssueModal();
+async function loadPlatformIssuesFromAPI() {
+  try {
+    const res  = await fetch(`${API_BASE}/platform_issues`);
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      const statusMap   = { investigating:'todo', identified:'inprogress', monitoring:'pending', resolved:'resolved', archived:'archived' };
+      const priorityMap = { urgent:'critical', high:'high', medium:'medium', low:'medium' };
+      platformIssues = json.data.map((i, idx) => ({
+        _apiId:      i.id,
+        id:          `api-${i.id}`,
+        platform:    i.platform,
+        title:       i.title,
+        summary:     i.summary,
+        description: i.description || i.summary,
+        priority:    priorityMap[i.priority] || i.priority,
+        severity:    priorityMap[i.priority] || i.priority,
+        status:      statusMap[i.status]     || i.status,
+        reportedAt:  new Date(i.createdAt).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }),
+        reportedBy:  i.reporter?.name || 'Unknown',
+        _reportedById: i.reportedBy ?? null,
+        createdAt:   new Date(i.createdAt).getTime(),
+        impact:      { clients: 0, tickets: 0, downtime: 'TBD' },
+        timeline:    [{ time: new Date(i.createdAt).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }), author: i.reporter?.name || 'System', color: 'blue', text: i.summary }],
+        comments:    []
+      }));
+    }
+  } catch (err) {
+    console.error('[loadPlatformIssuesFromAPI]', err);
+  }
   renderIssues(currentIssueFilter);
+}
+
+async function deletePlatformIssue(apiId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Delete this platform issue? This cannot be undone.')) return;
+  try {
+    const res  = await fetch(`${API_BASE}/platform_issues/${apiId}`, { method:'DELETE' });
+    const json = await res.json();
+    if (!res.ok) { alert(json.message || 'Could not delete issue.'); return; }
+    await loadPlatformIssuesFromAPI();
+  } catch (err) {
+    alert('Could not connect to server. Please try again.');
+  }
+}
+
+function archivePlatformIssue(apiId, event) {
+  if (event) event.stopPropagation();
+  const tl = translations[currentLang];
+  showConfirm(
+    tl.confirm_archive_title || 'Archive Issue',
+    tl.confirm_archive_issue_sub || 'This issue will be moved to the Archived tab.',
+    tl.btn_archive,
+    async () => {
+      try {
+        const res  = await fetch(`${API_BASE}/platform_issues/${apiId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'archived' })
+        });
+        const json = await res.json();
+        if (!res.ok) { alert(json.message || 'Could not archive issue.'); return; }
+        await loadPlatformIssuesFromAPI();
+      } catch (err) {
+        alert('Could not connect to server. Please try again.');
+      }
+    }
+  );
 }
 
 // ────────────────────────────────────────────────────────
@@ -2366,15 +2774,16 @@ let tickets = [
   },
 ];
 
-let currentTicketFilter = 'open';
-let selectedTicketId    = null;
-let ticketReplyMode     = 'reply';
+let currentTicketFilter  = 'open';
+let selectedTicketId     = null;
+let ticketReplyMode      = 'reply';
+let editingTicketApiId   = null;
 
 // ────────────────────────────────────────────────────────
 //  TICKETS — RENDER LIST
 // ────────────────────────────────────────────────────────
 function updateTicketCounts() {
-  const statuses = ['open','pending','hold','solved','closed'];
+  const statuses = ['open','pending','hold','solved','closed','archived'];
   statuses.forEach(s => {
     const el = document.getElementById(`tkt-count-${s}`);
     if (el) el.textContent = tickets.filter(t => t.status === s).length;
@@ -2397,6 +2806,7 @@ function renderTicketEmptyPanel() {
   const hold     = tickets.filter(t => t.status === 'hold').length;
   const resolved = tickets.filter(t => t.status === 'solved').length;
   const closed   = tickets.filter(t => t.status === 'closed').length;
+  const t = translations[currentLang];
   document.getElementById('tkt-detail-panel').innerHTML = `
     <div class="tkt-empty-state">
       <div class="tkt-empty-visual">
@@ -2409,38 +2819,38 @@ function renderTicketEmptyPanel() {
             <line x1="10" y1="9" x2="8" y2="9"/>
           </svg>
         </div>
-        <div class="tkt-empty-chip tkt-empty-chip--hold"><span class="tkt-empty-chip-dot" style="background:#f97316"></span>On Hold</div>
-        <div class="tkt-empty-chip tkt-empty-chip--open"><span class="tkt-empty-chip-dot" style="background:#ef4444"></span>Open</div>
-        <div class="tkt-empty-chip tkt-empty-chip--pending"><span class="tkt-empty-chip-dot" style="background:#f59e0b"></span>Pending</div>
-        <div class="tkt-empty-chip tkt-empty-chip--resolved"><span class="tkt-empty-chip-dot" style="background:#10b981"></span>Resolved</div>
-        <div class="tkt-empty-chip tkt-empty-chip--closed"><span class="tkt-empty-chip-dot" style="background:#94a3b8"></span>Closed</div>
+        <div class="tkt-empty-chip tkt-empty-chip--hold"><span class="tkt-empty-chip-dot" style="background:#f97316"></span>${t.tkt_hold}</div>
+        <div class="tkt-empty-chip tkt-empty-chip--open"><span class="tkt-empty-chip-dot" style="background:#ef4444"></span>${t.tkt_open}</div>
+        <div class="tkt-empty-chip tkt-empty-chip--pending"><span class="tkt-empty-chip-dot" style="background:#f59e0b"></span>${t.tkt_pending}</div>
+        <div class="tkt-empty-chip tkt-empty-chip--resolved"><span class="tkt-empty-chip-dot" style="background:#10b981"></span>${t.tkt_solved}</div>
+        <div class="tkt-empty-chip tkt-empty-chip--closed"><span class="tkt-empty-chip-dot" style="background:#94a3b8"></span>${t.tkt_closed}</div>
       </div>
-      <div class="tkt-empty-title">No ticket selected</div>
-      <div class="tkt-empty-desc">Choose a ticket from the list on the left to view its full conversation, details, and history.</div>
+      <div class="tkt-empty-title">${t.tkt_empty_title}</div>
+      <div class="tkt-empty-desc">${t.tkt_empty_desc}</div>
       <div class="tkt-empty-stats">
         <div class="tkt-empty-stat">
           <span class="tkt-empty-stat-num">${open}</span>
-          <span class="tkt-empty-stat-lbl">Open</span>
+          <span class="tkt-empty-stat-lbl">${t.tkt_open}</span>
         </div>
         <div class="tkt-empty-stat-div"></div>
         <div class="tkt-empty-stat">
           <span class="tkt-empty-stat-num">${pending}</span>
-          <span class="tkt-empty-stat-lbl">Pending</span>
+          <span class="tkt-empty-stat-lbl">${t.tkt_pending}</span>
         </div>
         <div class="tkt-empty-stat-div"></div>
         <div class="tkt-empty-stat">
           <span class="tkt-empty-stat-num">${hold}</span>
-          <span class="tkt-empty-stat-lbl">On Hold</span>
+          <span class="tkt-empty-stat-lbl">${t.tkt_hold}</span>
         </div>
         <div class="tkt-empty-stat-div"></div>
         <div class="tkt-empty-stat">
           <span class="tkt-empty-stat-num">${resolved}</span>
-          <span class="tkt-empty-stat-lbl">Resolved</span>
+          <span class="tkt-empty-stat-lbl">${t.tkt_solved}</span>
         </div>
         <div class="tkt-empty-stat-div"></div>
         <div class="tkt-empty-stat">
           <span class="tkt-empty-stat-num">${closed}</span>
-          <span class="tkt-empty-stat-lbl">Closed</span>
+          <span class="tkt-empty-stat-lbl">${t.tkt_closed}</span>
         </div>
       </div>
     </div>`;
@@ -2456,10 +2866,10 @@ function filterTickets(btn, status) {
   renderTicketEmptyPanel();
 }
 
-const PRIORITY_LABELS = { urgent:'Urgent', high:'High', normal:'Normal', low:'Low' };
+const PRIORITY_LABELS = { urgent:'Urgent', high:'High', medium:'Medium', normal:'Medium', low:'Low' };
 const STATUS_DISPLAY  = { open:'Open', pending:'Pending', hold:'On Hold', solved:'Solved', closed:'Closed' };
-function getPriorityLabel(p) { const t = translations[currentLang]; return { urgent:t.tkt_priority_urgent, high:t.tkt_priority_high, normal:t.tkt_priority_normal, low:t.tkt_priority_low }[p] || PRIORITY_LABELS[p]; }
-function getStatusLabel(s)   { const t = translations[currentLang]; return { open:t.tkt_open, pending:t.tkt_pending, hold:t.tkt_hold, solved:t.tkt_solved, closed:t.tkt_closed }[s] || STATUS_DISPLAY[s]; }
+function getPriorityLabel(p) { const t = translations[currentLang]; return { urgent:t.tkt_priority_urgent, high:t.tkt_priority_high, medium:t.tkt_priority_medium, normal:t.tkt_priority_medium, low:t.tkt_priority_low }[p] || PRIORITY_LABELS[p]; }
+function getStatusLabel(s)   { const t = translations[currentLang]; return { open:t.tkt_open, pending:t.tkt_pending, hold:t.tkt_hold, solved:t.tkt_solved, closed:t.tkt_closed, archived:t.tkt_archived }[s] || STATUS_DISPLAY[s]; }
 
 function renderTicketList(filter) {
   updateTicketCounts();
@@ -2473,9 +2883,15 @@ function renderTicketList(filter) {
 
   listEl.innerHTML = list.map(t => {
     const agent = agents.find(a => a.id === t.agentId);
+    const tr = translations[currentLang];
     const agentHtml = agent
       ? `<div class="tkt-row-agent" style="background:${agent.color}" title="${agent.name}">${agent.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>`
-      : `<div class="tkt-row-agent" style="background:#94a3b8" title="Unassigned">?</div>`;
+      : `<div class="tkt-row-agent" style="background:#94a3b8" title="${tr.lbl_unassigned}">?</div>`;
+    const actionBtns = t._apiId && t.status !== 'archived' ? `
+      <div class="tkt-row-actions" style="display:flex;gap:4px;margin-top:6px">
+        <button class="btn-edit" style="flex:1;font-size:11px;padding:4px 8px" onclick="openAddTicketModal(${t._apiId});event.stopPropagation()">✏ ${tr.btn_edit}</button>
+        <button class="btn-edit" style="flex:1;font-size:11px;padding:4px 8px;background:#fef3c7;color:#92400e;border-color:#fde68a" onclick="archiveTicket(${t._apiId},event)">📦 ${tr.btn_archive}</button>
+      </div>` : '';
     return `
     <div class="tkt-row${selectedTicketId===t.id?' active':''}" onclick="selectTicket('${t.id}')">
       ${t.unread ? '<div class="tkt-unread-dot"></div>' : ''}
@@ -2489,8 +2905,217 @@ function renderTicketList(filter) {
         <span class="tkt-row-client">${escHtml(t.client.name)}</span>
         ${agentHtml}
       </div>
+      ${actionBtns}
     </div>`;
   }).join('');
+}
+
+// ────────────────────────────────────────────────────────
+//  TICKETS — API CRUD
+// ────────────────────────────────────────────────────────
+async function loadTicketsFromAPI() {
+  try {
+    const res  = await fetch(`${API_BASE}/tickets`);
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      const statusMap = { open:'open', in_progress:'pending', resolved:'solved', closed:'closed', archived:'archived' };
+      tickets = json.data.map(t => ({
+        _apiId:    t.id,
+        id:        `TK-${t.id}`,
+        subject:   t.subject,
+        client: {
+          name:     t.clientEmail.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c => c.toUpperCase()),
+          initials: t.clientEmail.slice(0, 2).toUpperCase(),
+          email:    t.clientEmail
+        },
+        status:    statusMap[t.status] || t.status,
+        priority:  t.priority,
+        agentId:   t.assignedTo,
+        channel:   'Support',
+        createdAt: new Date(t.createdAt).toLocaleString(),
+        updatedAt: new Date(t.createdAt).toLocaleString(),
+        unread:    false,
+        messages:  []
+      }));
+      // Merge any agents embedded in ticket responses into the local cache
+      // so the detail view shows correct names/colors without requiring
+      // the user to visit the Agents page first.
+      json.data.forEach((t, i) => {
+        if (t.agent) {
+          const existing = agents.find(a => a.id === t.agent.id);
+          if (!existing) {
+            agents.push({
+              id:       t.agent.id,
+              name:     t.agent.name,
+              email:    t.agent.email,
+              shift:    t.agent.shift,
+              status:   t.agent.status,
+              gender:   'male',
+              chats:    0,
+              maxChats: 5,
+              color:    COLORS[agents.length % COLORS.length]
+            });
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[loadTicketsFromAPI]', err);
+  }
+  renderTicketList(currentTicketFilter);
+  updateTicketCounts();
+}
+
+async function openAddTicketModal(apiId) {
+  editingTicketApiId = apiId || null;
+  const isNew = !apiId;
+  const tl = translations[currentLang];
+  document.getElementById('ticket-modal-title').textContent = isNew ? tl.modal_add_ticket_title : tl.modal_edit_ticket_title;
+  hideErr('tk-subject-err'); hideErr('tk-client-email-err');
+  const apiErrEl = document.getElementById('tk-api-err');
+  if (apiErrEl) apiErrEl.style.display = 'none';
+
+  // Open modal immediately so the user sees it right away
+  document.getElementById('ticket-modal-overlay').classList.remove('hidden');
+
+  const subjectEl = document.getElementById('tk-subject');
+  const emailEl   = document.getElementById('tk-client-email');
+  const sel       = document.getElementById('tk-agent');
+
+  let savedAgentId = null;
+
+  if (isNew) {
+    subjectEl.value = '';
+    emailEl.value   = '';
+    document.getElementById('tk-status').value   = 'open';
+    document.getElementById('tk-priority').value = 'medium';
+    subjectEl.disabled = false; emailEl.disabled = false;
+    subjectEl.style.opacity = ''; emailEl.style.opacity = '';
+  } else {
+    const ticket = tickets.find(tk => tk._apiId === apiId);
+    if (ticket) {
+      const statusRevMap = { open:'open', pending:'in_progress', hold:'in_progress', solved:'resolved', closed:'closed' };
+      subjectEl.value = ticket.subject;
+      emailEl.value   = ticket.client.email;
+      document.getElementById('tk-status').value   = statusRevMap[ticket.status] || 'open';
+      document.getElementById('tk-priority').value = ticket.priority;
+      savedAgentId = ticket.agentId || null;
+    }
+    subjectEl.disabled = true; emailEl.disabled = true;
+    subjectEl.style.opacity = '0.6'; emailEl.style.opacity = '0.6';
+  }
+
+  // Populate agent dropdown fresh from API
+  sel.innerHTML = `<option value="">${tl.lbl_unassigned_opt}</option>`;
+  try {
+    const res  = await fetch(`${API_BASE}/agents`);
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      sel.innerHTML = `<option value="">${tl.lbl_unassigned_opt}</option>` +
+        json.data
+          .filter(a => a.status !== 'offline')
+          .map(a => `<option value="${a.id}">${escHtml(a.name)} (${a.status})</option>`)
+          .join('') +
+        json.data
+          .filter(a => a.status === 'offline')
+          .map(a => `<option value="${a.id}" style="color:var(--text-muted)">${escHtml(a.name)} (offline)</option>`)
+          .join('');
+    }
+  } catch (err) {
+    // Fallback to cached agents array
+    sel.innerHTML = `<option value="">${tl.lbl_unassigned_opt}</option>` +
+      agents.map(a => `<option value="${a.id}">${escHtml(a.name)}</option>`).join('');
+  }
+  sel.value = savedAgentId !== null ? String(savedAgentId) : '';
+
+  if (isNew) subjectEl.focus();
+}
+
+function closeTicketModal() {
+  document.getElementById('ticket-modal-overlay').classList.add('hidden');
+}
+
+async function saveTicket() {
+  const subject     = document.getElementById('tk-subject').value.trim();
+  const clientEmail = document.getElementById('tk-client-email').value.trim();
+  const status      = document.getElementById('tk-status').value;
+  const priority    = document.getElementById('tk-priority').value;
+  const agentVal    = document.getElementById('tk-agent').value;
+  const assignedTo  = agentVal ? parseInt(agentVal, 10) : null;
+
+  const tl = translations[currentLang];
+  const isEditMode = editingTicketApiId !== null;
+  hideErr('tk-subject-err'); hideErr('tk-client-email-err');
+  if (!isEditMode) {
+    if (!subject)               { showErr('tk-subject-err',    tl.err_subject_required); return; }
+    if (!emailValid(clientEmail)) { showErr('tk-client-email-err', tl.err_agent_email);   return; }
+  }
+
+  const apiErrEl = document.getElementById('tk-api-err');
+  const saveBtn  = document.querySelector('#ticket-modal-overlay .btn-primary');
+  if (saveBtn) saveBtn.disabled = true;
+  try {
+    let res, json;
+    if (!isEditMode) {
+      res  = await fetch(`${API_BASE}/tickets`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subject, clientEmail, status, priority, assignedTo }) });
+    } else {
+      res  = await fetch(`${API_BASE}/tickets/${editingTicketApiId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status, priority, assignedTo }) });
+    }
+    json = await res.json();
+    if (!res.ok) {
+      if (apiErrEl) { apiErrEl.textContent = json.message || tl.err_tkt_save; apiErrEl.style.display = 'block'; }
+      return;
+    }
+    closeTicketModal();
+    await loadTicketsFromAPI();
+  } catch (err) {
+    if (apiErrEl) { apiErrEl.textContent = tl.err_server_connect; apiErrEl.style.display = 'block'; }
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+function archiveTicket(apiId, event) {
+  if (event) event.stopPropagation();
+  const tl = translations[currentLang];
+  showConfirm(tl.confirm_archive_title, tl.confirm_archive_sub, tl.btn_archive, async () => {
+    try {
+      const res  = await fetch(`${API_BASE}/tickets/${apiId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'archived' }) });
+      const json = await res.json();
+      if (!res.ok) { alert(json.message || tl.err_tkt_archive); return; }
+      selectedTicketId = null;
+      await loadTicketsFromAPI();
+      renderTicketEmptyPanel();
+    } catch (err) {
+      alert(tl.err_server_connect);
+    }
+  });
+}
+
+// ────────────────────────────────────────────────────────
+//  CONFIRM POPUP
+// ────────────────────────────────────────────────────────
+let _confirmCallback = null;
+
+function showConfirm(title, message, confirmLabel, onConfirm) {
+  const tl = translations[currentLang];
+  document.getElementById('confirm-title').textContent   = title;
+  document.getElementById('confirm-message').textContent = message;
+  document.getElementById('confirm-ok-btn').textContent  = confirmLabel;
+  document.getElementById('confirm-cancel-btn').textContent = tl.btn_cancel;
+  _confirmCallback = onConfirm;
+  document.getElementById('confirm-overlay').classList.remove('hidden');
+}
+
+function hideConfirm() {
+  _confirmCallback = null;
+  document.getElementById('confirm-overlay').classList.add('hidden');
+}
+
+function _runConfirm() {
+  const cb = _confirmCallback;
+  hideConfirm();
+  if (cb) cb();
 }
 
 // ────────────────────────────────────────────────────────
@@ -2510,7 +3135,7 @@ function selectTicket(id) {
   if (row) row.classList.add('active');
 
   const agent = agents.find(a => a.id === t.agentId);
-  const agentName = agent ? agent.name : 'Unassigned';
+  const agentName = agent ? agent.name : translations[currentLang].lbl_unassigned;
   const agentColor = agent ? agent.color : '#94a3b8';
   const agentInitials = agent ? agent.name.split(' ').map(w=>w[0]).join('').slice(0,2) : '?';
 
@@ -2917,7 +3542,8 @@ const translations = {
     // Platform Issues
     pi_export:'↓ Export Excel', pi_new_issue:'+ New Issue', pi_filter_all:'All',
     pi_todo:'To Do', pi_inprogress:'In Progress', pi_pending:'Pending',
-    pi_postponed:'Postponed', pi_resolved:'Resolved',
+    pi_postponed:'Postponed', pi_resolved:'Resolved', pi_archived:'Archived',
+    confirm_archive_issue_sub:'This issue will be moved to the Archived tab.',
     pi_active_issue:'active issue', pi_active_issues:'active issues',
     pi_resolved_word:'resolved',
     pi_clients_affected:'clients affected', pi_tickets_word:'tickets',
@@ -2962,7 +3588,7 @@ const translations = {
     rpt_trend_chats:'— Chats', rpt_trend_1st_resp:'— 1st Resp', rpt_trend_effic:'— Effic.', rpt_trend_duration:'— Duration',
     // Agent filters / statuses
     agent_filter_all:'All Agents', agent_filter_day:'☀ Day Shift', agent_filter_night:'🌙 Night Shift',
-    status_online:'Online', status_busy:'Busy', status_away:'Away', status_offline:'Offline',
+    status_online:'Online', status_busy:'Busy', status_away:'Away', status_offline:'Offline', status_archived:'Archived',
     // Profile
     profile_sub:'Manage your account information and preferences',
     profile_picture:'Profile Picture', profile_personal_info:'Personal Information',
@@ -2970,6 +3596,10 @@ const translations = {
     btn_save_info:'Save Info',
     profile_work_shift:'Work Shift', shift_day:'Day Shift', shift_night:'Night Shift',
     btn_save_shift:'Save Shift',
+    lbl_role:'Role', role_agent:'Agent', role_manager:'Manager', role_admin:'Admin',
+    btn_save_role:'Save Role',
+    btn_create_user:'Create User', modal_create_user_title:'Create User',
+    lbl_full_name:'Full Name', lbl_password:'Password',
     profile_security:'Password & Security',
     lbl_new_pass:'New Password', lbl_confirm_pass:'Confirm Password',
     btn_send_reset:'📧 Send Reset Link', btn_set_password:'Set Password',
@@ -2978,6 +3608,22 @@ const translations = {
     // Agent modal
     modal_add_agent_title:'Add New Agent', modal_edit_agent_title:'Edit Agent',
     btn_add_agent_modal:'Add Agent', btn_save_changes:'Save Changes',
+    // Ticket modal
+    modal_add_ticket_title:'Add Ticket', modal_edit_ticket_title:'Edit Ticket',
+    lbl_subject:'Subject', ph_tk_subject:'Brief description of the issue',
+    lbl_client_email:'Client Email',
+    lbl_assign_agent:'Assign To Agent',
+    lbl_unassigned:'Unassigned', lbl_unassigned_opt:'— Unassigned —',
+    btn_save_ticket:'Save Ticket', btn_delete:'Delete',
+    btn_archive:'Archive',
+    tkt_in_progress:'In Progress', tkt_resolved:'Resolved', tkt_archived:'Archived',
+    tkt_priority_medium:'Medium',
+    confirm_archive_title:'Archive Ticket',
+    confirm_archive_sub:'This ticket will be moved to the Archived tab.',
+    err_subject_required:'Subject is required.',
+    err_tkt_save:'Could not save ticket.',
+    err_tkt_archive:'Could not archive ticket.',
+    err_server_connect:'Could not connect to server. Please try again.',
     // Error messages
     err_email_invalid:'Please enter a valid email address (e.g. you@company.com).',
     err_password_invalid:'Password must be 6+ characters with a letter, number, and special character.',
@@ -3001,6 +3647,7 @@ const translations = {
     no_agents_match:'No agents match this filter.',
     // Add agent button in header
     btn_add_agent:'Add Agent',
+    btn_add_ticket:'+ Add',
     // Auth page
     auth_headline:'Command your support team with confidence',
     auth_desc:'Real-time supervision, agent analytics, and ticket management — unified in one powerful dashboard.',
@@ -3062,7 +3709,7 @@ const translations = {
     lbl_description:'Description',
     lbl_timeline:'Resolution Timeline',
     // New issue modal
-    modal_new_issue_title:'Report New Issue',
+    modal_new_issue_title:'Report New Issue', modal_edit_issue_title:'Edit Issue',
     modal_fields_required:'All fields marked * are required',
     lbl_ni_title:'Title *',
     lbl_ni_platform:'Platform *',
@@ -3121,7 +3768,9 @@ const translations = {
     // Dashboard — chart week label
     lbl_wk:'Wk',
     // Agent cards & management
-    btn_edit_agent:'Edit Agent', lbl_chat_load:'Chat load',
+    btn_edit_agent:'Edit Agent', btn_restore_agent:'Restore Agent',
+    confirm_archive_agent_sub:'This agent will be archived. All their tickets and issues remain intact.',
+    lbl_chat_load:'Chat load',
     lbl_agents_word:'agents', lbl_day_word:'day', lbl_night_word:'night',
     lbl_chats_word:'chats', lbl_per_day:'per day',
     // Ticket detail
@@ -3140,6 +3789,22 @@ const translations = {
     lbl_csat_per_day:'CSAT % per day', lbl_csat_per_week:'CSAT % per week',
     // Password hint
     pass_hint:'Min. 6 characters with at least one letter, one number, and one special character (e.g. <code>@&nbsp;&nbsp;#&nbsp;&nbsp;$&nbsp;&nbsp;!&nbsp;&nbsp;%</code>)',
+    // Users Management
+    label_male:'Male', label_female:'Female',
+    nav_users:'User Management', page_users:'User Management',
+    users_sub:'All registered users',
+    users_filter_all:'All',
+    status_approved:'Approved', status_pending:'Pending', status_rejected:'Rejected',
+    modal_edit_user_title:'Edit User',
+    pending_title:'Awaiting Approval',
+    pending_sub:'Your account is pending review by an admin.',
+    pending_detail:'Once approved, you will gain access to the dashboard. Please contact your team leader if you need urgent access.',
+    rejected_title:'Account Rejected',
+    rejected_sub:'Your account has been rejected by an admin.',
+    rejected_detail:'If you believe this is a mistake, please contact your team leader or admin for assistance.',
+    btn_logout:'Log Out',
+    pending_joined:'Joined',
+    btn_edit:'Edit',
   },
   ar: {
     nav_overview:'نظرة عامة', nav_operations:'العمليات',
@@ -3185,7 +3850,8 @@ const translations = {
     lc_waiting:'انتظار', lc_no_queue:'لا توجد محادثات في قائمة الانتظار.', lc_no_active:'لا توجد محادثات نشطة الآن.',
     pi_export:'↓ تصدير إلى Excel', pi_new_issue:'+ مشكلة جديدة', pi_filter_all:'الكل',
     pi_todo:'قيد التنفيذ', pi_inprogress:'قيد المعالجة', pi_pending:'معلق',
-    pi_postponed:'مؤجل', pi_resolved:'تم الحل',
+    pi_postponed:'مؤجل', pi_resolved:'تم الحل', pi_archived:'مؤرشف',
+    confirm_archive_issue_sub:'سيتم نقل هذه المشكلة إلى تبويب الأرشيف.',
     pi_active_issue:'مشكلة نشطة', pi_active_issues:'مشكلات نشطة',
     pi_resolved_word:'محلولة',
     pi_clients_affected:'عميل متأثر', pi_tickets_word:'تذاكر',
@@ -3227,19 +3893,39 @@ const translations = {
     rpt_promoters:'↑ المروجون', rpt_passives:'المحايدون',
     rpt_trend_chats:'— محادثات', rpt_trend_1st_resp:'— الرد الأول', rpt_trend_effic:'— الكفاءة', rpt_trend_duration:'— المدة',
     agent_filter_all:'جميع الوكلاء', agent_filter_day:'☀ وردية النهار', agent_filter_night:'🌙 وردية الليل',
-    status_online:'متصل', status_busy:'مشغول', status_away:'بعيد', status_offline:'غير متصل',
+    status_online:'متصل', status_busy:'مشغول', status_away:'بعيد', status_offline:'غير متصل', status_archived:'مؤرشف',
     profile_sub:'إدارة معلومات حسابك وتفضيلاتك',
     profile_picture:'صورة الملف الشخصي', profile_personal_info:'المعلومات الشخصية',
     lbl_display_name:'اسم العرض', lbl_email_addr:'عنوان البريد الإلكتروني',
     btn_save_info:'حفظ المعلومات',
     profile_work_shift:'وردية العمل', shift_day:'وردية النهار', shift_night:'وردية الليل',
     btn_save_shift:'حفظ الوردية',
+    lbl_role:'الدور', role_agent:'وكيل', role_manager:'مدير', role_admin:'مشرف',
+    btn_save_role:'حفظ الدور',
+    btn_create_user:'إنشاء مستخدم', modal_create_user_title:'إنشاء مستخدم',
+    lbl_full_name:'الاسم الكامل', lbl_password:'كلمة المرور',
     profile_security:'كلمة المرور والأمان',
     lbl_new_pass:'كلمة المرور الجديدة', lbl_confirm_pass:'تأكيد كلمة المرور',
     btn_send_reset:'📧 إرسال رابط إعادة التعيين', btn_set_password:'تعيين كلمة المرور',
     btn_back:'رجوع',
     modal_add_agent_title:'إضافة وكيل جديد', modal_edit_agent_title:'تعديل الوكيل',
     btn_add_agent_modal:'إضافة وكيل', btn_save_changes:'حفظ التغييرات',
+    // Ticket modal
+    modal_add_ticket_title:'إضافة تذكرة', modal_edit_ticket_title:'تعديل التذكرة',
+    lbl_subject:'الموضوع', ph_tk_subject:'وصف موجز للمشكلة',
+    lbl_client_email:'البريد الإلكتروني للعميل',
+    lbl_assign_agent:'تعيين إلى وكيل',
+    lbl_unassigned:'غير معيّن', lbl_unassigned_opt:'— غير معيّن —',
+    btn_save_ticket:'حفظ التذكرة', btn_delete:'حذف',
+    btn_archive:'أرشفة',
+    tkt_in_progress:'قيد التنفيذ', tkt_resolved:'تم الحل', tkt_archived:'مؤرشف',
+    tkt_priority_medium:'متوسط',
+    confirm_archive_title:'أرشفة التذكرة',
+    confirm_archive_sub:'سيتم نقل هذه التذكرة إلى تبويب الأرشيف.',
+    err_subject_required:'الموضوع مطلوب.',
+    err_tkt_save:'تعذر حفظ التذكرة.',
+    err_tkt_archive:'تعذر أرشفة التذكرة.',
+    err_server_connect:'تعذر الاتصال بالخادم. يُرجى المحاولة مرة أخرى.',
     err_email_invalid:'يرجى إدخال عنوان بريد إلكتروني صالح.',
     err_password_invalid:'يجب أن تتكون كلمة المرور من 6 أحرف أو أكثر مع حرف ورقم ورمز خاص.',
     err_name_required:'يرجى إدخال اسمك الكامل.',
@@ -3259,6 +3945,7 @@ const translations = {
     msg_reset_sent_prefix:'📧 تم إرسال رابط إعادة التعيين إلى',
     no_agents_match:'لا يوجد وكلاء يطابقون هذا الفلتر.',
     btn_add_agent:'إضافة وكيل',
+    btn_add_ticket:'+ إضافة',
     // Auth page
     auth_headline:'أدِر فريق الدعم بثقة واقتدار',
     auth_desc:'إشراف فوري وتحليلات الوكلاء وإدارة التذاكر — كل ذلك في لوحة تحكم واحدة قوية.',
@@ -3320,7 +4007,7 @@ const translations = {
     lbl_description:'الوصف',
     lbl_timeline:'جدول الحل الزمني',
     // New issue modal
-    modal_new_issue_title:'الإبلاغ عن مشكلة جديدة',
+    modal_new_issue_title:'الإبلاغ عن مشكلة جديدة', modal_edit_issue_title:'تعديل المشكلة',
     modal_fields_required:'جميع الحقول المميزة بـ * إلزامية',
     lbl_ni_title:'العنوان *',
     lbl_ni_platform:'المنصة *',
@@ -3378,7 +4065,9 @@ const translations = {
     day_wed:'أرب', day_thu:'خمس', day_fri:'جمع', day_sat:'سبت',
     // Dashboard — chart week label
     lbl_wk:'أسب',
-    btn_edit_agent:'تعديل الوكيل', lbl_chat_load:'حمل المحادثات',
+    btn_edit_agent:'تعديل الوكيل', btn_restore_agent:'استعادة الوكيل',
+    confirm_archive_agent_sub:'سيتم أرشفة هذا الوكيل. تبقى جميع تذاكره ومشكلاته سليمة.',
+    lbl_chat_load:'حمل المحادثات',
     lbl_agents_word:'وكيل', lbl_day_word:'نهار', lbl_night_word:'ليل',
     lbl_chats_word:'محادثات', lbl_per_day:'يومياً',
     lbl_client:'العميل', lbl_agent_label:'الوكيل',
@@ -3394,6 +4083,22 @@ const translations = {
     tkt_no_tickets:'لا توجد تذاكر.',
     lbl_csat_per_day:'CSAT % يومياً', lbl_csat_per_week:'CSAT % أسبوعياً',
     pass_hint:'الحد الأدنى 6 أحرف مع حرف واحد ورقم واحد ورمز خاص (مثل <code>@&nbsp;&nbsp;#&nbsp;&nbsp;$&nbsp;&nbsp;!&nbsp;&nbsp;%</code>)',
+    // Users Management
+    label_male:'ذكر', label_female:'أنثى',
+    nav_users:'إدارة المستخدمين', page_users:'إدارة المستخدمين',
+    users_sub:'جميع المستخدمين المسجلين',
+    users_filter_all:'الكل',
+    status_approved:'مقبول', status_pending:'قيد الانتظار', status_rejected:'مرفوض',
+    modal_edit_user_title:'تعديل المستخدم',
+    pending_title:'في انتظار الموافقة',
+    pending_sub:'حسابك قيد المراجعة من قِبل المسؤول.',
+    pending_detail:'بعد الموافقة، ستتمكن من الوصول إلى لوحة التحكم. تواصل مع قائد فريقك إذا كنت بحاجة إلى وصول عاجل.',
+    rejected_title:'تم رفض الحساب',
+    rejected_sub:'تم رفض حسابك من قِبل المسؤول.',
+    rejected_detail:'إذا كنت تعتقد أن هذا خطأ، يُرجى التواصل مع قائد الفريق أو المسؤول للمساعدة.',
+    btn_logout:'تسجيل الخروج',
+    pending_joined:'تاريخ الانضمام',
+    btn_edit:'تعديل',
   },
   fa: {
     nav_overview:'نمای کلی', nav_operations:'عملیات',
@@ -3439,7 +4144,8 @@ const translations = {
     lc_waiting:'در انتظار', lc_no_queue:'هیچ چتی در صف انتظار نیست.', lc_no_active:'هیچ چت فعالی در حال حاضر وجود ندارد.',
     pi_export:'↓ خروجی Excel', pi_new_issue:'+ مشکله جدید', pi_filter_all:'همه',
     pi_todo:'انجام دادنی', pi_inprogress:'در حال انجام', pi_pending:'معلق',
-    pi_postponed:'به تعویق افتاده', pi_resolved:'حل‌شده',
+    pi_postponed:'به تعویق افتاده', pi_resolved:'حل‌شده', pi_archived:'بایگانی‌شده',
+    confirm_archive_issue_sub:'این مشکل به تب بایگانی منتقل خواهد شد.',
     pi_active_issue:'مشکل فعال', pi_active_issues:'مشکل فعال',
     pi_resolved_word:'حل‌شده',
     pi_clients_affected:'کلاینت تحت تأثیر', pi_tickets_word:'تیکت',
@@ -3481,19 +4187,39 @@ const translations = {
     rpt_promoters:'↑ مروجان', rpt_passives:'خنثی',
     rpt_trend_chats:'— چت‌ها', rpt_trend_1st_resp:'— پاسخ اول', rpt_trend_effic:'— کارایی', rpt_trend_duration:'— مدت',
     agent_filter_all:'همه عوامل', agent_filter_day:'☀ شیفت روز', agent_filter_night:'🌙 شیفت شب',
-    status_online:'آنلاین', status_busy:'مشغول', status_away:'دور', status_offline:'آفلاین',
+    status_online:'آنلاین', status_busy:'مشغول', status_away:'دور', status_offline:'آفلاین', status_archived:'بایگانی‌شده',
     profile_sub:'مدیریت اطلاعات حساب و ترجیحات',
     profile_picture:'عکس پروفایل', profile_personal_info:'اطلاعات شخصی',
     lbl_display_name:'نام نمایشی', lbl_email_addr:'آدرس ایمیل',
     btn_save_info:'ذخیره اطلاعات',
     profile_work_shift:'شیفت کاری', shift_day:'شیفت روز', shift_night:'شیفت شب',
     btn_save_shift:'ذخیره شیفت',
+    lbl_role:'نقش', role_agent:'عامل', role_manager:'مدیر', role_admin:'مدیر ارشد',
+    btn_save_role:'ذخیره نقش',
+    btn_create_user:'ایجاد کاربر', modal_create_user_title:'ایجاد کاربر',
+    lbl_full_name:'نام کامل', lbl_password:'رمز عبور',
     profile_security:'رمز عبور و امنیت',
     lbl_new_pass:'رمز عبور جدید', lbl_confirm_pass:'تأیید رمز عبور',
     btn_send_reset:'📧 ارسال لینک بازنشانی', btn_set_password:'تنظیم رمز عبور',
     btn_back:'بازگشت',
     modal_add_agent_title:'افزودن عامل جدید', modal_edit_agent_title:'ویرایش عامل',
     btn_add_agent_modal:'افزودن عامل', btn_save_changes:'ذخیره تغییرات',
+    // Ticket modal
+    modal_add_ticket_title:'افزودن تیکت', modal_edit_ticket_title:'ویرایش تیکت',
+    lbl_subject:'موضوع', ph_tk_subject:'توضیح مختصری از مشکل',
+    lbl_client_email:'ایمیل کلاینت',
+    lbl_assign_agent:'تخصیص به عامل',
+    lbl_unassigned:'بدون تخصیص', lbl_unassigned_opt:'— بدون تخصیص —',
+    btn_save_ticket:'ذخیره تیکت', btn_delete:'حذف',
+    btn_archive:'بایگانی',
+    tkt_in_progress:'در حال انجام', tkt_resolved:'حل‌شده', tkt_archived:'بایگانی‌شده',
+    tkt_priority_medium:'متوسط',
+    confirm_archive_title:'بایگانی تیکت',
+    confirm_archive_sub:'این تیکت به تب بایگانی منتقل می‌شود.',
+    err_subject_required:'موضوع الزامی است.',
+    err_tkt_save:'ذخیره تیکت امکان‌پذیر نشد.',
+    err_tkt_archive:'بایگانی تیکت امکان‌پذیر نشد.',
+    err_server_connect:'اتصال به سرور امکان‌پذیر نشد. لطفاً دوباره امتحان کنید.',
     err_email_invalid:'لطفاً یک آدرس ایمیل معتبر وارد کنید.',
     err_password_invalid:'رمز عبور باید حداقل ۶ کاراکتر با یک حرف، عدد و کاراکتر خاص باشد.',
     err_name_required:'لطفاً نام کامل خود را وارد کنید.',
@@ -3513,6 +4239,7 @@ const translations = {
     msg_reset_sent_prefix:'📧 لینک بازنشانی به',
     no_agents_match:'هیچ عاملی با این فیلتر مطابقت ندارد.',
     btn_add_agent:'افزودن عامل',
+    btn_add_ticket:'+ افزودن',
     // Auth page
     auth_headline:'تیم پشتیبانی خود را با اطمینان مدیریت کنید',
     auth_desc:'نظارت لحظه‌ای، تحلیل عوامل، و مدیریت تیکت — همه در یک داشبورد قدرتمند.',
@@ -3574,7 +4301,7 @@ const translations = {
     lbl_description:'توضیحات',
     lbl_timeline:'جدول زمانی حل',
     // New issue modal
-    modal_new_issue_title:'گزارش مشکل جدید',
+    modal_new_issue_title:'گزارش مشکل جدید', modal_edit_issue_title:'ویرایش مشکل',
     modal_fields_required:'تمام فیلدهای علامت‌گذاری شده با * الزامی هستند',
     lbl_ni_title:'عنوان *',
     lbl_ni_platform:'پلتفرم *',
@@ -3632,7 +4359,9 @@ const translations = {
     day_wed:'چهار', day_thu:'پنج', day_fri:'جمع', day_sat:'شنب',
     // Dashboard — chart week label
     lbl_wk:'هف',
-    btn_edit_agent:'ویرایش عامل', lbl_chat_load:'بار چت',
+    btn_edit_agent:'ویرایش عامل', btn_restore_agent:'بازگرداندن عامل',
+    confirm_archive_agent_sub:'این عامل بایگانی خواهد شد. تمام تیکت‌ها و مشکلات آن‌ها دست‌نخورده باقی می‌مانند.',
+    lbl_chat_load:'بار چت',
     lbl_agents_word:'عامل', lbl_day_word:'روز', lbl_night_word:'شب',
     lbl_chats_word:'چت', lbl_per_day:'در روز',
     lbl_client:'کلاینت', lbl_agent_label:'عامل',
@@ -3648,6 +4377,22 @@ const translations = {
     tkt_no_tickets:'تیکتی یافت نشد.',
     lbl_csat_per_day:'CSAT % در روز', lbl_csat_per_week:'CSAT % در هفته',
     pass_hint:'حداقل ۶ کاراکتر با یک حرف، یک عدد، و یک کاراکتر خاص (مثل <code>@&nbsp;&nbsp;#&nbsp;&nbsp;$&nbsp;&nbsp;!&nbsp;&nbsp;%</code>)',
+    // Users Management
+    label_male:'مرد', label_female:'زن',
+    nav_users:'مدیریت کاربران', page_users:'مدیریت کاربران',
+    users_sub:'همه کاربران ثبت‌نام‌شده',
+    users_filter_all:'همه',
+    status_approved:'تأیید شده', status_pending:'در انتظار', status_rejected:'رد شده',
+    modal_edit_user_title:'ویرایش کاربر',
+    pending_title:'در انتظار تأیید',
+    pending_sub:'حساب شما در انتظار بررسی توسط مدیر است.',
+    pending_detail:'پس از تأیید، به داشبورد دسترسی خواهید داشت. اگر نیاز به دسترسی فوری دارید با سرپرست تیم تماس بگیرید.',
+    rejected_title:'حساب رد شد',
+    rejected_sub:'حساب شما توسط مدیر رد شده است.',
+    rejected_detail:'اگر فکر می‌کنید این اشتباه است، برای راهنمایی با سرپرست تیم یا مدیر تماس بگیرید.',
+    btn_logout:'خروج از سیستم',
+    pending_joined:'تاریخ عضویت',
+    btn_edit:'ویرایش',
   }
 };
 
@@ -3753,8 +4498,10 @@ function applyLanguage(lang, btn) {
   if (!document.getElementById('page-tickets')?.classList.contains('hidden')) {
     renderTicketList();
     if (selectedTicketId) renderTicketDetail(selectedTicketId);
+    else renderTicketEmptyPanel();
   }
   if (!document.getElementById('page-notifications')?.classList.contains('hidden')) renderNotifPage();
+  if (!document.getElementById('page-users')?.classList.contains('hidden')) renderUsersTable(_usersCache, _usersFilter);
   if (!document.getElementById('page-reports')?.classList.contains('hidden')) {
     if (rptActiveSub === 'total-chats') { renderTotalChats(); renderYearlyCharts(tcYearView === 'compare' ? '2026' : tcYearView); }
     if (rptActiveSub === 'satisfaction') renderSatisfaction();
@@ -3792,6 +4539,39 @@ function initProfile() {
 
   renderProfilePreview();
   syncAvatarSelection();
+
+  // Role card — admins get editable toggle; others get read-only display
+  const role    = currentUser.role || 'agent';
+  const isAdmin = role === 'admin';
+
+  const roleToggle   = document.getElementById('profile-role-toggle');
+  const roleReadonly = document.getElementById('profile-role-readonly');
+  const roleSaveArea = document.getElementById('profile-role-save-area');
+
+  if (roleReadonly) roleReadonly.style.display = 'none';
+  if (roleSaveArea) roleSaveArea.style.display = isAdmin ? 'flex' : 'none';
+
+  // Always show the toggle, but disable buttons for non-admins
+  if (roleToggle) {
+    roleToggle.style.display = '';
+    roleToggle.querySelectorAll('.gender-btn').forEach(btn => {
+      btn.disabled = !isAdmin;
+      btn.style.cursor = isAdmin ? '' : 'not-allowed';
+      // Non-admins: dim inactive buttons, keep active one fully visible in blue
+      if (!isAdmin) {
+        const isActive = btn.dataset.role === role;
+        btn.style.opacity = isActive ? '1' : '0.45';
+      } else {
+        btn.style.opacity = '';
+      }
+    });
+  }
+
+  // Pre-select active role button
+  ['agent', 'manager', 'admin'].forEach(r => {
+    const btn = document.getElementById('profile-role-' + r);
+    if (btn) btn.classList.toggle('active', role === r);
+  });
 }
 
 function avatarOptionHTML(gender, color, idx) {
@@ -3819,21 +4599,34 @@ function renderProfilePreview() {
   emailEl.textContent = currentUser.email || '—';
 }
 
+async function _saveAvatarToAPI(avatarData) {
+  if (!currentUser.email) return;
+  try {
+    await fetch(`${API_BASE}/users/avatar`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: currentUser.email, avatarData: avatarData ?? null })
+    });
+  } catch (err) {
+    console.error('[saveAvatarToAPI]', err);
+  }
+}
+
 function handleAvatarUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
     currentUser.avatarCustom = e.target.result;
-    currentUser.avatarIdx    = null; // clear preset selection
+    currentUser.avatarIdx    = null;
     syncAvatarSelection();
     renderProfilePreview();
     updateHeaderAvatarImage();
     saveSession();
+    _saveAvatarToAPI(e.target.result);
     document.getElementById('profile-avatar-picker').style.display = 'none';
   };
   reader.readAsDataURL(file);
-  // reset so same file can be re-selected
   event.target.value = '';
 }
 
@@ -3860,6 +4653,7 @@ function selectAvatar(idx, gender, color) {
   renderProfilePreview();
   updateHeaderAvatarSVG();
   saveSession();
+  _saveAvatarToAPI(`svg:${idx}`);
   document.getElementById('profile-avatar-picker').style.display = 'none';
 }
 
@@ -3869,6 +4663,7 @@ function removeAvatar() {
   syncAvatarSelection();
   renderProfilePreview();
   saveSession();
+  _saveAvatarToAPI(null);
   const initials = (currentUser.name || 'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   ['header-avatar','sidebar-avatar'].forEach(id => {
     const el = document.getElementById(id);
@@ -3938,14 +4733,173 @@ function saveProfileInfo() {
   else if (currentUser.avatarIdx != null) updateHeaderAvatarSVG();
   saveSession();
 
-  profileSaveFeedback(document.querySelector('#page-profile .profile-card:nth-child(1) .profile-save-btn'), 'Saved');
+  profileSaveFeedback(document.getElementById('profile-info-save-btn'), 'Saved');
 }
 
 function saveProfileShift() {
   const val = document.querySelector('input[name="profile-shift"]:checked')?.value || 'day';
   currentUser.shift = val;
   saveSession();
-  profileSaveFeedback(document.querySelector('#page-profile .profile-card:nth-child(2) .profile-save-btn'), 'Saved');
+  profileSaveFeedback(document.getElementById('profile-shift-save-btn'), 'Saved');
+}
+
+function selectProfileRole(btn) {
+  document.querySelectorAll('#page-profile [data-role]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function saveProfileRole() {
+  const role = document.querySelector('#page-profile [data-role].active')?.dataset.role;
+  if (!role) return;
+  const saveBtn = document.getElementById('profile-role-save-btn');
+  if (saveBtn) saveBtn.disabled = true;
+  try {
+    const res  = await fetch(`${API_BASE}/users/role`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: currentUser.email, role, requesterEmail: currentUser.email })
+    });
+    const json = await res.json();
+    if (!res.ok) { alert(json.message || 'Could not save role.'); return; }
+    currentUser.role = role;
+    saveSession();
+    profileSaveFeedback(saveBtn, 'Role updated — logging out…');
+    setTimeout(() => handleLogout(), 1500);
+  } catch (err) {
+    alert('Could not connect to server. Please try again.');
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+// ────────────────────────────────────────────────────────
+//  USERS MANAGEMENT PAGE
+// ────────────────────────────────────────────────────────
+let _usersCache = [];
+let _usersFilter = 'all';
+
+async function loadUsersFromAPI() {
+  const tbody = document.getElementById('users-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</td></tr>';
+  try {
+    const res  = await fetch(`${API_BASE}/users/all?requesterEmail=${encodeURIComponent(currentUser.email)}`);
+    const json = await res.json();
+    if (!res.ok) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">${json.message || 'Failed to load users.'}</td></tr>`; return; }
+    _usersCache = json.data || [];
+    _updateUsersTabCounts();
+    renderUsersTable(_usersCache, _usersFilter);
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Could not connect to server.</td></tr>';
+  }
+}
+
+function _updateUsersTabCounts() {
+  const counts = { all: _usersCache.length, approved: 0, pending: 0, rejected: 0 };
+  _usersCache.forEach(u => { if (counts[u.status] !== undefined) counts[u.status]++; });
+  ['all','approved','pending','rejected'].forEach(k => {
+    const el = document.getElementById(`ucount-${k}`);
+    if (el) el.textContent = counts[k];
+  });
+}
+
+function renderUsersTable(users, filter) {
+  _usersFilter = filter;
+  const tbody = document.getElementById('users-table-body');
+  if (!tbody) return;
+  const t = translations[currentLang];
+  const filtered = filter === 'all' ? users : users.filter(u => u.status === filter);
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">${t.no_agents_match || 'No users found.'}</td></tr>`;
+    return;
+  }
+  const roleMap   = { agent: t.role_agent, manager: t.role_manager, admin: t.role_admin };
+  const statusMap = { approved: t.status_approved, pending: t.status_pending, rejected: t.status_rejected };
+  tbody.innerHTML = filtered.map(u => {
+    const initials  = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    const joined    = new Date(u.createdAt).toLocaleDateString(_getLangLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
+    const roleLabel = roleMap[u.role]   || u.role;
+    const statLabel = statusMap[u.status] || u.status;
+    return `<tr>
+      <td>
+        <div class="user-cell">
+          <div class="user-mini-avatar">${initials}</div>
+          <span>${_esc(u.name)}</span>
+        </div>
+      </td>
+      <td>${_esc(u.email)}</td>
+      <td>${_esc(roleLabel)}</td>
+      <td><span class="user-status-badge ${u.status}">${_esc(statLabel)}</span></td>
+      <td>${joined}</td>
+      <td><button class="btn-ghost" style="padding:5px 14px;font-size:12px" onclick="openUserEditModal(${u.id})">${_esc(t.btn_edit || 'Edit')}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterUsers(btn, filter) {
+  document.querySelectorAll('#page-users .filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUsersTable(_usersCache, filter);
+}
+
+function openUserEditModal(userId) {
+  const user = _usersCache.find(u => u.id === userId);
+  if (!user) return;
+  document.getElementById('ue-id').value    = user.id;
+  document.getElementById('ue-name').value  = user.name;
+  document.getElementById('ue-email').value = user.email;
+  document.getElementById('ue-role').value   = user.role;
+  document.getElementById('ue-status').value = user.status;
+  const apiErr = document.getElementById('ue-api-err');
+  if (apiErr) apiErr.style.display = 'none';
+  document.getElementById('user-edit-overlay').classList.remove('hidden');
+}
+
+function closeUserEditModal() {
+  document.getElementById('user-edit-overlay').classList.add('hidden');
+}
+
+async function saveUserEdit() {
+  const id     = document.getElementById('ue-id').value;
+  const name   = document.getElementById('ue-name').value.trim();
+  const email  = document.getElementById('ue-email').value.trim();
+  const role   = document.getElementById('ue-role').value;
+  const status = document.getElementById('ue-status').value;
+  const apiErr = document.getElementById('ue-api-err');
+  if (apiErr) apiErr.style.display = 'none';
+
+  hideErr('ue-name-err'); hideErr('ue-email-err');
+  if (!name)              { showErr('ue-name-err',  'Name is required.'); return; }
+  if (!emailValid(email)) { showErr('ue-email-err', 'Valid email is required.'); return; }
+
+  const btn = document.getElementById('ue-save-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const res  = await fetch(`${API_BASE}/users/edit`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id, name, email, role, status, requesterEmail: currentUser.email }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      if (apiErr) { apiErr.textContent = json.message || 'Could not update user.'; apiErr.style.display = ''; }
+      return;
+    }
+    // Update cache
+    const idx = _usersCache.findIndex(u => u.id === Number(id));
+    if (idx !== -1) Object.assign(_usersCache[idx], { name, email, role, status });
+    closeUserEditModal();
+    _updateUsersTabCounts();
+    renderUsersTable(_usersCache, _usersFilter);
+  } catch (err) {
+    if (apiErr) { apiErr.textContent = 'Could not connect to server. Please try again.'; apiErr.style.display = ''; }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function _esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function emailValid(v) {
@@ -4682,12 +5636,19 @@ IDLE_EVENTS.forEach(evt =>
   }
 
   currentUser = {
+    id:           saved.id           ?? null,
     name:         saved.name,
     email:        saved.email,
+    role:         saved.role         || 'agent',
+    status:       saved.status       || 'pending',
     avatarCustom: saved.avatarCustom || null,
     avatarIdx:    saved.avatarIdx    ?? null,
     shift:        saved.shift        || 'day'
   };
+
+  if (saved.status === 'pending')  { _showPendingScreen(saved.name, saved.email);  return; }
+  if (saved.status === 'rejected') { _showRejectedScreen(saved.name, saved.email); return; }
+
   _applyUserToDOM();
 
   // If lastActivity is known, override timers with the actual remaining window

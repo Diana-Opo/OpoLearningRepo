@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 
@@ -282,6 +282,46 @@
       </div>
     </div>
 
+    <!-- ── PENDING APPROVAL ── -->
+    <div id="pending-screen" class="auth-card hidden">
+      <div class="auth-card-header" style="text-align:center">
+        <div class="pending-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h1 class="auth-heading" data-i18n="pending_title">Awaiting Approval</h1>
+        <p class="auth-sub" data-i18n="pending_sub">Your account is pending review by an admin.</p>
+      </div>
+      <div class="pending-info-box">
+        <div id="pending-user-name" style="font-weight:600;font-size:15px;margin-bottom:3px"></div>
+        <div id="pending-user-email" style="font-size:13px;color:var(--text-muted)"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);text-align:center;line-height:1.7;margin:0 0 20px" data-i18n="pending_detail">Once approved, you will gain access to the dashboard. Please contact your team leader if you need urgent access.</p>
+      <button class="auth-btn" style="background:#ef4444;border-color:#ef4444" onclick="handleLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span data-i18n="btn_logout">Log Out</span>
+      </button>
+    </div>
+
+    <!-- ── REJECTED ── -->
+    <div id="rejected-screen" class="auth-card hidden">
+      <div class="auth-card-header" style="text-align:center">
+        <div class="rejected-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <h1 class="auth-heading rejected-heading" data-i18n="rejected_title">Account Rejected</h1>
+        <p class="auth-sub" data-i18n="rejected_sub">Your account has been rejected by an admin.</p>
+      </div>
+      <div class="rejected-info-box">
+        <div id="rejected-user-name" style="font-weight:600;font-size:15px;margin-bottom:3px"></div>
+        <div id="rejected-user-email" style="font-size:13px;color:var(--text-muted)"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);text-align:center;line-height:1.7;margin:0 0 20px" data-i18n="rejected_detail">If you believe this is a mistake, please contact your team leader or admin for assistance.</p>
+      <button class="auth-btn" style="background:#ef4444;border-color:#ef4444" onclick="handleLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span data-i18n="btn_logout">Log Out</span>
+      </button>
+    </div>
+
   </div><!-- /auth-form-panel -->
 
 </div><!-- /auth-wrap -->
@@ -363,6 +403,16 @@
         <line x1="6"  y1="20" x2="6"  y2="14"/>
       </svg>
       <span data-i18n="nav_reports">Reports</span>
+    </a>
+
+    <a class="nav-item admin-only" data-page="users" style="display:none" onclick="navClick(this);return false;" href="#">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <span data-i18n="nav_users">User Management</span>
     </a>
 
     <div class="sidebar-divider"></div>
@@ -548,7 +598,7 @@
             </div>
             <div id="notif-dd-list"></div>
             <div class="notif-dd-footer">
-              <a href="#" onclick="showNotifPage(); return false;"><span data-i18n="notif_view_all">View All Notifications</span> →</a>
+              <a href="#" onclick="showNotifPage(); return false;"><span data-i18n="notif_view_all">View All Notifications</span></a>
             </div>
           </div>
         </div>
@@ -957,6 +1007,7 @@
           <button class="filter-tab" onclick="filterIssues(this,'pending')">⏸ <span data-i18n="pi_pending">Pending</span> <span class="tab-count" id="pi-count-pending">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'postponed')">📅 <span data-i18n="pi_postponed">Postponed</span> <span class="tab-count" id="pi-count-postponed">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'resolved')">✅ <span data-i18n="pi_resolved">Resolved</span> <span class="tab-count" id="pi-count-resolved">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'archived')">📦 <span data-i18n="pi_archived">Archived</span> <span class="tab-count" id="pi-count-archived">0</span></button>
         </div>
 
         <!-- Issues grid (populated by JS) -->
@@ -976,6 +1027,7 @@
             <div class="tkt-panel-header">
               <div class="tkt-panel-title" data-i18n="tkt_all_tickets">All Tickets</div>
               <span class="tkt-total-badge" id="tkt-total-badge">13</span>
+              <button class="btn-primary" style="width:auto;padding:7px 16px;font-size:13px;margin-top:0;margin-inline-start:auto" onclick="openAddTicketModal(null)" data-i18n="btn_add_ticket">+ Add</button>
             </div>
 
             <!-- Status tabs -->
@@ -985,6 +1037,7 @@
               <button class="tkt-tab" onclick="filterTickets(this,'hold')"><span data-i18n="tkt_hold">On Hold</span> <span class="tkt-tab-count" id="tkt-count-hold">2</span></button>
               <button class="tkt-tab" onclick="filterTickets(this,'solved')"><span data-i18n="tkt_solved">Solved</span> <span class="tkt-tab-count" id="tkt-count-solved">2</span></button>
               <button class="tkt-tab" onclick="filterTickets(this,'closed')"><span data-i18n="tkt_closed">Closed</span> <span class="tkt-tab-count" id="tkt-count-closed">1</span></button>
+              <button class="tkt-tab" onclick="filterTickets(this,'archived')"><span data-i18n="tkt_archived">Archived</span> <span class="tkt-tab-count" id="tkt-count-archived">0</span></button>
             </div>
 
             <!-- Ticket rows (populated by JS) -->
@@ -1236,10 +1289,12 @@
             <div class="section-title" data-i18n="page_agents">Agent Management</div>
             <div class="section-sub" id="agents-sub">12 agents across day and night shifts</div>
           </div>
-          <button class="btn-add" onclick="openEditModal(null)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span data-i18n="btn_add_agent">Add Agent</span>
-          </button>
+          <div style="display:flex;gap:8px">
+            <button class="btn-add" onclick="openEditModal(null)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span data-i18n="btn_add_agent">Add Agent</span>
+            </button>
+          </div>
         </div>
 
         <!-- Filter tabs -->
@@ -1251,12 +1306,54 @@
           <button class="filter-tab" onclick="filterAgents(this,'busy')">● <span data-i18n="status_busy">Busy</span> <span class="tab-count" id="count-busy">2</span></button>
           <button class="filter-tab" onclick="filterAgents(this,'away')">● <span data-i18n="status_away">Away</span> <span class="tab-count" id="count-away">2</span></button>
           <button class="filter-tab" onclick="filterAgents(this,'offline')">○ <span data-i18n="status_offline">Offline</span> <span class="tab-count" id="count-offline">2</span></button>
+          <button class="filter-tab" onclick="filterAgents(this,'archived')">📦 <span data-i18n="status_archived">Archived</span> <span class="tab-count" id="count-archived">0</span></button>
         </div>
 
         <!-- Cards grid (populated by JS) -->
         <div id="agent-grid" class="agent-grid"></div>
 
       </div><!-- /page-agents -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: USER MANAGEMENT (admin only)
+      ══════════════════════════════════════════ -->
+      <div id="page-users" class="page-section hidden">
+
+        <div class="section-header">
+          <div>
+            <div class="section-title" data-i18n="nav_users">User Management</div>
+            <div class="section-sub" id="users-sub" data-i18n="users_sub">All registered users</div>
+          </div>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="filter-bar">
+          <button class="filter-tab active" onclick="filterUsers(this,'all')" data-i18n="users_filter_all">All <span class="tab-count" id="ucount-all">0</span></button>
+          <button class="filter-tab" onclick="filterUsers(this,'approved')">✓ <span data-i18n="status_approved">Approved</span> <span class="tab-count" id="ucount-approved">0</span></button>
+          <button class="filter-tab" onclick="filterUsers(this,'pending')">⏳ <span data-i18n="status_pending">Pending</span> <span class="tab-count" id="ucount-pending">0</span></button>
+          <button class="filter-tab" onclick="filterUsers(this,'rejected')">✕ <span data-i18n="status_rejected">Rejected</span> <span class="tab-count" id="ucount-rejected">0</span></button>
+        </div>
+
+        <div class="users-table-wrap">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th data-i18n="lbl_display_name">Name</th>
+                <th data-i18n="lbl_email_addr">Email</th>
+                <th data-i18n="lbl_role">Role</th>
+                <th>Status</th>
+                <th data-i18n="pending_joined">Joined</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /page-users -->
 
 
       <!-- ══════════════════════════════════════════
@@ -1293,9 +1390,9 @@
 
               <!-- Picker (hidden by default) -->
               <div class="profile-avatar-picker" id="profile-avatar-picker" style="display:none">
-                <div class="profile-picker-label">👤 Male</div>
+                <div class="profile-picker-label">👤 <span data-i18n="label_male">Male</span></div>
                 <div class="profile-avatar-grid" id="profile-avatar-grid-male"></div>
-                <div class="profile-picker-label" style="margin-top:12px">👤 Female</div>
+                <div class="profile-picker-label" style="margin-top:12px">👤 <span data-i18n="label_female">Female</span></div>
                 <div class="profile-avatar-grid" id="profile-avatar-grid-female"></div>
               </div>
             </div>
@@ -1320,7 +1417,7 @@
                 </div>
               </div>
               <div style="display:flex;justify-content:flex-end;margin-top:18px">
-                <button class="profile-save-btn" onclick="saveProfileInfo()" data-i18n="btn_save_info">Save Info</button>
+                <button id="profile-info-save-btn" class="profile-save-btn" onclick="saveProfileInfo()" data-i18n="btn_save_info">Save Info</button>
               </div>
             </div>
 
@@ -1346,7 +1443,32 @@
                 </label>
               </div>
               <div style="display:flex;justify-content:flex-end;margin-top:18px">
-                <button class="profile-save-btn" onclick="saveProfileShift()" data-i18n="btn_save_shift">Save Shift</button>
+                <button id="profile-shift-save-btn" class="profile-save-btn" onclick="saveProfileShift()" data-i18n="btn_save_shift">Save Shift</button>
+              </div>
+            </div>
+
+            <!-- Role -->
+            <div class="profile-card">
+              <div class="profile-card-title" data-i18n="lbl_role">Role</div>
+              <!-- Read-only display for non-admins (hidden, kept for JS compat) -->
+              <div id="profile-role-readonly" style="display:none;font-size:14px;color:var(--text-muted);padding:4px 0"></div>
+              <!-- Toggle — visible to all, interactive only for admins -->
+              <div id="profile-role-toggle" class="gender-btns" style="display:none">
+                <button type="button" class="gender-btn" id="profile-role-agent" data-role="agent" onclick="selectProfileRole(this)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:5px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <span data-i18n="role_agent">Agent</span>
+                </button>
+                <button type="button" class="gender-btn" id="profile-role-manager" data-role="manager" onclick="selectProfileRole(this)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:5px"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+                  <span data-i18n="role_manager">Manager</span>
+                </button>
+                <button type="button" class="gender-btn" id="profile-role-admin" data-role="admin" onclick="selectProfileRole(this)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:5px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span data-i18n="role_admin">Admin</span>
+                </button>
+              </div>
+              <div id="profile-role-save-area" style="display:none;justify-content:flex-end;margin-top:18px">
+                <button id="profile-role-save-btn" class="profile-save-btn" onclick="saveProfileRole()" data-i18n="btn_save_role">Save Role</button>
               </div>
             </div>
 
@@ -1694,43 +1816,17 @@
 
     <div class="issue-detail-body">
 
-      <!-- Priority & Status bar -->
+      <!-- Priority & Status badges (read-only) -->
       <div class="id-fields-bar">
         <div class="id-field-group">
           <span class="id-field-label" data-i18n="lbl_priority">Priority</span>
-          <select class="id-field-select priority" id="id-priority-select" onchange="changeIssuePriority(this.value)">
-            <option value="critical" data-i18n="priority_critical">🔴 Critical</option>
-            <option value="high" data-i18n="priority_high">🟠 High</option>
-            <option value="medium" data-i18n="priority_medium">🟡 Medium</option>
-          </select>
+          <span class="pi-priority-badge" id="id-priority-badge"></span>
         </div>
         <div class="id-field-sep"></div>
         <div class="id-field-group">
           <span class="id-field-label" data-i18n="tbl_status">Status</span>
-          <select class="id-field-select status" id="id-status-select" onchange="changeIssueStatus(this.value)">
-            <option value="todo" data-i18n="pi_todo">📋 To Do</option>
-            <option value="inprogress" data-i18n="pi_inprogress">🔄 In Progress</option>
-            <option value="pending" data-i18n="pi_pending">⏸ Pending</option>
-            <option value="postponed" data-i18n="pi_postponed">📅 Postponed</option>
-            <option value="resolved" data-i18n="pi_resolved">✅ Resolved</option>
-          </select>
+          <span class="pi-status-badge" id="id-status-badge"></span>
         </div>
-      </div>
-
-      <!-- Comments -->
-      <div class="id-section">
-        <div class="id-section-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span data-i18n="lbl_comments">Comments</span>
-        </div>
-        <div class="id-comment-input-wrap">
-          <textarea id="id-comment-input" class="id-comment-textarea" placeholder="Add a comment…" rows="2" data-i18n-placeholder="ph_comment"></textarea>
-          <button class="id-comment-btn" onclick="addIssueComment()">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            <span data-i18n="btn_post">Post</span>
-          </button>
-        </div>
-        <div class="id-comments-list" id="id-comments-list"></div>
       </div>
 
       <!-- Description -->
@@ -1752,6 +1848,22 @@
           <span data-i18n="lbl_timeline">Resolution Timeline</span>
         </div>
         <div class="id-timeline" id="id-timeline"></div>
+      </div>
+
+      <!-- Comments -->
+      <div class="id-section">
+        <div class="id-section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span data-i18n="lbl_comments">Comments</span>
+        </div>
+        <div class="id-comment-input-wrap">
+          <textarea id="id-comment-input" class="id-comment-textarea" placeholder="Add a comment…" rows="2" data-i18n-placeholder="ph_comment"></textarea>
+          <button class="id-comment-btn" onclick="addIssueComment()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span data-i18n="btn_post">Post</span>
+          </button>
+        </div>
+        <div class="id-comments-list" id="id-comments-list"></div>
       </div>
 
     </div>
@@ -1818,6 +1930,8 @@
           <select id="ni-status">
             <option value="todo" data-i18n="pi_todo">📋 To Do</option>
             <option value="inprogress" data-i18n="pi_inprogress">🔄 In Progress</option>
+            <option value="pending" data-i18n="pi_pending">⏸ Pending</option>
+            <option value="postponed" data-i18n="pi_postponed">📅 Postponed</option>
             <option value="resolved" data-i18n="pi_resolved">✅ Resolved</option>
           </select>
         </div>
@@ -1833,7 +1947,7 @@
       </div>
       <div class="form-group">
         <label data-i18n="lbl_ni_reporter">Reported By</label>
-        <input id="ni-reporter" type="text" readonly style="background:#f8fafc;color:var(--text-muted)" />
+        <select id="ni-reporter"></select>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px">
         <button class="btn-outline" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="closeNewIssueModal()" data-i18n="btn_cancel">Cancel</button>
@@ -1887,6 +2001,127 @@
   </div>
 </div>
 
-<script src="app.js?v=19"></script>
+<!-- ═══════════════════════════════════════════════
+     TICKET FORM MODAL
+═══════════════════════════════════════════════ -->
+<div id="ticket-modal-overlay" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:520px">
+    <div class="modal-header">
+      <h2 class="modal-title" id="ticket-modal-title">Add Ticket</h2>
+      <button class="modal-close" onclick="closeTicketModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div class="form-group">
+        <label><span data-i18n="lbl_subject">Subject</span> *</label>
+        <input id="tk-subject" type="text" placeholder="Brief description of the issue" data-i18n-placeholder="ph_tk_subject" />
+        <div class="input-error" id="tk-subject-err"></div>
+      </div>
+      <div class="form-group">
+        <label><span data-i18n="lbl_client_email">Client Email</span> *</label>
+        <input id="tk-client-email" type="email" placeholder="client@example.com" />
+        <div class="input-error" id="tk-client-email-err"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label data-i18n="tbl_status">Status</label>
+          <select id="tk-status">
+            <option value="open" data-i18n="tkt_open">Open</option>
+            <option value="in_progress" data-i18n="tkt_in_progress">In Progress</option>
+            <option value="resolved" data-i18n="tkt_resolved">Resolved</option>
+            <option value="closed" data-i18n="tkt_closed">Closed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="lbl_priority">Priority</label>
+          <select id="tk-priority">
+            <option value="low" data-i18n="tkt_priority_low">Low</option>
+            <option value="medium" data-i18n="tkt_priority_medium">Medium</option>
+            <option value="high" data-i18n="tkt_priority_high">High</option>
+            <option value="urgent" data-i18n="tkt_priority_urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label data-i18n="lbl_assign_agent">Assign To Agent</label>
+        <select id="tk-agent">
+          <option value="" data-i18n="lbl_unassigned_opt">— Unassigned —</option>
+        </select>
+      </div>
+      <div id="tk-api-err" class="input-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeTicketModal()" data-i18n="btn_cancel">Cancel</button>
+      <button class="btn-primary" style="width:auto;padding:11px 28px;margin-top:0" onclick="saveTicket()" data-i18n="btn_save_ticket">Save Ticket</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: EDIT USER (admin only)
+════════════════════════════════════════════════════════════ -->
+<div id="user-edit-overlay" class="modal-overlay hidden">
+  <div class="modal-card" style="max-width:480px">
+    <div class="modal-header">
+      <h2 class="modal-title" data-i18n="modal_edit_user_title">Edit User</h2>
+      <button class="modal-close" onclick="closeUserEditModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:16px">
+      <input type="hidden" id="ue-id" />
+      <div class="form-group">
+        <label><span data-i18n="lbl_display_name">Name</span> *</label>
+        <input id="ue-name" type="text" />
+        <div class="input-error" id="ue-name-err"></div>
+      </div>
+      <div class="form-group">
+        <label><span data-i18n="lbl_email_addr">Email</span> *</label>
+        <input id="ue-email" type="email" />
+        <div class="input-error" id="ue-email-err"></div>
+      </div>
+      <div class="form-group">
+        <label data-i18n="lbl_role">Role</label>
+        <select id="ue-role">
+          <option value="agent" data-i18n="role_agent">Agent</option>
+          <option value="manager" data-i18n="role_manager">Manager</option>
+          <option value="admin" data-i18n="role_admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="ue-status">
+          <option value="approved" data-i18n="status_approved">Approved</option>
+          <option value="pending"  data-i18n="status_pending">Pending</option>
+          <option value="rejected" data-i18n="status_rejected">Rejected</option>
+        </select>
+      </div>
+      <div id="ue-api-err" class="input-error" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeUserEditModal()" data-i18n="btn_cancel">Cancel</button>
+      <button id="ue-save-btn" class="btn-primary" style="width:auto;padding:11px 28px;margin-top:0" onclick="saveUserEdit()" data-i18n="btn_save_changes">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL: CONFIRM ACTION
+════════════════════════════════════════════════════════════ -->
+<div id="confirm-overlay" class="modal-overlay hidden" onclick="if(event.target===this)hideConfirm()">
+  <div class="modal-card" style="max-width:400px;text-align:center">
+    <div class="modal-body" style="padding:32px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px">
+      <div style="width:52px;height:52px;background:#fef3c7;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      </div>
+      <div id="confirm-title" style="font-weight:700;font-size:16px;color:var(--text-primary)"></div>
+      <div id="confirm-message" style="font-size:13.5px;color:var(--text-muted);line-height:1.6"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px">
+      <button id="confirm-cancel-btn" class="btn-ghost" onclick="hideConfirm()" data-i18n="btn_cancel">Cancel</button>
+      <button id="confirm-ok-btn" class="btn-primary" style="width:auto;padding:11px 28px;margin-top:0;background:#f59e0b;border-color:#f59e0b" onclick="_runConfirm()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=32"></script>
 </body>
 </html>

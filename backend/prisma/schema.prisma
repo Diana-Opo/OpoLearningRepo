@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum UserRole {
+  agent
+  manager
+  admin
+}
+
+enum UserStatus {
+  approved
+  pending
+  rejected
+}
+
+
+enum TicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+  archived
+}
+
+enum Priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum IssueStatus {
+  investigating
+  identified
+  monitoring
+  resolved
+  archived
+}
+
+enum AgentStatus {
+  online
+  busy
+  away
+  offline
+  archived
+}
+
+enum Shift {
+  day
+  night
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  passwordHash String?
+  role         UserRole   @default(agent)
+  status       UserStatus @default(pending)
+  avatarData   String?    @db.Text
+  createdAt    DateTime   @default(now())
+
+  reportedIssues PlatformIssue[] @relation("ReportedByUser")
+
+  @@map("users")
+}
+
+model Ticket {
+  id          Int          @id @default(autoincrement())
+  subject     String
+  clientEmail String
+  status      TicketStatus @default(open)
+  priority    Priority     @default(medium)
+  assignedTo  Int?
+  agent       Agent?       @relation(fields: [assignedTo], references: [id])
+  createdAt   DateTime     @default(now())
+
+  @@map("tickets")
+}
+
+model PlatformIssue {
+  id          Int         @id @default(autoincrement())
+  title       String
+  platform    String
+  priority    Priority    @default(medium)
+  status      IssueStatus @default(investigating)
+  summary     String
+  description String?     @db.Text
+  reportedBy  Int?
+  reporter    User?       @relation("ReportedByUser", fields: [reportedBy], references: [id])
+  createdAt   DateTime    @default(now())
+  modifiedAt  DateTime    @updatedAt
+
+  comments    PlatformIssueComment[]
+
+  @@map("platform_issues")
+}
+
+model PlatformIssueComment {
+  id         Int           @id @default(autoincrement())
+  issueId    Int
+  issue      PlatformIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorName String
+  text       String        @db.Text
+  createdAt  DateTime      @default(now())
+
+  @@map("platform_issue_comments")
+}
+
+model Agent {
+  id         Int         @id @default(autoincrement())
+  name       String
+  email      String      @unique
+  shift      Shift       @default(day)
+  status     AgentStatus @default(offline)
+  createdAt  DateTime    @default(now())
+  modifiedAt DateTime    @updatedAt
+
+  assignedTickets Ticket[]
+
+  @@map("agents")
+}
