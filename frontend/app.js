@@ -2826,7 +2826,7 @@ let tickets = [
   },
 ];
 
-let currentTicketStatusFilter = '';
+let currentTicketStatusFilter = 'open';
 let currentTicketAgentFilter  = '';
 let selectedTicketId          = null;
 let ticketReplyMode      = 'reply';
@@ -2845,7 +2845,7 @@ function updateTicketCounts() {
   const badge = document.getElementById('nav-tickets-badge');
   if (badge) badge.textContent = openCount;
   const totalBadge = document.getElementById('tkt-total-badge');
-  if (totalBadge) totalBadge.textContent = tickets.length;
+  if (totalBadge) totalBadge.textContent = tickets.filter(t => ['open','pending','hold'].includes(t.status)).length;
   // Keep empty-state stats in sync if panel is showing empty state
   [['open','open'],['pending','pending'],['hold','hold'],['resolved','solved'],['closed','closed']].forEach(([id, status]) => {
     const el = document.getElementById('tkt-es-' + id);
@@ -3038,6 +3038,8 @@ async function loadTicketsFromAPI() {
   } catch (err) {
     console.error('[loadTicketsFromAPI]', err);
   }
+  const statusSel = document.getElementById('tkt-filter-status');
+  if (statusSel) statusSel.value = currentTicketStatusFilter;
   renderTicketList();
   updateTicketCounts();
 }
@@ -3081,8 +3083,11 @@ async function openAddTicketModal(apiId) {
       const resolvedAgent = ticket.agentId ? agents.find(a => a.id === ticket.agentId) : null;
       savedAgentId = resolvedAgent ? ticket.agentId : null;
     }
+    const isAssigned = !!savedAgentId;
     subjectEl.disabled = true; emailEl.disabled = true;
+    descriptionEl.disabled = isAssigned;
     subjectEl.style.opacity = '0.6'; emailEl.style.opacity = '0.6';
+    descriptionEl.style.opacity = isAssigned ? '0.6' : '';
   }
 
   // Populate agent dropdown fresh from API
@@ -3141,7 +3146,10 @@ async function saveTicket() {
     if (!isEditMode) {
       res  = await fetch(`${API_BASE}/tickets`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subject, clientEmail, description, status, priority, assignedTo }) });
     } else {
-      res  = await fetch(`${API_BASE}/tickets/${editingTicketApiId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status, priority, assignedTo }) });
+      const descEl = document.getElementById('tk-description');
+      const editBody = { status, priority, assignedTo };
+      if (!descEl.disabled) editBody.description = description;
+      res  = await fetch(`${API_BASE}/tickets/${editingTicketApiId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(editBody) });
     }
     json = await res.json();
     if (!res.ok) {
@@ -3684,7 +3692,7 @@ const translations = {
     team_data:'Data Team', team_it_security:'IT Security',
     team_dev:'Dev Team', team_finance:'Finance Team', team_it_ops:'IT Ops',
     // Tickets
-    tkt_all_tickets:'All Tickets', tkt_open:'Open', tkt_hold:'On Hold',
+    tkt_all_tickets:'All Active Tickets', tkt_open:'Open', tkt_hold:'On Hold',
     tkt_solved:'Solved', tkt_closed:'Closed',
     tkt_filter_all_statuses:'All statuses', tkt_filter_all_agents:'All agents',
     tkt_empty_title:'No ticket selected',
@@ -3996,7 +4004,7 @@ const translations = {
     team_support:'فريق الدعم', team_mobile_dev:'فريق تطوير الجوال',
     team_data:'فريق البيانات', team_it_security:'أمن تقنية المعلومات',
     team_dev:'فريق التطوير', team_finance:'فريق المالية', team_it_ops:'عمليات IT',
-    tkt_all_tickets:'جميع التذاكر', tkt_open:'مفتوح', tkt_hold:'قيد الانتظار',
+    tkt_all_tickets:'جميع التذاكر النشطة', tkt_open:'مفتوح', tkt_hold:'قيد الانتظار',
     tkt_solved:'تم الحل', tkt_closed:'مغلق',
     tkt_filter_all_statuses:'كل الحالات', tkt_filter_all_agents:'كل العوامل',
     tkt_empty_title:'لم يتم اختيار تذكرة',
@@ -4295,7 +4303,7 @@ const translations = {
     team_support:'تیم پشتیبانی', team_mobile_dev:'تیم توسعه موبایل',
     team_data:'تیم داده', team_it_security:'امنیت IT',
     team_dev:'تیم توسعه', team_finance:'تیم مالی', team_it_ops:'عملیات IT',
-    tkt_all_tickets:'همه تیکت‌ها', tkt_open:'باز', tkt_hold:'در انتظار',
+    tkt_all_tickets:'همه تیکت‌های فعال', tkt_open:'باز', tkt_hold:'در انتظار',
     tkt_solved:'حل‌شده', tkt_closed:'بسته‌شده',
     tkt_filter_all_statuses:'همه وضعیت‌ها', tkt_filter_all_agents:'همه عوامل',
     tkt_empty_title:'هیچ تیکتی انتخاب نشده',
