@@ -307,10 +307,11 @@ body {
 
 /* ── AUTH SCREENS ──────────────────────────────────────── */
 #auth-wrap {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   position: relative;
   background: #f1f5f9;
+  overflow: hidden;
 }
 
 /* ─ Left brand panel ─ */
@@ -319,11 +320,12 @@ body {
   flex-shrink: 0;
   background: linear-gradient(160deg, #0f172a 0%, #1a2e50 55%, #1a56db 100%);
   position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px 48px;
+  padding: clamp(20px, 4vh, 56px) clamp(24px, 3.5vw, 48px);
+  height: 100%;
+  overflow: hidden;
 }
 .auth-brand::before {
   content: '';
@@ -343,12 +345,16 @@ body {
 .auth-brand-inner {
   position: relative; z-index: 1;
   max-width: 360px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Logo row */
 .auth-brand-logo {
   display: flex; align-items: center; gap: 14px;
-  margin-bottom: 32px;
+  margin-bottom: clamp(14px, 2.5vh, 32px);
 }
 .auth-brand-icon {
   width: 48px; height: 48px;
@@ -369,18 +375,18 @@ body {
 
 /* Headline */
 .auth-brand-headline {
-  font-size: 26px; font-weight: 700;
+  font-size: clamp(18px, 2.8vh, 26px); font-weight: 700;
   color: #ffffff; line-height: 1.28;
   letter-spacing: -.4px;
-  margin-bottom: 8px;
+  margin-bottom: clamp(4px, 0.8vh, 8px);
 }
 .auth-brand-desc {
-  font-size: 13.5px; color: rgba(255,255,255,.6);
-  line-height: 1.6; margin-bottom: 24px;
+  font-size: clamp(12px, 1.6vh, 13.5px); color: rgba(255,255,255,.6);
+  line-height: 1.5; margin-bottom: clamp(12px, 2vh, 24px);
 }
 
 /* Feature list */
-.auth-features { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+.auth-features { display: flex; flex-direction: column; gap: clamp(8px, 1.3vh, 14px); margin-bottom: clamp(14px, 2.2vh, 28px); }
 .auth-feature {
   display: flex; align-items: center; gap: 12px;
 }
@@ -415,7 +421,8 @@ body {
   border-radius: 14px;
   backdrop-filter: blur(12px);
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: clamp(10px, 1.8vh, 24px);
+  flex-shrink: 1;
 }
 .auth-chart-topbar {
   display: flex; align-items: center; justify-content: space-between;
@@ -455,7 +462,7 @@ body {
 }
 .auth-chart-svg {
   display: block; width: 100%;
-  height: auto;
+  height: clamp(60px, 10vh, 120px);
 }
 .auth-chart-labels {
   display: flex; justify-content: space-between;
@@ -497,9 +504,10 @@ body {
 .auth-form-panel {
   flex: 1;
   display: flex; align-items: center; justify-content: center;
-  padding: 48px 32px;
+  padding: clamp(24px, 4vh, 48px) 32px;
   background: #f8fafc;
   overflow-y: auto;
+  height: 100%;
 }
 
 /* Auth card (form container) */
@@ -722,16 +730,23 @@ body {
 
 /* ─ Responsive: stack panels on narrow screens ─ */
 @media (max-width: 860px) {
-  #auth-wrap { flex-direction: column; }
-  .auth-brand { width: 100%; padding: 40px 32px 36px; min-height: auto; }
+  #auth-wrap { flex-direction: column; height: auto; overflow-y: auto; overflow-x: hidden; }
+  .auth-brand { width: 100%; height: auto; overflow: visible; padding: 36px 28px 30px; }
+  .auth-brand-inner { max-width: 100%; }
   .auth-brand-headline { font-size: 22px; }
-  .auth-illustration { margin-bottom: 20px; }
+  .auth-illustration { margin-bottom: 18px; }
   .auth-features { gap: 10px; }
   .auth-feature-sub { display: none; }
   .auth-feature-sep { display: none; }
-  .auth-brand-stats { padding: 14px 16px; }
-  .auth-form-panel { padding: 32px 20px; }
+  .auth-brand-stats { padding: 12px 16px; }
+  .auth-form-panel { height: auto; padding: 32px 20px; }
   .auth-card { padding: 32px 28px; }
+}
+
+/* ─ Responsive: compress content on short viewports ─ */
+@media (max-height: 680px) {
+  .auth-brand-desc  { display: none; }
+  .auth-brand-stats { display: none; }
 }
 
 /* ── APP SHELL ─────────────────────────────────────────── */
@@ -4318,3 +4333,109 @@ select:focus {
 [data-theme="dark"] .header-search { background: var(--input-bg); border-color: var(--border); }
 [data-theme="dark"] .icon-btn:hover { background: rgba(160,184,255,.08); }
 [data-theme="dark"] .nav-item:hover { background: rgba(255,255,255,.06); }
+
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD — MODERN UI IMPROVEMENTS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Greeting hero card ─────────────────────────────────── */
+.dash-hero {
+  background: linear-gradient(135deg, var(--card-bg) 0%, var(--brand-light) 100%);
+  border-radius: var(--radius);
+  padding: 22px 26px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+.dash-hero .section-title { font-size: 22px; font-weight: 700; }
+.dash-hero .btn-outline { flex-shrink: 0; }
+[data-theme="dark"] .dash-hero { background: linear-gradient(135deg, var(--card-bg) 0%, rgba(26,86,219,.12) 100%); }
+
+/* ── Stat cards — color accent top strip ───────────────── */
+.stat-card { position: relative; overflow: hidden; }
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.stat-card.blue::before   { background: var(--brand);  opacity: 1; }
+.stat-card.green::before  { background: var(--green);  opacity: 1; }
+.stat-card.yellow::before { background: var(--yellow); opacity: 1; }
+.stat-card.purple::before { background: var(--purple); opacity: 1; }
+.stat-card:hover { transform: translateY(-3px); }
+.stat-card .stat-value { font-size: 34px; letter-spacing: -0.5px; }
+.stat-card .stat-icon  { width: 42px; height: 42px; }
+.stat-card .stat-icon svg { width: 21px; height: 21px; }
+
+/* ── RT overview — refined glass look ──────────────────── */
+.rt-overview {
+  border: 1px solid var(--border);
+  background: linear-gradient(to right, rgba(26,86,219,.04), rgba(139,92,246,.03));
+}
+.rt-live-badge {
+  background: var(--green);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  gap: 6px;
+}
+.rt-pulse-dot { background: rgba(255,255,255,.85); width: 6px; height: 6px; }
+.rt-item-val { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+.rt-item-lbl { font-size: 11.5px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+[data-theme="dark"] .rt-overview { background: linear-gradient(to right, rgba(26,86,219,.07), rgba(139,92,246,.05)); }
+
+/* ── Performance KPI — colored left border accents ─────── */
+.perf-kpi-item { border-left: 3px solid transparent; transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition); }
+.perf-kpi-item.kpi-blue   { border-left-color: var(--brand);  }
+.perf-kpi-item.kpi-green  { border-left-color: var(--green);  }
+.perf-kpi-item.kpi-yellow { border-left-color: var(--yellow); }
+.perf-kpi-item.kpi-purple { border-left-color: var(--purple); }
+.perf-kpi-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+
+/* ── Agent table — cleaner modern rows ─────────────────── */
+.agent-table { border-spacing: 0; }
+.agent-table th { font-size: 10.5px; letter-spacing: .08em; color: var(--text-muted); padding-bottom: 10px; }
+.agent-table td { padding: 12px 0; border-bottom: 1px solid var(--border); transition: background var(--transition); }
+.agent-table tbody tr:last-child td { border-bottom: none; }
+.agent-table tbody tr:hover td { background: var(--page-bg); }
+.mini-bar-wrap { height: 5px; border-radius: 100px; }
+.mini-bar { border-radius: 100px; }
+.mini-avatar { width: 32px; height: 32px; font-size: 11px; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+
+/* ── Issue list — richer visual hierarchy ───────────────── */
+.issue-list { gap: 2px; }
+.issue-item {
+  padding: 11px 12px;
+  border-radius: 10px;
+  border-bottom: none;
+  transition: background var(--transition);
+  cursor: default;
+}
+.issue-item:hover { background: var(--page-bg); }
+.issue-dot {
+  width: 11px; height: 11px; margin-top: 3px;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+  flex-shrink: 0;
+}
+.issue-dot.red    { box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
+.issue-dot.orange { box-shadow: 0 0 0 3px rgba(249,115,22,.18); }
+.issue-dot.yellow { box-shadow: 0 0 0 3px rgba(245,158,11,.18); }
+.issue-dot.green  { box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
+.issue-badge { font-size: 10.5px; padding: 3px 10px; border-radius: 100px; letter-spacing: .02em; }
+.issue-title { font-size: 13.5px; }
+
+/* ── Card header — subtle divider refinement ────────────── */
+#page-dashboard .card-header {
+  padding: 16px 22px 14px;
+  background: linear-gradient(to bottom, var(--card-bg), var(--card-bg));
+}
+#page-dashboard .card-title { font-size: 14.5px; font-weight: 700; letter-spacing: -0.1px; }
+
+/* ── Dark mode adjustments ──────────────────────────────── */
+[data-theme="dark"] .issue-item:hover { background: rgba(255,255,255,.03); }
+[data-theme="dark"] .agent-table tbody tr:hover td { background: rgba(255,255,255,.03); }
