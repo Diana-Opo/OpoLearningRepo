@@ -576,7 +576,7 @@ function selectGender(btn) {
   refreshModalAvatar(btn.dataset.gender, color, document.getElementById('modal-status').value);
 }
 
-function selectShift(btn) {
+function selectModalShift(btn) {
   document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
@@ -1872,7 +1872,8 @@ let platformIssues = [
   },
 ];
 
-let currentIssueFilter = 'all';
+let currentIssueFilter         = 'all';
+let currentIssueAssigneeFilter = '';
 
 // ────────────────────────────────────────────────────────
 //  PLATFORM ISSUES RENDER
@@ -1882,6 +1883,12 @@ function filterIssues(btn, filter) {
   btn.classList.add('active');
   currentIssueFilter = filter;
   renderIssues(filter);
+}
+
+function filterIssuesByAssignee() {
+  const sel = document.getElementById('pi-assignee-filter');
+  currentIssueAssigneeFilter = sel ? sel.value : '';
+  renderIssues(currentIssueFilter);
 }
 
 function ensureIssueFields() {
@@ -1940,14 +1947,24 @@ function renderIssues(filter) {
   ensureIssueFields();
   const t = translations[currentLang];
 
+  const myIssues    = platformIssues.filter(i => i.status !== 'archived' && i._assignedToId && i._assignedToId === currentUser.id);
   const nonArchived = platformIssues.filter(i => i.status !== 'archived');
-  const filtered = filter === 'all'      ? nonArchived
+  let filtered = filter === 'all'      ? nonArchived
+    : filter === 'mine'     ? myIssues
     : filter === 'archived' ? platformIssues.filter(i => i.status === 'archived')
     : platformIssues.filter(i => i.status === filter);
 
+  // Apply assignee filter on top of status filter
+  if (currentIssueAssigneeFilter) {
+    const aid = parseInt(currentIssueAssigneeFilter, 10);
+    filtered = filtered.filter(i => i._assignedToId === aid);
+  }
+
   // Tab counts
   const statusKeys = ['todo','inprogress','pending','postponed','resolved'];
-  document.getElementById('pi-count-all').textContent = nonArchived.length;
+  document.getElementById('pi-count-all').textContent  = nonArchived.length;
+  const mineCountEl = document.getElementById('pi-count-mine');
+  if (mineCountEl) mineCountEl.textContent = myIssues.length;
   statusKeys.forEach(k => {
     const el = document.getElementById('pi-count-' + k);
     if (el) el.textContent = platformIssues.filter(i => i.status === k).length;
@@ -1969,6 +1986,9 @@ function renderIssues(filter) {
     const el = document.getElementById('pi-sc-' + k);
     if (el) el.textContent = platformIssues.filter(i => i.status === k).length;
   });
+
+  // Populate assignee filter dropdown
+  populateAssigneeFilterDropdown();
 
   // Sort: most recently created first
   const sorted = [...filtered].sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
@@ -2006,6 +2026,7 @@ function renderIssues(filter) {
           <span class="pi-meta-tag">⏱ ${issue.impact.downtime}</span>
         </div>
         <div class="pi-summary">${escHtml(issue.summary)}</div>
+        ${issue.assigneeName ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">👤 ${escHtml(issue.assigneeName)}</div>` : ''}
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.pi_last_update}: ${escHtml(translateTimeStr(last.time))} · ${escHtml(translateAuthor(last.author))}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:auto">
           <button class="btn-details" style="flex:1" onclick="openIssueModal('${issue.id}')">
@@ -2023,6 +2044,26 @@ function renderIssues(filter) {
       </div>
     </div>`;
   }).join('');
+}
+
+function populateAssigneeFilterDropdown() {
+  const sel = document.getElementById('pi-assignee-filter');
+  if (!sel) return;
+  const t = translations[currentLang];
+  const current = sel.value;
+  // Collect unique assignees from all issues
+  const seen = new Map();
+  platformIssues.forEach(i => {
+    if (i._assignedToId && i.assigneeName) seen.set(i._assignedToId, i.assigneeName);
+  });
+  sel.innerHTML = `<option value="">${t.pi_assignee_all || 'All users'}</option>`;
+  seen.forEach((name, id) => {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
 }
 
 // ────────────────────────────────────────────────────────
@@ -2457,18 +2498,24 @@ async function openNewIssueModal(apiId) {
 
   document.getElementById('new-issue-overlay').classList.remove('hidden');
 
-  // Populate reporter dropdown
-  const sel = document.getElementById('ni-reporter');
-  sel.innerHTML = `<option value="">${tl.lbl_unassigned_opt || '— Select —'}</option>`;
+  // Populate reporter and assignee dropdowns
+  const sel         = document.getElementById('ni-reporter');
+  const selAssignee = document.getElementById('ni-assignee');
+  const blankOpt    = `<option value="">${tl.lbl_unassigned_opt || '— Select —'}</option>`;
+  sel.innerHTML         = blankOpt;
+  selAssignee.innerHTML = blankOpt;
   try {
     const res   = await fetch(`${API_BASE}/users/staff`);
     const json  = await res.json();
     if (json.success && Array.isArray(json.data)) {
       json.data.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value       = u.id;
-        opt.textContent = `${u.name} (${u.role})`;
-        sel.appendChild(opt);
+        const label = `${u.name} (${u.role})`;
+        [sel, selAssignee].forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = u.id;
+          opt.textContent = label;
+          s.appendChild(opt);
+        });
       });
     }
   } catch (_) { /* non-fatal */ }
@@ -2490,7 +2537,8 @@ async function openNewIssueModal(apiId) {
       document.getElementById('ni-status').value      = issue.status;
       document.getElementById('ni-summary').value     = issue.summary;
       document.getElementById('ni-description').value = issue.description || '';
-      if (issue._reportedById) sel.value = String(issue._reportedById);
+      if (issue._reportedById)  sel.value         = String(issue._reportedById);
+      if (issue._assignedToId)  selAssignee.value = String(issue._assignedToId);
     }
   }
 }
@@ -2507,8 +2555,10 @@ async function saveNewIssue() {
   const uiStatus   = document.getElementById('ni-status').value || 'todo';
   const summary  = document.getElementById('ni-summary').value.trim();
   const desc     = document.getElementById('ni-description').value.trim();
-  const reporterVal = document.getElementById('ni-reporter').value;
-  const reportedBy  = reporterVal ? parseInt(reporterVal, 10) : null;
+  const reporterVal  = document.getElementById('ni-reporter').value;
+  const reportedBy   = reporterVal ? parseInt(reporterVal, 10) : null;
+  const assigneeVal  = document.getElementById('ni-assignee').value;
+  const assignedTo   = assigneeVal ? parseInt(assigneeVal, 10) : null;
   ['ni-title-err','ni-platform-err','ni-priority-err','ni-summary-err'].forEach(id => hideErr(id));
   if (!title)      { showErr('ni-title-err',    'Please enter a title.');     return; }
   if (!platform)   { showErr('ni-platform-err', 'Please select a platform.'); return; }
@@ -2523,7 +2573,7 @@ async function saveNewIssue() {
   if (saveBtn) saveBtn.disabled = true;
   try {
     let res, json;
-    const body = { title, platform, priority: apiPriority, status: apiStatus, summary, description: desc || null, reportedBy };
+    const body = { title, platform, priority: apiPriority, status: apiStatus, summary, description: desc || null, reportedBy, assignedTo };
     if (_editingIssueApiId === null) {
       res  = await fetch(`${API_BASE}/platform_issues`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     } else {
@@ -2558,8 +2608,10 @@ async function loadPlatformIssuesFromAPI() {
         severity:    priorityMap[i.priority] || i.priority,
         status:      statusMap[i.status]     || i.status,
         reportedAt:  new Date(i.createdAt).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }),
-        reportedBy:  i.reporter?.name || 'Unknown',
+        reportedBy:    i.reporter?.name || 'Unknown',
         _reportedById: i.reportedBy ?? null,
+        assigneeName:  i.assignee?.name || null,
+        _assignedToId: i.assignedTo ?? null,
         createdAt:   new Date(i.createdAt).getTime(),
         impact:      { clients: 0, tickets: 0, downtime: 'TBD' },
         timeline:    [{ time: new Date(i.createdAt).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }), author: i.reporter?.name || 'System', color: 'blue', text: i.summary }],
@@ -2774,8 +2826,9 @@ let tickets = [
   },
 ];
 
-let currentTicketFilter  = 'open';
-let selectedTicketId     = null;
+let currentTicketStatusFilter = '';
+let currentTicketAgentFilter  = '';
+let selectedTicketId          = null;
 let ticketReplyMode      = 'reply';
 let editingTicketApiId   = null;
 
@@ -2856,14 +2909,30 @@ function renderTicketEmptyPanel() {
     </div>`;
 }
 
-function filterTickets(btn, status) {
-  document.querySelectorAll('.tkt-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentTicketFilter = status;
+function applyTicketFilters() {
+  const statusSel = document.getElementById('tkt-filter-status');
+  const agentSel  = document.getElementById('tkt-filter-agent');
+  currentTicketStatusFilter = statusSel ? statusSel.value : '';
+  currentTicketAgentFilter  = agentSel  ? agentSel.value  : '';
   selectedTicketId = null;
-  renderTicketList(status);
-  // Reset detail panel
+  renderTicketList();
   renderTicketEmptyPanel();
+}
+
+function populateTicketAgentFilter() {
+  const sel = document.getElementById('tkt-filter-agent');
+  if (!sel) return;
+  const current = sel.value;
+  const t = translations[currentLang];
+  sel.innerHTML = `<option value="">${t.tkt_filter_all_agents || 'All agents'}</option>
+    <option value="unassigned">${t.lbl_unassigned || 'Unassigned'}</option>`;
+  agents.filter(a => a.status !== 'archived').forEach(agent => {
+    const opt = document.createElement('option');
+    opt.value = agent.id;
+    opt.textContent = agent.name;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
 }
 
 const PRIORITY_LABELS = { urgent:'Urgent', high:'High', medium:'Medium', normal:'Medium', low:'Low' };
@@ -2871,9 +2940,13 @@ const STATUS_DISPLAY  = { open:'Open', pending:'Pending', hold:'On Hold', solved
 function getPriorityLabel(p) { const t = translations[currentLang]; return { urgent:t.tkt_priority_urgent, high:t.tkt_priority_high, medium:t.tkt_priority_medium, normal:t.tkt_priority_medium, low:t.tkt_priority_low }[p] || PRIORITY_LABELS[p]; }
 function getStatusLabel(s)   { const t = translations[currentLang]; return { open:t.tkt_open, pending:t.tkt_pending, hold:t.tkt_hold, solved:t.tkt_solved, closed:t.tkt_closed, archived:t.tkt_archived }[s] || STATUS_DISPLAY[s]; }
 
-function renderTicketList(filter) {
+function renderTicketList() {
   updateTicketCounts();
-  const list   = tickets.filter(t => t.status === filter);
+  populateTicketAgentFilter();
+  let list = tickets;
+  if (currentTicketStatusFilter) list = list.filter(t => t.status === currentTicketStatusFilter);
+  if (currentTicketAgentFilter === 'unassigned') list = list.filter(t => !t.agentId || !agents.find(a => a.id === t.agentId));
+  else if (currentTicketAgentFilter)             list = list.filter(t => String(t.agentId) === currentTicketAgentFilter);
   const listEl = document.getElementById('tkt-list');
 
   if (list.length === 0) {
@@ -2886,7 +2959,7 @@ function renderTicketList(filter) {
     const tr = translations[currentLang];
     const agentHtml = agent
       ? `<div class="tkt-row-agent" style="background:${agent.color}" title="${agent.name}">${agent.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>`
-      : `<div class="tkt-row-agent" style="background:#94a3b8" title="${tr.lbl_unassigned}">?</div>`;
+      : `<span class="tkt-row-unassigned">${tr.lbl_unassigned}</span>`;
     const actionBtns = t._apiId && t.status !== 'archived' ? `
       <div class="tkt-row-actions" style="display:flex;gap:4px;margin-top:6px">
         <button class="btn-edit" style="flex:1;font-size:11px;padding:4px 8px" onclick="openAddTicketModal(${t._apiId});event.stopPropagation()">✏ ${tr.btn_edit}</button>
@@ -2915,14 +2988,32 @@ function renderTicketList(filter) {
 // ────────────────────────────────────────────────────────
 async function loadTicketsFromAPI() {
   try {
+    // Always fetch agents so the filter dropdown is populated regardless of
+    // whether the user has visited the Agents page in this session.
+    const agentsRes  = await fetch(`${API_BASE}/agents`);
+    const agentsJson = await agentsRes.json();
+    if (agentsJson.success && Array.isArray(agentsJson.data)) {
+      agents = agentsJson.data.map((a, i) => ({
+        id: a.id, name: a.name, email: a.email,
+        shift: a.shift, status: a.status,
+        gender: i % 2 === 0 ? 'female' : 'male',
+        chats: 0, maxChats: 5,
+        color: COLORS[i % COLORS.length]
+      }));
+    }
+  } catch (err) {
+    console.error('[loadTicketsFromAPI:agents]', err);
+  }
+  try {
     const res  = await fetch(`${API_BASE}/tickets`);
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
       const statusMap = { open:'open', in_progress:'pending', resolved:'solved', closed:'closed', archived:'archived' };
       tickets = json.data.map(t => ({
-        _apiId:    t.id,
-        id:        `TK-${t.id}`,
-        subject:   t.subject,
+        _apiId:      t.id,
+        id:          `TK-${t.id}`,
+        subject:     t.subject,
+        description: t.description || '',
         client: {
           name:     t.clientEmail.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c => c.toUpperCase()),
           initials: t.clientEmail.slice(0, 2).toUpperCase(),
@@ -2935,34 +3026,19 @@ async function loadTicketsFromAPI() {
         createdAt: new Date(t.createdAt).toLocaleString(),
         updatedAt: new Date(t.createdAt).toLocaleString(),
         unread:    false,
-        messages:  []
+        messages:  (t.comments || []).map(c => ({
+          role:   c.role,
+          sender: c.authorName,
+          time:   new Date(c.createdAt).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12: false }),
+          text:   c.text,
+          _apiId: c.id,
+        })),
       }));
-      // Merge any agents embedded in ticket responses into the local cache
-      // so the detail view shows correct names/colors without requiring
-      // the user to visit the Agents page first.
-      json.data.forEach((t, i) => {
-        if (t.agent) {
-          const existing = agents.find(a => a.id === t.agent.id);
-          if (!existing) {
-            agents.push({
-              id:       t.agent.id,
-              name:     t.agent.name,
-              email:    t.agent.email,
-              shift:    t.agent.shift,
-              status:   t.agent.status,
-              gender:   'male',
-              chats:    0,
-              maxChats: 5,
-              color:    COLORS[agents.length % COLORS.length]
-            });
-          }
-        }
-      });
     }
   } catch (err) {
     console.error('[loadTicketsFromAPI]', err);
   }
-  renderTicketList(currentTicketFilter);
+  renderTicketList();
   updateTicketCounts();
 }
 
@@ -2971,35 +3047,39 @@ async function openAddTicketModal(apiId) {
   const isNew = !apiId;
   const tl = translations[currentLang];
   document.getElementById('ticket-modal-title').textContent = isNew ? tl.modal_add_ticket_title : tl.modal_edit_ticket_title;
-  hideErr('tk-subject-err'); hideErr('tk-client-email-err');
+  hideErr('tk-subject-err'); hideErr('tk-client-email-err'); hideErr('tk-description-err');
   const apiErrEl = document.getElementById('tk-api-err');
   if (apiErrEl) apiErrEl.style.display = 'none';
 
   // Open modal immediately so the user sees it right away
   document.getElementById('ticket-modal-overlay').classList.remove('hidden');
 
-  const subjectEl = document.getElementById('tk-subject');
-  const emailEl   = document.getElementById('tk-client-email');
-  const sel       = document.getElementById('tk-agent');
+  const subjectEl     = document.getElementById('tk-subject');
+  const emailEl       = document.getElementById('tk-client-email');
+  const descriptionEl = document.getElementById('tk-description');
+  const sel           = document.getElementById('tk-agent');
 
   let savedAgentId = null;
 
   if (isNew) {
-    subjectEl.value = '';
-    emailEl.value   = '';
+    subjectEl.value     = '';
+    emailEl.value       = '';
+    descriptionEl.value = '';
     document.getElementById('tk-status').value   = 'open';
     document.getElementById('tk-priority').value = 'medium';
-    subjectEl.disabled = false; emailEl.disabled = false;
-    subjectEl.style.opacity = ''; emailEl.style.opacity = '';
+    subjectEl.disabled = false; emailEl.disabled = false; descriptionEl.disabled = false;
+    subjectEl.style.opacity = ''; emailEl.style.opacity = ''; descriptionEl.style.opacity = '';
   } else {
     const ticket = tickets.find(tk => tk._apiId === apiId);
     if (ticket) {
       const statusRevMap = { open:'open', pending:'in_progress', hold:'in_progress', solved:'resolved', closed:'closed' };
-      subjectEl.value = ticket.subject;
-      emailEl.value   = ticket.client.email;
+      subjectEl.value     = ticket.subject;
+      emailEl.value       = ticket.client.email;
+      descriptionEl.value = ticket.description || '';
       document.getElementById('tk-status').value   = statusRevMap[ticket.status] || 'open';
       document.getElementById('tk-priority').value = ticket.priority;
-      savedAgentId = ticket.agentId || null;
+      const resolvedAgent = ticket.agentId ? agents.find(a => a.id === ticket.agentId) : null;
+      savedAgentId = resolvedAgent ? ticket.agentId : null;
     }
     subjectEl.disabled = true; emailEl.disabled = true;
     subjectEl.style.opacity = '0.6'; emailEl.style.opacity = '0.6';
@@ -3038,6 +3118,7 @@ function closeTicketModal() {
 async function saveTicket() {
   const subject     = document.getElementById('tk-subject').value.trim();
   const clientEmail = document.getElementById('tk-client-email').value.trim();
+  const description = document.getElementById('tk-description').value.trim();
   const status      = document.getElementById('tk-status').value;
   const priority    = document.getElementById('tk-priority').value;
   const agentVal    = document.getElementById('tk-agent').value;
@@ -3045,10 +3126,11 @@ async function saveTicket() {
 
   const tl = translations[currentLang];
   const isEditMode = editingTicketApiId !== null;
-  hideErr('tk-subject-err'); hideErr('tk-client-email-err');
+  hideErr('tk-subject-err'); hideErr('tk-client-email-err'); hideErr('tk-description-err');
   if (!isEditMode) {
-    if (!subject)               { showErr('tk-subject-err',    tl.err_subject_required); return; }
-    if (!emailValid(clientEmail)) { showErr('tk-client-email-err', tl.err_agent_email);   return; }
+    if (!subject)                { showErr('tk-subject-err',     tl.err_subject_required);       return; }
+    if (!emailValid(clientEmail)){ showErr('tk-client-email-err',tl.err_agent_email);             return; }
+    if (!description)            { showErr('tk-description-err', tl.err_description_required || 'Please enter a description.'); return; }
   }
 
   const apiErrEl = document.getElementById('tk-api-err');
@@ -3057,7 +3139,7 @@ async function saveTicket() {
   try {
     let res, json;
     if (!isEditMode) {
-      res  = await fetch(`${API_BASE}/tickets`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subject, clientEmail, status, priority, assignedTo }) });
+      res  = await fetch(`${API_BASE}/tickets`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ subject, clientEmail, description, status, priority, assignedTo }) });
     } else {
       res  = await fetch(`${API_BASE}/tickets/${editingTicketApiId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status, priority, assignedTo }) });
     }
@@ -3181,6 +3263,13 @@ function selectTicket(id) {
       </div>
     </div>
 
+    <!-- Description -->
+    ${t.description ? `
+    <div class="tkt-description-block">
+      <div class="tkt-description-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>${translations[currentLang].lbl_tk_description || 'Description'}</div>
+      <div class="tkt-description-text">${escHtml(t.description)}</div>
+    </div>` : ''}
+
     <!-- Conversation -->
     <div class="tkt-conversation" id="tkt-conversation">
       ${renderTicketMessages(t)}
@@ -3264,7 +3353,7 @@ function setTicketReplyMode(btn, mode) {
   }
 }
 
-function sendTicketReply(id) {
+async function sendTicketReply(id) {
   const input = document.getElementById('tkt-reply-input');
   const text  = input.value.trim();
   if (!text) return;
@@ -3278,7 +3367,8 @@ function sendTicketReply(id) {
     ? (currentUser.name || 'Manager')
     : (agent ? agent.name : 'Support');
 
-  t.messages.push({ role: ticketReplyMode, sender: senderName, time: now, text });
+  const msg = { role: ticketReplyMode, sender: senderName, time: now, text };
+  t.messages.push(msg);
   t.updatedAt = 'Just now';
   input.value = '';
 
@@ -3288,9 +3378,20 @@ function sendTicketReply(id) {
     conv.innerHTML = renderTicketMessages(t);
     setTimeout(() => { conv.scrollTop = conv.scrollHeight; }, 20);
   }
+
+  // Persist to API
+  if (t._apiId) {
+    try {
+      await fetch(`${API_BASE}/tickets/${t._apiId}/comments`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ authorName: senderName, role: ticketReplyMode, text }),
+      });
+    } catch (_) { /* non-fatal — message already shown locally */ }
+  }
 }
 
-function changeTicketStatus(id, newStatus) {
+async function changeTicketStatus(id, newStatus) {
   if (!newStatus) return;
   const t = tickets.find(tk => tk.id === id);
   if (!t) return;
@@ -3308,11 +3409,24 @@ function changeTicketStatus(id, newStatus) {
   if (sel) sel.value = '';
 
   // Re-render list and move ticket to new filter if needed
-  renderTicketList(currentTicketFilter);
+  renderTicketList();
   updateTicketCounts();
+
+  // Persist to API
+  const statusMap = { open:'open', pending:'in_progress', hold:'in_progress', solved:'resolved', closed:'closed', archived:'archived' };
+  const apiStatus = statusMap[newStatus] || newStatus;
+  if (t._apiId) {
+    try {
+      await fetch(`${API_BASE}/tickets/${t._apiId}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ status: apiStatus }),
+      });
+    } catch (_) { /* non-fatal */ }
+  }
 }
 
-function assignTicket(ticketId, agentId) {
+async function assignTicket(ticketId, agentId) {
   const t = tickets.find(tk => tk.id === ticketId);
   if (!t) return;
   t.agentId   = agentId;
@@ -3320,10 +3434,21 @@ function assignTicket(ticketId, agentId) {
 
   const agent = agents.find(a => a.id === agentId);
   const nameEl = document.getElementById('tkt-assigned-name');
-  if (nameEl && agent) nameEl.textContent = agent.name;
+  if (nameEl) nameEl.textContent = agent ? agent.name : (translations[currentLang]?.lbl_unassigned || 'Unassigned');
 
   closeAssignDropdown();
-  renderTicketList(currentTicketFilter);
+  renderTicketList();
+
+  // Persist to API
+  if (t._apiId) {
+    try {
+      await fetch(`${API_BASE}/tickets/${t._apiId}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ assignedTo: agentId || null }),
+      });
+    } catch (_) { /* non-fatal */ }
+  }
 }
 
 function toggleAssignDropdown(e) {
@@ -3540,7 +3665,9 @@ const translations = {
     lc_ongoing:'ongoing', lc_pick_up:'Pick Up', lc_supervise:'Supervise',
     lc_waiting:'waiting', lc_no_queue:'No chats waiting in queue.', lc_no_active:'No active chats right now.',
     // Platform Issues
-    pi_export:'↓ Export Excel', pi_new_issue:'+ New Issue', pi_filter_all:'All',
+    pi_export:'↓ Export Excel', pi_new_issue:'+ New Issue', pi_filter_all:'All', pi_filter_mine:'My Issues',
+    lbl_pi_assignee_filter:'Assigned To:', pi_assignee_all:'All users',
+    lbl_ni_assignee:'Assigned To',
     pi_todo:'To Do', pi_inprogress:'In Progress', pi_pending:'Pending',
     pi_postponed:'Postponed', pi_resolved:'Resolved', pi_archived:'Archived',
     confirm_archive_issue_sub:'This issue will be moved to the Archived tab.',
@@ -3559,6 +3686,7 @@ const translations = {
     // Tickets
     tkt_all_tickets:'All Tickets', tkt_open:'Open', tkt_hold:'On Hold',
     tkt_solved:'Solved', tkt_closed:'Closed',
+    tkt_filter_all_statuses:'All statuses', tkt_filter_all_agents:'All agents',
     tkt_empty_title:'No ticket selected',
     tkt_empty_desc:'Choose a ticket from the list on the left to view its full conversation, details, and history.',
     // Reports
@@ -3578,7 +3706,7 @@ const translations = {
     rpt_kpi_total_chats:'Total Chats', rpt_avg_per:'Avg /', rpt_peak:'Peak', rpt_share_of_team:'Share of Team',
     rpt_all_agents_delta:'All agents', rpt_vs_prev:'vs prev', rpt_highest:'Highest',
     rpt_monthly_dist:'Monthly Distribution', rpt_mom_trend:'Month-over-Month Trend',
-    rpt_yoy_change:'% = YoY change', rpt_legend_2025:'2025', rpt_legend_2026:'2026',
+    rpt_yoy_change:'% = YoY change', rpt_legend_2025:'2025', rpt_legend_2026:'2026', rpt_compare_btn:'2025 vs 2026',
     rpt_total_chats_svg:'total chats',
     rpt_positive:'Positive', rpt_negative:'Negative', rpt_no_rating:'No rating',
     rpt_csat_score:'CSAT Score', rpt_positive_ratings:'Positive Ratings', rpt_negative_ratings:'Negative Ratings',
@@ -3611,6 +3739,7 @@ const translations = {
     // Ticket modal
     modal_add_ticket_title:'Add Ticket', modal_edit_ticket_title:'Edit Ticket',
     lbl_subject:'Subject', ph_tk_subject:'Brief description of the issue',
+    lbl_tk_description:'Description', ph_tk_description:'Describe the issue in detail…',
     lbl_client_email:'Client Email',
     lbl_assign_agent:'Assign To Agent',
     lbl_unassigned:'Unassigned', lbl_unassigned_opt:'— Unassigned —',
@@ -3621,6 +3750,7 @@ const translations = {
     confirm_archive_title:'Archive Ticket',
     confirm_archive_sub:'This ticket will be moved to the Archived tab.',
     err_subject_required:'Subject is required.',
+    err_description_required:'Description is required.',
     err_tkt_save:'Could not save ticket.',
     err_tkt_archive:'Could not archive ticket.',
     err_server_connect:'Could not connect to server. Please try again.',
@@ -3848,7 +3978,9 @@ const translations = {
     lc_in_queue:'في قائمة الانتظار', lc_chatting:'محادثة', lc_queue_title:'قائمة الانتظار',
     lc_ongoing:'جارية', lc_pick_up:'استلام', lc_supervise:'إشراف',
     lc_waiting:'انتظار', lc_no_queue:'لا توجد محادثات في قائمة الانتظار.', lc_no_active:'لا توجد محادثات نشطة الآن.',
-    pi_export:'↓ تصدير إلى Excel', pi_new_issue:'+ مشكلة جديدة', pi_filter_all:'الكل',
+    pi_export:'↓ تصدير إلى Excel', pi_new_issue:'+ مشكلة جديدة', pi_filter_all:'الكل', pi_filter_mine:'مشكلاتي',
+    lbl_pi_assignee_filter:'مُعيَّن إلى:', pi_assignee_all:'جميع المستخدمين',
+    lbl_ni_assignee:'تعيين إلى',
     pi_todo:'قيد التنفيذ', pi_inprogress:'قيد المعالجة', pi_pending:'معلق',
     pi_postponed:'مؤجل', pi_resolved:'تم الحل', pi_archived:'مؤرشف',
     confirm_archive_issue_sub:'سيتم نقل هذه المشكلة إلى تبويب الأرشيف.',
@@ -3866,6 +3998,7 @@ const translations = {
     team_dev:'فريق التطوير', team_finance:'فريق المالية', team_it_ops:'عمليات IT',
     tkt_all_tickets:'جميع التذاكر', tkt_open:'مفتوح', tkt_hold:'قيد الانتظار',
     tkt_solved:'تم الحل', tkt_closed:'مغلق',
+    tkt_filter_all_statuses:'كل الحالات', tkt_filter_all_agents:'كل العوامل',
     tkt_empty_title:'لم يتم اختيار تذكرة',
     tkt_empty_desc:'اختر تذكرة من القائمة على اليسار لعرض محادثتها الكاملة وتفاصيلها وتاريخها.',
     rpt_total_chats_tab:'إجمالي المحادثات', rpt_satisfaction_tab:'رضا المحادثة', rpt_agent_perf_tab:'أداء الوكيل',
@@ -3884,7 +4017,7 @@ const translations = {
     rpt_kpi_total_chats:'إجمالي المحادثات', rpt_avg_per:'متوسط /', rpt_peak:'ذروة', rpt_share_of_team:'حصة الفريق',
     rpt_all_agents_delta:'جميع الوكلاء', rpt_vs_prev:'مقابل السابق', rpt_highest:'الأعلى',
     rpt_monthly_dist:'التوزيع الشهري', rpt_mom_trend:'اتجاه شهر على شهر',
-    rpt_yoy_change:'% = تغيير سنوي', rpt_legend_2025:'2025', rpt_legend_2026:'2026',
+    rpt_yoy_change:'% = تغيير سنوي', rpt_legend_2025:'2025', rpt_legend_2026:'2026', rpt_compare_btn:'2026 مقابل 2025',
     rpt_total_chats_svg:'إجمالي المحادثات',
     rpt_positive:'إيجابي', rpt_negative:'سلبي', rpt_no_rating:'بدون تقييم',
     rpt_csat_score:'درجة رضا العملاء', rpt_positive_ratings:'التقييمات الإيجابية', rpt_negative_ratings:'التقييمات السلبية',
@@ -3913,6 +4046,7 @@ const translations = {
     // Ticket modal
     modal_add_ticket_title:'إضافة تذكرة', modal_edit_ticket_title:'تعديل التذكرة',
     lbl_subject:'الموضوع', ph_tk_subject:'وصف موجز للمشكلة',
+    lbl_tk_description:'الوصف', ph_tk_description:'صف المشكلة بالتفصيل…',
     lbl_client_email:'البريد الإلكتروني للعميل',
     lbl_assign_agent:'تعيين إلى وكيل',
     lbl_unassigned:'غير معيّن', lbl_unassigned_opt:'— غير معيّن —',
@@ -3923,6 +4057,7 @@ const translations = {
     confirm_archive_title:'أرشفة التذكرة',
     confirm_archive_sub:'سيتم نقل هذه التذكرة إلى تبويب الأرشيف.',
     err_subject_required:'الموضوع مطلوب.',
+    err_description_required:'الوصف مطلوب.',
     err_tkt_save:'تعذر حفظ التذكرة.',
     err_tkt_archive:'تعذر أرشفة التذكرة.',
     err_server_connect:'تعذر الاتصال بالخادم. يُرجى المحاولة مرة أخرى.',
@@ -4142,7 +4277,9 @@ const translations = {
     lc_in_queue:'در صف انتظار', lc_chatting:'در حال گفتگو', lc_queue_title:'صف انتظار',
     lc_ongoing:'در جریان', lc_pick_up:'دریافت', lc_supervise:'نظارت',
     lc_waiting:'در انتظار', lc_no_queue:'هیچ چتی در صف انتظار نیست.', lc_no_active:'هیچ چت فعالی در حال حاضر وجود ندارد.',
-    pi_export:'↓ خروجی Excel', pi_new_issue:'+ مشکله جدید', pi_filter_all:'همه',
+    pi_export:'↓ خروجی Excel', pi_new_issue:'+ مشکله جدید', pi_filter_all:'همه', pi_filter_mine:'مشکلات من',
+    lbl_pi_assignee_filter:'تخصیص‌یافته به:', pi_assignee_all:'همه کاربران',
+    lbl_ni_assignee:'تخصیص به',
     pi_todo:'انجام دادنی', pi_inprogress:'در حال انجام', pi_pending:'معلق',
     pi_postponed:'به تعویق افتاده', pi_resolved:'حل‌شده', pi_archived:'بایگانی‌شده',
     confirm_archive_issue_sub:'این مشکل به تب بایگانی منتقل خواهد شد.',
@@ -4160,6 +4297,7 @@ const translations = {
     team_dev:'تیم توسعه', team_finance:'تیم مالی', team_it_ops:'عملیات IT',
     tkt_all_tickets:'همه تیکت‌ها', tkt_open:'باز', tkt_hold:'در انتظار',
     tkt_solved:'حل‌شده', tkt_closed:'بسته‌شده',
+    tkt_filter_all_statuses:'همه وضعیت‌ها', tkt_filter_all_agents:'همه عوامل',
     tkt_empty_title:'هیچ تیکتی انتخاب نشده',
     tkt_empty_desc:'یک تیکت از فهرست سمت چپ انتخاب کنید تا مکالمه کامل، جزئیات و تاریخچه آن را مشاهده کنید.',
     rpt_total_chats_tab:'مجموع چت‌ها', rpt_satisfaction_tab:'رضایت از چت', rpt_agent_perf_tab:'عملکرد عامل',
@@ -4178,7 +4316,7 @@ const translations = {
     rpt_kpi_total_chats:'مجموع چت‌ها', rpt_avg_per:'میانگین /', rpt_peak:'اوج', rpt_share_of_team:'سهم تیم',
     rpt_all_agents_delta:'همه عوامل', rpt_vs_prev:'در مقابل قبلی', rpt_highest:'بالاترین',
     rpt_monthly_dist:'توزیع ماهانه', rpt_mom_trend:'روند ماه به ماه',
-    rpt_yoy_change:'% = تغییر سالانه', rpt_legend_2025:'2025', rpt_legend_2026:'2026',
+    rpt_yoy_change:'% = تغییر سالانه', rpt_legend_2025:'2025', rpt_legend_2026:'2026', rpt_compare_btn:'2026 در مقابل 2025',
     rpt_total_chats_svg:'مجموع چت‌ها',
     rpt_positive:'مثبت', rpt_negative:'منفی', rpt_no_rating:'بدون رتبه',
     rpt_csat_score:'امتیاز CSAT', rpt_positive_ratings:'رتبه‌بندی‌های مثبت', rpt_negative_ratings:'رتبه‌بندی‌های منفی',
@@ -4207,6 +4345,7 @@ const translations = {
     // Ticket modal
     modal_add_ticket_title:'افزودن تیکت', modal_edit_ticket_title:'ویرایش تیکت',
     lbl_subject:'موضوع', ph_tk_subject:'توضیح مختصری از مشکل',
+    lbl_tk_description:'توضیحات', ph_tk_description:'مشکل را به تفصیل شرح دهید…',
     lbl_client_email:'ایمیل کلاینت',
     lbl_assign_agent:'تخصیص به عامل',
     lbl_unassigned:'بدون تخصیص', lbl_unassigned_opt:'— بدون تخصیص —',
@@ -4217,6 +4356,7 @@ const translations = {
     confirm_archive_title:'بایگانی تیکت',
     confirm_archive_sub:'این تیکت به تب بایگانی منتقل می‌شود.',
     err_subject_required:'موضوع الزامی است.',
+    err_description_required:'توضیحات الزامی است.',
     err_tkt_save:'ذخیره تیکت امکان‌پذیر نشد.',
     err_tkt_archive:'بایگانی تیکت امکان‌پذیر نشد.',
     err_server_connect:'اتصال به سرور امکان‌پذیر نشد. لطفاً دوباره امتحان کنید.',

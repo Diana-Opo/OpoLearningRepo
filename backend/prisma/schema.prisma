@@ -70,7 +70,8 @@ model User {
   avatarData   String?    @db.Text
   createdAt    DateTime   @default(now())
 
-  reportedIssues PlatformIssue[] @relation("ReportedByUser")
+  reportedIssues  PlatformIssue[] @relation("ReportedByUser")
+  assignedIssues  PlatformIssue[] @relation("AssignedToUser")
 
   @@map("users")
 }
@@ -79,13 +80,28 @@ model Ticket {
   id          Int          @id @default(autoincrement())
   subject     String
   clientEmail String
+  description String?      @db.Text
   status      TicketStatus @default(open)
   priority    Priority     @default(medium)
   assignedTo  Int?
   agent       Agent?       @relation(fields: [assignedTo], references: [id])
   createdAt   DateTime     @default(now())
 
+  comments    TicketComment[]
+
   @@map("tickets")
+}
+
+model TicketComment {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorName String
+  role       String   @default("reply")
+  text       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@map("ticket_comments")
 }
 
 model PlatformIssue {
@@ -98,6 +114,8 @@ model PlatformIssue {
   description String?     @db.Text
   reportedBy  Int?
   reporter    User?       @relation("ReportedByUser", fields: [reportedBy], references: [id])
+  assignedTo  Int?
+  assignee    User?       @relation("AssignedToUser", fields: [assignedTo], references: [id])
   createdAt   DateTime    @default(now())
   modifiedAt  DateTime    @updatedAt
 

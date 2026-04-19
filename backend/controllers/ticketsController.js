@@ -13,6 +13,13 @@ function fail(res, message, status = 400) {
   return res.status(status).json({ success: false, data: null, message });
 }
 
+// Coerce any falsy/invalid value (empty string, 0, NaN) to null
+function normalizeAssignedTo(val) {
+  if (val === undefined || val === null || val === '' || val === false) return null;
+  const n = Number(val);
+  return (Number.isInteger(n) && n > 0) ? n : null;
+}
+
 // ─── GET /api/tickets ────────────────────────────────────
 
 async function getAll(req, res) {
@@ -20,7 +27,8 @@ async function getAll(req, res) {
     const tickets = await prisma.ticket.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        agent: { select: { id: true, name: true, email: true, shift: true, status: true } },
+        agent:    { select: { id: true, name: true, email: true, shift: true, status: true } },
+        comments: { orderBy: { createdAt: 'asc' } },
       },
     });
     return ok(res, tickets);
@@ -33,10 +41,12 @@ async function getAll(req, res) {
 // ─── POST /api/tickets ───────────────────────────────────
 
 async function create(req, res) {
-  const { subject, clientEmail, status, priority, assignedTo } = req.body;
+  const { subject, clientEmail, description, status, priority } = req.body;
+  const assignedTo = normalizeAssignedTo(req.body.assignedTo);
 
   if (!subject)     return fail(res, 'Field subject is required');
   if (!clientEmail) return fail(res, 'Field clientEmail is required');
+  if (!description) return fail(res, 'Field description is required');
   if (!status)      return fail(res, 'Field status is required');
   if (!priority)    return fail(res, 'Field priority is required');
 
@@ -57,12 +67,14 @@ async function create(req, res) {
       data: {
         subject,
         clientEmail,
+        description,
         status,
         priority,
-        assignedTo: assignedTo ?? null,
+        assignedTo,
       },
       include: {
-        agent: { select: { id: true, name: true, email: true, shift: true, status: true } },
+        agent:    { select: { id: true, name: true, email: true, shift: true, status: true } },
+        comments: { orderBy: { createdAt: 'asc' } },
       },
     });
     return ok(res, ticket, 'Ticket created successfully', 201);
@@ -78,7 +90,8 @@ async function update(req, res) {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return fail(res, 'Invalid ticket id');
 
-  const { subject, clientEmail, status, priority, assignedTo } = req.body;
+  const { subject, clientEmail, description, status, priority } = req.body;
+  const assignedTo = 'assignedTo' in req.body ? normalizeAssignedTo(req.body.assignedTo) : undefined;
 
   if (status   && !VALID_STATUSES.includes(status)) {
     return fail(res, `Field status must be one of: ${VALID_STATUSES.join(', ')}`);
@@ -95,6 +108,7 @@ async function update(req, res) {
   const data = {};
   if (subject     !== undefined) data.subject     = subject;
   if (clientEmail !== undefined) data.clientEmail = clientEmail;
+  if (description !== undefined) data.description = description;
   if (status      !== undefined) data.status      = status;
   if (priority    !== undefined) data.priority    = priority;
   if (assignedTo  !== undefined) data.assignedTo  = assignedTo;
@@ -108,7 +122,8 @@ async function update(req, res) {
       where: { id },
       data,
       include: {
-        agent: { select: { id: true, name: true, email: true, shift: true, status: true } },
+        agent:    { select: { id: true, name: true, email: true, shift: true, status: true } },
+        comments: { orderBy: { createdAt: 'asc' } },
       },
     });
     return ok(res, ticket, 'Ticket updated successfully');
@@ -135,4 +150,49 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getAll, create, update, remove };
+// ─── GET /api/tickets/:id/comments ───────────────────────
+
+async function getComments(req, res) {
+  const ticketId = parseInt(req.params.id, 10);
+  if (isNaN(ticketId)) return fail(res, 'Invalid ticket id');
+
+  try {
+    const comments = await prisma.ticketComment.findMany({
+      where:   { ticketId },
+      orderBy: { createdAt: 'asc' },
+    });
+    return ok(res, comments);
+  } catch (err) {
+    console.error('[tickets:getComments]', err);
+    return fail(res, 'Database error, please try again', 500);
+  }
+}
+
+// ─── POST /api/tickets/:id/comments ──────────────────────
+
+async function addComment(req, res) {
+  const ticketId = parseInt(req.params.id, 10);
+  if (isNaN(ticketId)) return fail(res, 'Invalid ticket id');
+
+  const { authorName, role, text } = req.body;
+  if (!authorName) return fail(res, 'Field authorName is required');
+  if (!text)       return fail(res, 'Field text is required');
+
+  const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+  if (!ticket) return fail(res, 'Ticket not found', 404);
+
+  const validRoles = ['reply', 'internal'];
+  const commentRole = validRoles.includes(role) ? role : 'reply';
+
+  try {
+    const comment = await prisma.ticketComment.create({
+      data: { ticketId, authorName, role: commentRole, text },
+    });
+    return ok(res, comment, 'Comment added successfully', 201);
+  } catch (err) {
+    console.error('[tickets:addComment]', err);
+    return fail(res, 'Database error, please try again', 500);
+  }
+}
+
+module.exports = { getAll, create, update, remove, getComments, addComment };

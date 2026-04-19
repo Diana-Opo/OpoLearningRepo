@@ -21,6 +21,7 @@ async function getAll(req, res) {
       orderBy: { createdAt: 'desc' },
       include: {
         reporter: { select: { id: true, name: true, role: true } },
+        assignee: { select: { id: true, name: true, role: true } },
       },
     });
     return ok(res, issues);
@@ -33,7 +34,7 @@ async function getAll(req, res) {
 // ─── POST /api/platform_issues ───────────────────────────
 
 async function create(req, res) {
-  const { title, platform, priority, status, summary, description, reportedBy } = req.body;
+  const { title, platform, priority, status, summary, description, reportedBy, assignedTo } = req.body;
 
   if (!title)    return fail(res, 'Field title is required');
   if (!platform) return fail(res, 'Field platform is required');
@@ -48,10 +49,14 @@ async function create(req, res) {
     return fail(res, `Field status must be one of: ${VALID_STATUSES.join(', ')}`);
   }
 
-  // Validate reportedBy refers to a real user if provided
   if (reportedBy !== undefined && reportedBy !== null) {
     const user = await prisma.user.findUnique({ where: { id: reportedBy } });
     if (!user) return fail(res, 'Provided reportedBy user does not exist', 404);
+  }
+
+  if (assignedTo !== undefined && assignedTo !== null) {
+    const user = await prisma.user.findUnique({ where: { id: assignedTo } });
+    if (!user) return fail(res, 'Provided assignedTo user does not exist', 404);
   }
 
   try {
@@ -64,9 +69,11 @@ async function create(req, res) {
         summary,
         description: description ?? null,
         reportedBy:  reportedBy  ?? null,
+        assignedTo:  assignedTo  ?? null,
       },
       include: {
         reporter: { select: { id: true, name: true, role: true } },
+        assignee: { select: { id: true, name: true, role: true } },
       },
     });
     return ok(res, issue, 'Platform issue created successfully', 201);
@@ -82,7 +89,7 @@ async function update(req, res) {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return fail(res, 'Invalid issue id');
 
-  const { title, platform, priority, status, summary, description, reportedBy } = req.body;
+  const { title, platform, priority, status, summary, description, reportedBy, assignedTo } = req.body;
 
   if (priority && !VALID_PRIORITIES.includes(priority)) {
     return fail(res, `Field priority must be one of: ${VALID_PRIORITIES.join(', ')}`);
@@ -96,6 +103,11 @@ async function update(req, res) {
     if (!user) return fail(res, 'Provided reportedBy user does not exist', 404);
   }
 
+  if (assignedTo !== undefined && assignedTo !== null) {
+    const user = await prisma.user.findUnique({ where: { id: assignedTo } });
+    if (!user) return fail(res, 'Provided assignedTo user does not exist', 404);
+  }
+
   // Build update payload with only the fields that were sent
   const data = {};
   if (title       !== undefined) data.title       = title;
@@ -105,6 +117,7 @@ async function update(req, res) {
   if (summary     !== undefined) data.summary     = summary;
   if (description !== undefined) data.description = description;
   if (reportedBy  !== undefined) data.reportedBy  = reportedBy;
+  if (assignedTo  !== undefined) data.assignedTo  = assignedTo;
 
   if (Object.keys(data).length === 0) {
     return fail(res, 'No fields provided to update');
@@ -116,6 +129,7 @@ async function update(req, res) {
       data,
       include: {
         reporter: { select: { id: true, name: true, role: true } },
+        assignee: { select: { id: true, name: true, role: true } },
       },
     });
     return ok(res, issue, 'Platform issue updated successfully');

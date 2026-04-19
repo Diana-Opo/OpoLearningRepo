@@ -1002,12 +1002,21 @@
         <!-- Filter bar — by status -->
         <div class="filter-bar" id="pi-filter-bar">
           <button class="filter-tab active" onclick="filterIssues(this,'all')"><span data-i18n="pi_filter_all">All</span> <span class="tab-count" id="pi-count-all">0</span></button>
+          <button class="filter-tab" onclick="filterIssues(this,'mine')">👤 <span data-i18n="pi_filter_mine">My Issues</span> <span class="tab-count" id="pi-count-mine">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'todo')">📋 <span data-i18n="pi_todo">To Do</span> <span class="tab-count" id="pi-count-todo">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'inprogress')">🔄 <span data-i18n="pi_inprogress">In Progress</span> <span class="tab-count" id="pi-count-inprogress">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'pending')">⏸ <span data-i18n="pi_pending">Pending</span> <span class="tab-count" id="pi-count-pending">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'postponed')">📅 <span data-i18n="pi_postponed">Postponed</span> <span class="tab-count" id="pi-count-postponed">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'resolved')">✅ <span data-i18n="pi_resolved">Resolved</span> <span class="tab-count" id="pi-count-resolved">0</span></button>
           <button class="filter-tab" onclick="filterIssues(this,'archived')">📦 <span data-i18n="pi_archived">Archived</span> <span class="tab-count" id="pi-count-archived">0</span></button>
+        </div>
+
+        <!-- Assignee filter -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;color:var(--text-muted);white-space:nowrap" data-i18n="lbl_pi_assignee_filter">Assigned To:</label>
+          <select id="pi-assignee-filter" onchange="filterIssuesByAssignee()" style="font-size:13px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--text);font-family:inherit;cursor:pointer">
+            <option value="" data-i18n="pi_assignee_all">All users</option>
+          </select>
         </div>
 
         <!-- Issues grid (populated by JS) -->
@@ -1030,14 +1039,26 @@
               <button class="btn-primary" style="width:auto;padding:7px 16px;font-size:13px;margin-top:0;margin-inline-start:auto" onclick="openAddTicketModal(null)" data-i18n="btn_add_ticket">+ Add</button>
             </div>
 
-            <!-- Status tabs -->
-            <div class="tkt-tabs">
-              <button class="tkt-tab active" onclick="filterTickets(this,'open')"><span data-i18n="tkt_open">Open</span> <span class="tkt-tab-count" id="tkt-count-open">5</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'pending')"><span data-i18n="tkt_pending">Pending</span> <span class="tkt-tab-count" id="tkt-count-pending">3</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'hold')"><span data-i18n="tkt_hold">On Hold</span> <span class="tkt-tab-count" id="tkt-count-hold">2</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'solved')"><span data-i18n="tkt_solved">Solved</span> <span class="tkt-tab-count" id="tkt-count-solved">2</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'closed')"><span data-i18n="tkt_closed">Closed</span> <span class="tkt-tab-count" id="tkt-count-closed">1</span></button>
-              <button class="tkt-tab" onclick="filterTickets(this,'archived')"><span data-i18n="tkt_archived">Archived</span> <span class="tkt-tab-count" id="tkt-count-archived">0</span></button>
+            <!-- Filters -->
+            <div class="tkt-filter-bar">
+              <div class="tkt-filter-group">
+                <label class="tkt-filter-label" data-i18n="tbl_status">Status</label>
+                <select id="tkt-filter-status" class="tkt-filter-select" onchange="applyTicketFilters()">
+                  <option value="" data-i18n="tkt_filter_all_statuses">All statuses</option>
+                  <option value="open"     data-i18n="tkt_open">Open</option>
+                  <option value="pending"  data-i18n="tkt_pending">Pending</option>
+                  <option value="hold"     data-i18n="tkt_hold">On Hold</option>
+                  <option value="solved"   data-i18n="tkt_solved">Solved</option>
+                  <option value="closed"   data-i18n="tkt_closed">Closed</option>
+                  <option value="archived" data-i18n="tkt_archived">Archived</option>
+                </select>
+              </div>
+              <div class="tkt-filter-group">
+                <label class="tkt-filter-label" data-i18n="lbl_agent_label">Agent</label>
+                <select id="tkt-filter-agent" class="tkt-filter-select" onchange="applyTicketFilters()">
+                  <option value="" data-i18n="tkt_filter_all_agents">All agents</option>
+                </select>
+              </div>
             </div>
 
             <!-- Ticket rows (populated by JS) -->
@@ -1174,7 +1195,7 @@
               <div class="rpt-year-tabs" id="tc-year-tabs">
                 <button class="rpt-year-tab active" onclick="setYearView(this,'2026')">2026</button>
                 <button class="rpt-year-tab"        onclick="setYearView(this,'2025')">2025</button>
-                <button class="rpt-year-tab yoy"    onclick="setYearView(this,'compare')">2025 vs 2026</button>
+                <button class="rpt-year-tab yoy"    onclick="setYearView(this,'compare')" data-i18n="rpt_compare_btn">2025 vs 2026</button>
               </div>
             </div>
             <div id="tc-yearly-body" class="rpt-yearly-body"></div>
@@ -1772,8 +1793,8 @@
       <div class="form-group">
         <label data-i18n="lbl_shift">Shift</label>
         <div class="shift-toggle">
-          <button class="shift-btn day" data-shift="day" onclick="selectShift(this)" data-i18n="agent_filter_day">☀ Day Shift</button>
-          <button class="shift-btn night" data-shift="night" onclick="selectShift(this)" data-i18n="agent_filter_night">🌙 Night Shift</button>
+          <button class="shift-btn day" data-shift="day" onclick="selectModalShift(this)" data-i18n="agent_filter_day">☀ Day Shift</button>
+          <button class="shift-btn night" data-shift="night" onclick="selectModalShift(this)" data-i18n="agent_filter_night">🌙 Night Shift</button>
         </div>
       </div>
 
@@ -1945,9 +1966,15 @@
         <label data-i18n="lbl_ni_desc">Description</label>
         <textarea id="ni-description" class="id-comment-textarea" placeholder="Detailed description, affected clients, steps to reproduce…" rows="4" style="width:100%" data-i18n-placeholder="ph_ni_desc_ph"></textarea>
       </div>
-      <div class="form-group">
-        <label data-i18n="lbl_ni_reporter">Reported By</label>
-        <select id="ni-reporter"></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label data-i18n="lbl_ni_reporter">Reported By</label>
+          <select id="ni-reporter"></select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="lbl_ni_assignee">Assigned To</label>
+          <select id="ni-assignee"></select>
+        </div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px">
         <button class="btn-outline" style="width:auto;padding:10px 24px;font-size:14px;margin-top:0" onclick="closeNewIssueModal()" data-i18n="btn_cancel">Cancel</button>
@@ -2020,6 +2047,11 @@
         <label><span data-i18n="lbl_client_email">Client Email</span> *</label>
         <input id="tk-client-email" type="email" placeholder="client@example.com" />
         <div class="input-error" id="tk-client-email-err"></div>
+      </div>
+      <div class="form-group">
+        <label><span data-i18n="lbl_tk_description">Description</span> *</label>
+        <textarea id="tk-description" rows="3" style="width:100%" placeholder="Describe the issue in detail…" data-i18n-placeholder="ph_tk_description"></textarea>
+        <div class="input-error" id="tk-description-err"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div class="form-group">
