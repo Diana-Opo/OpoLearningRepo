@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const prisma  = require('../lib/prisma');
+const { sendResetEmail } = require('../lib/mailer');
 
 const SALT_ROUNDS  = 12;
 const VALID_ROLES  = ['agent', 'manager', 'admin'];
@@ -57,11 +59,103 @@ async function login(req, res) {
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return fail(res, 'Incorrect password', 401);
 
-    return ok(res, { id: user.id, name: user.name, role: user.role, status: user.status, avatarData: user.avatarData ?? null }, 'Login successful');
+    return ok(res, {
+      id: user.id, name: user.name, role: user.role, status: user.status,
+      avatarData: user.avatarData ?? null,
+      permissionGroupId: user.permissionGroupId ?? null,
+    }, 'Login successful');
   } catch (err) {
     console.error('[auth:login]', err);
     return fail(res, 'Database error, please try again', 500);
   }
 }
 
-module.exports = { register, login };
+// POST /api/auth/forgot-password
+async function forgotPassword(req, res) {
+  const { email } = req.body;
+  if (!email) return fail(res, 'Field email is required');
+
+  // Always respond with the same message to prevent email enumeration
+  const SUCCESS_MSG = 'If an account exists for that email, a reset link has been sent.';
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return ok(res, null, SUCCESS_MSG);
+
+    // Invalidate any existing unused tokens for this user
+    await prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, used: false },
+      data:  { used: true },
+    });
+
+    const token     = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, token, expiresAt },
+    });
+
+    const base      = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetLink = `${base}/reset-password?token=${token}`;
+
+    await sendResetEmail(user.email, user.name, resetLink);
+
+    return ok(res, null, SUCCESS_MSG);
+  } catch (err) {
+    console.error('[auth:forgotPassword]', err);
+    return fail(res, 'Database error, please try again', 500);
+  }
+}
+
+// GET /api/auth/verify-reset-token/:token
+async function verifyResetToken(req, res) {
+  const { token } = req.params;
+  try {
+    const record = await prisma.passwordResetToken.findUnique({ where: { token } });
+    if (!record || record.used || record.expiresAt < new Date()) {
+      return fail(res, 'This reset link is invalid or has expired.', 400);
+    }
+    return ok(res, null, 'Token is valid');
+  } catch (err) {
+    return fail(res, 'Database error', 500);
+  }
+}
+
+// POST /api/auth/reset-password
+async function resetPassword(req, res) {
+  const { token, password } = req.body;
+  if (!token)    return fail(res, 'Token is required');
+  if (!password) return fail(res, 'Password is required');
+  if (password.length < 6) return fail(res, 'Password must be at least 6 characters');
+
+  try {
+    const record = await prisma.passwordResetToken.findUnique({
+      where:   { token },
+      include: { user: true },
+    });
+
+    if (!record || record.used || record.expiresAt < new Date()) {
+      return fail(res, 'This reset link is invalid or has expired.', 400);
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: record.userId },
+        data:  { passwordHash },
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: record.id },
+        data:  { used: true },
+      }),
+    ]);
+
+    return ok(res, null, 'Password has been reset successfully. You can now log in.');
+  } catch (err) {
+    console.error('[auth:resetPassword]', err);
+    return fail(res, 'Database error, please try again', 500);
+  }
+}
+
+module.exports = { register, login, forgotPassword, verifyResetToken, resetPassword };

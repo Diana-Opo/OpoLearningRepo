@@ -71,7 +71,7 @@ async function getStaffUsers(req, res) {
   try {
     const users = await prisma.user.findMany({
       where:   { status: 'approved' },
-      select:  { id: true, name: true, role: true },
+      select:  { id: true, name: true, role: true, permissionGroupId: true },
       orderBy: { name: 'asc' },
     });
     return ok(res, users, 'Staff users retrieved');
@@ -91,7 +91,11 @@ async function getAllUsers(req, res) {
       return fail(res, 'Only admins can view the user list', 403);
 
     const users = await prisma.user.findMany({
-      select:  { id: true, name: true, email: true, role: true, status: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, role: true, status: true, createdAt: true,
+        permissionGroupId: true,
+        permissionGroup: { select: { id: true, name: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return ok(res, users, 'Users retrieved');
@@ -102,11 +106,12 @@ async function getAllUsers(req, res) {
 }
 
 // PATCH /api/users/edit
-// Body: { id, name, email, role, status, requesterEmail }  — admin only
+// Body: { id, name, email, permissionGroupId, status, requesterEmail }  — admin only
+// role is derived automatically from the assigned group; it is not accepted as input
 const VALID_STATUSES = ['approved', 'pending', 'rejected'];
 
 async function editUser(req, res) {
-  const { id, name, email, role, status, requesterEmail } = req.body;
+  const { id, name, email, status, requesterEmail, permissionGroupId } = req.body;
   if (!id)             return fail(res, 'Field id is required');
   if (!requesterEmail) return fail(res, 'Field requesterEmail is required');
 
@@ -117,13 +122,35 @@ async function editUser(req, res) {
     const data = {};
     if (name)   data.name  = name.trim();
     if (email)  data.email = email.trim();
-    if (role   && VALID_ROLES.includes(role))     data.role   = role;
     if (status && VALID_STATUSES.includes(status)) data.status = status;
+
+    // Group assignment: derive role automatically from the group
+    if ('permissionGroupId' in req.body) {
+      const pgId = permissionGroupId || null;
+      data.permissionGroupId = pgId;
+
+      if (pgId) {
+        const grp = await prisma.permissionGroup.findUnique({
+          where:  { id: pgId },
+          select: { isAdmin: true, isSystem: true, name: true },
+        });
+        if (!grp) return fail(res, 'Permission group not found', 404);
+        // Derive internal role from group type
+        if (grp.isAdmin)                         data.role = 'admin';
+        else if (grp.isSystem && grp.name === 'Manager') data.role = 'manager';
+        else                                     data.role = 'agent';
+      }
+      // Clearing the group (pgId = null) leaves the existing role unchanged
+    }
 
     const user = await prisma.user.update({
       where:  { id: Number(id) },
       data,
-      select: { id: true, name: true, email: true, role: true, status: true },
+      select: {
+        id: true, name: true, email: true, role: true, status: true,
+        permissionGroupId: true,
+        permissionGroup: { select: { id: true, name: true } },
+      },
     });
     return ok(res, user, 'User updated');
   } catch (err) {

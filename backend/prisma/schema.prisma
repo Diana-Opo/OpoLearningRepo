@@ -61,19 +61,70 @@ enum Shift {
 // ─── Models ──────────────────────────────────────────────
 
 model User {
-  id           Int        @id @default(autoincrement())
-  name         String
-  email        String     @unique
-  passwordHash String?
-  role         UserRole   @default(agent)
-  status       UserStatus @default(pending)
-  avatarData   String?    @db.Text
-  createdAt    DateTime   @default(now())
+  id                Int              @id @default(autoincrement())
+  name              String
+  email             String           @unique
+  passwordHash      String?
+  role              UserRole         @default(agent)
+  status            UserStatus       @default(pending)
+  avatarData        String?          @db.Text
+  createdAt         DateTime         @default(now())
+  permissionGroupId String?
+  permissionGroup   PermissionGroup? @relation(fields: [permissionGroupId], references: [id], onDelete: SetNull)
 
-  reportedIssues  PlatformIssue[] @relation("ReportedByUser")
-  assignedIssues  PlatformIssue[] @relation("AssignedToUser")
+  reportedIssues  PlatformIssue[]      @relation("ReportedByUser")
+  assignedIssues  PlatformIssue[]      @relation("AssignedToUser")
+  resetTokens     PasswordResetToken[]
 
   @@map("users")
+}
+
+model PermissionGroup {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isSystem  Boolean  @default(false)
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  viewDashboard Boolean @default(false)
+  viewLivechats Boolean @default(false)
+  viewTickets   Boolean @default(false)
+  viewIssues    Boolean @default(false)
+  viewAgents    Boolean @default(false)
+  viewReports   Boolean @default(false)
+
+  ticketsCreate Boolean @default(false)
+  ticketsEdit   Boolean @default(false)
+  ticketsDelete Boolean @default(false)
+  ticketsExport Boolean @default(false)
+
+  issuesCreate  Boolean @default(false)
+  issuesEdit    Boolean @default(false)
+  issuesDelete  Boolean @default(false)
+  issuesExport  Boolean @default(false)
+
+  agentsCreate  Boolean @default(false)
+  agentsEdit    Boolean @default(false)
+  agentsArchive Boolean @default(false)
+  agentsExport  Boolean @default(false)
+
+  reportsExport Boolean @default(false)
+
+  users User[]
+
+  @@map("permission_groups")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
 }
 
 model Ticket {

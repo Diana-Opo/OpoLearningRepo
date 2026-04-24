@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
 
@@ -234,8 +234,55 @@
         </button>
       </form>
       <div class="auth-footer">
+        <a href="#" class="auth-forgot-link" onclick="showScreen('forgot-password');return false;" data-i18n="auth_forgot_link">Forgot password?</a>
+      </div>
+      <div class="auth-footer" style="margin-top:8px">
         <span data-i18n="auth_no_account">Don't have an account?</span> <a href="#" onclick="showScreen('signup');return false;" data-i18n="auth_create_link">Create one</a>
       </div>
+    </div>
+
+    <!-- FORGOT PASSWORD -->
+    <div id="forgot-password-screen" class="auth-card hidden">
+      <div class="auth-card-header">
+        <h1 class="auth-heading" data-i18n="auth_forgot_title">Reset Password</h1>
+        <p class="auth-sub" data-i18n="auth_forgot_sub">Enter your email and we'll send you a reset link.</p>
+      </div>
+      <form id="forgot-form" onsubmit="handleForgotPassword(event)">
+        <div class="form-group">
+          <label data-i18n="auth_lbl_email">Email address</label>
+          <div class="auth-input-wrap">
+            <svg class="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input id="forgot-email" type="email" placeholder="you@company.com" autocomplete="email" />
+          </div>
+          <div class="input-error" id="forgot-email-err">Please enter a valid email.</div>
+          <div class="input-error" id="forgot-api-err" style="color:#b45309;background:#fef3c7;padding:8px 10px;border-radius:8px;margin-top:6px;display:none"></div>
+        </div>
+        <button type="submit" class="auth-btn" id="forgot-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span data-i18n="auth_forgot_btn">Send Reset Link</span>
+        </button>
+      </form>
+      <div class="auth-footer" style="margin-top:14px">
+        <a href="#" onclick="showScreen('login');return false;" data-i18n="auth_back_login">← Back to Sign In</a>
+      </div>
+    </div>
+
+    <!-- EMAIL SENT -->
+    <div id="email-sent-screen" class="auth-card hidden">
+      <div class="auth-card-header" style="text-align:center">
+        <div class="pending-icon-circle" style="background:#dbeafe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="30" height="30"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h1 class="auth-heading" data-i18n="auth_email_sent_title">Check your email</h1>
+        <p class="auth-sub" data-i18n="auth_email_sent_sub">If an account exists for that email, we've sent a password reset link. It expires in 1 hour.</p>
+      </div>
+      <div class="pending-info-box" style="text-align:center">
+        <div id="sent-to-email" style="font-size:14px;font-weight:600;color:var(--brand)"></div>
+      </div>
+      <button class="auth-btn" onclick="showScreen('login')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        <span data-i18n="auth_back_login_btn">Back to Sign In</span>
+      </button>
     </div>
 
     <!-- SIGN UP -->
@@ -413,6 +460,14 @@
         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
       </svg>
       <span data-i18n="nav_users">User Management</span>
+    </a>
+
+    <a class="nav-item admin-only" data-page="access" style="display:none" onclick="navClick(this);return false;" href="#">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <span data-i18n="nav_access">Access Management</span>
     </a>
 
     <div class="sidebar-divider"></div>
@@ -649,7 +704,7 @@
             <div class="section-title"><span data-i18n="dash_greeting">Good morning</span>, <span id="greeting-name">Jane</span> 👋</div>
             <div class="section-sub" id="today-date"></div>
           </div>
-          <button class="btn-outline" onclick="exportDashboardReport()" data-i18n="dash_export">↓ Export Report</button>
+          <button id="btn-dashboard-export" class="btn-outline" onclick="exportDashboardReport()" data-i18n="dash_export">↓ Export Report</button>
         </div>
 
         <!-- REAL-TIME OVERVIEW -->
@@ -955,8 +1010,8 @@
             <div class="section-sub" id="pi-sub">Loading…</div>
           </div>
           <div style="display:flex;gap:10px">
-            <button class="btn-outline" style="width:auto;padding:10px 22px;font-size:14px" onclick="exportIssuesToExcel()" data-i18n="pi_export">↓ Export Excel</button>
-            <button class="btn-primary" style="width:auto;padding:10px 22px;font-size:14px;margin-top:0" onclick="openNewIssueModal()" data-i18n="pi_new_issue">+ New Issue</button>
+            <button id="btn-issues-export" class="btn-outline" style="width:auto;padding:10px 22px;font-size:14px" onclick="exportIssuesToExcel()" data-i18n="pi_export">↓ Export Excel</button>
+            <button id="btn-issues-create" class="btn-primary" style="width:auto;padding:10px 22px;font-size:14px;margin-top:0" onclick="openNewIssueModal()" data-i18n="pi_new_issue">+ New Issue</button>
           </div>
         </div>
 
@@ -1036,7 +1091,7 @@
             <div class="tkt-panel-header">
               <div class="tkt-panel-title" data-i18n="tkt_all_tickets">All Active Tickets</div>
               <span class="tkt-total-badge" id="tkt-total-badge">13</span>
-              <button class="btn-primary" style="width:auto;padding:7px 16px;font-size:13px;margin-top:0;margin-inline-start:auto" onclick="openAddTicketModal(null)" data-i18n="btn_add_ticket">+ Add</button>
+              <button id="btn-tickets-create" class="btn-primary" style="width:auto;padding:7px 16px;font-size:13px;margin-top:0;margin-inline-start:auto" onclick="openAddTicketModal(null)" data-i18n="btn_add_ticket">+ Add</button>
             </div>
 
             <!-- Filters -->
@@ -1311,7 +1366,7 @@
             <div class="section-sub" id="agents-sub">12 agents across day and night shifts</div>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn-add" onclick="openEditModal(null)">
+            <button id="btn-agents-add" class="btn-add" onclick="openEditModal(null)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span data-i18n="btn_add_agent">Add Agent</span>
             </button>
@@ -1362,7 +1417,7 @@
               <tr>
                 <th data-i18n="lbl_display_name">Name</th>
                 <th data-i18n="lbl_email_addr">Email</th>
-                <th data-i18n="lbl_role">Role</th>
+                <th data-i18n="lbl_access_group">Access Group</th>
                 <th>Status</th>
                 <th data-i18n="pending_joined">Joined</th>
                 <th></th>
@@ -1375,6 +1430,68 @@
         </div>
 
       </div><!-- /page-users -->
+
+
+      <!-- ══════════════════════════════════════════
+           PAGE: ACCESS MANAGEMENT (admin only)
+      ══════════════════════════════════════════ -->
+      <div id="page-access" class="page-section hidden">
+
+        <div class="section-header">
+          <div>
+            <div class="section-title" data-i18n="nav_access">Access Management</div>
+            <div class="section-sub" data-i18n="access_sub">Define permissions for each role group</div>
+          </div>
+          <button class="btn-add" onclick="openNewGroupModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span data-i18n="access_btn_new_group">New Group</span>
+          </button>
+        </div>
+
+        <div id="access-groups-list">
+          <div style="text-align:center;padding:60px;color:var(--text-muted)" data-i18n="loading">Loading…</div>
+        </div>
+
+      </div><!-- /page-access -->
+
+      <!-- NEW GROUP MODAL -->
+      <div id="new-group-modal-overlay" class="modal-overlay hidden" onclick="closeNewGroupModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()" style="max-width:440px">
+          <div class="modal-header">
+            <div class="modal-title" data-i18n="access_modal_title">Create New Group</div>
+            <button class="modal-close" onclick="_closeNewGroupModalForce()">&times;</button>
+          </div>
+          <div class="modal-body" style="padding:20px 24px">
+            <div class="form-group" style="margin-bottom:0">
+              <label data-i18n="access_group_name_lbl">Group Name</label>
+              <input id="new-group-name" type="text" class="form-control" data-i18n-placeholder="access_group_name_ph" placeholder="e.g. Supervisor" style="margin-top:6px" />
+              <div class="input-error" id="new-group-name-err"></div>
+            </div>
+          </div>
+          <div class="modal-footer" style="padding:16px 24px">
+            <button class="btn-ghost" onclick="_closeNewGroupModalForce()" data-i18n="btn_cancel">Cancel</button>
+            <button class="btn-primary" style="width:auto;padding:10px 24px;margin-top:0" onclick="saveNewGroup()" data-i18n="btn_create">Create</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- EDIT GROUP MODAL -->
+      <div id="edit-group-modal-overlay" class="modal-overlay hidden" onclick="closeGroupEditModal(event)">
+        <div class="modal-card" onclick="event.stopPropagation()" style="max-width:560px">
+          <div class="modal-header">
+            <div class="modal-title" id="edit-group-modal-title">Edit Permissions</div>
+            <button class="modal-close" onclick="_closeGroupEditModalForce()">&times;</button>
+          </div>
+          <div class="modal-body ag-edit-modal-body" id="edit-group-modal-body" style="padding:20px 24px;max-height:70vh;overflow-y:auto">
+            <!-- filled by openGroupEditModal() -->
+          </div>
+          <div class="modal-footer" style="padding:16px 24px">
+            <button class="btn-ghost" onclick="_closeGroupEditModalForce()" data-i18n="btn_cancel">Cancel</button>
+            <button id="edit-group-save-btn" class="btn-primary" style="width:auto;padding:10px 24px;margin-top:0" onclick="saveGroupFromModal()" data-i18n="btn_save_changes">Save Changes</button>
+          </div>
+        </div>
+      </div>
 
 
       <!-- ══════════════════════════════════════════
@@ -1468,29 +1585,10 @@
               </div>
             </div>
 
-            <!-- Role -->
+            <!-- Access Group -->
             <div class="profile-card">
-              <div class="profile-card-title" data-i18n="lbl_role">Role</div>
-              <!-- Read-only display for non-admins (hidden, kept for JS compat) -->
-              <div id="profile-role-readonly" style="display:none;font-size:14px;color:var(--text-muted);padding:4px 0"></div>
-              <!-- Toggle — visible to all, interactive only for admins -->
-              <div id="profile-role-toggle" class="gender-btns" style="display:none">
-                <button type="button" class="gender-btn" id="profile-role-agent" data-role="agent" onclick="selectProfileRole(this)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:5px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  <span data-i18n="role_agent">Agent</span>
-                </button>
-                <button type="button" class="gender-btn" id="profile-role-manager" data-role="manager" onclick="selectProfileRole(this)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:5px"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
-                  <span data-i18n="role_manager">Manager</span>
-                </button>
-                <button type="button" class="gender-btn" id="profile-role-admin" data-role="admin" onclick="selectProfileRole(this)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:5px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  <span data-i18n="role_admin">Admin</span>
-                </button>
-              </div>
-              <div id="profile-role-save-area" style="display:none;justify-content:flex-end;margin-top:18px">
-                <button id="profile-role-save-btn" class="profile-save-btn" onclick="saveProfileRole()" data-i18n="btn_save_role">Save Role</button>
-              </div>
+              <div class="profile-card-title" data-i18n="lbl_access_group">Access Group</div>
+              <div id="profile-role-readonly" style="padding:4px 0"></div>
             </div>
 
             <!-- Password -->
@@ -2110,13 +2208,12 @@
         <input id="ue-email" type="email" />
         <div class="input-error" id="ue-email-err"></div>
       </div>
-      <div class="form-group">
-        <label data-i18n="lbl_role">Role</label>
-        <select id="ue-role">
-          <option value="agent" data-i18n="role_agent">Agent</option>
-          <option value="manager" data-i18n="role_manager">Manager</option>
-          <option value="admin" data-i18n="role_admin">Admin</option>
+      <div class="form-group" id="ue-group-row">
+        <label data-i18n="lbl_access_group">Access Group</label>
+        <select id="ue-group">
+          <!-- populated dynamically by openUserEditModal() -->
         </select>
+        <div id="ue-group-hint" class="input-hint" style="display:none;font-size:12px;color:var(--text-muted);margin-top:5px" data-i18n="access_group_admin_hint">Admin users always have full access regardless of group.</div>
       </div>
       <div class="form-group">
         <label>Status</label>
@@ -2154,6 +2251,6 @@
   </div>
 </div>
 
-<script src="app.js?v=32"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>

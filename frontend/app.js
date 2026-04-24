@@ -103,15 +103,16 @@ const SESSION_KEY        = 'forexdesk_session';
 const LAST_ACTIVITY_KEY  = 'forexdesk_last_activity';
 
 function saveSession() {
-  const { id, name, email, role, status, avatarCustom, avatarIdx, shift } = currentUser;
+  const { id, name, email, role, status, avatarCustom, avatarIdx, shift, permissionGroupId } = currentUser;
   localStorage.setItem(SESSION_KEY, JSON.stringify({
-    id:           id            ?? null,
+    id:                id               ?? null,
     name, email,
-    role:         role          || 'agent',
-    status:       status        || 'pending',
-    avatarCustom: avatarCustom  || null,
-    avatarIdx:    avatarIdx     ?? null,
-    shift:        shift         || 'day'
+    role:              role             || 'agent',
+    status:            status           || 'pending',
+    avatarCustom:      avatarCustom     || null,
+    avatarIdx:         avatarIdx        ?? null,
+    shift:             shift            || 'day',
+    permissionGroupId: permissionGroupId || null,
   }));
 }
 
@@ -121,14 +122,51 @@ function clearSession() {
 }
 
 function showScreen(s) {
-  ['login', 'signup', 'pending', 'rejected'].forEach(id => {
-    document.getElementById(id + '-screen').classList.add('hidden');
+  ['login', 'signup', 'pending', 'rejected', 'forgot-password', 'email-sent'].forEach(id => {
+    const el = document.getElementById(id + '-screen');
+    if (el) el.classList.add('hidden');
   });
-  document.getElementById(s + '-screen').classList.remove('hidden');
+  const target = document.getElementById(s + '-screen');
+  if (target) target.classList.remove('hidden');
 }
 
 function showErr(id, msg) { const e=document.getElementById(id); e.textContent=msg; e.style.display='block'; }
 function hideErr(id) { const e=document.getElementById(id); if(e) e.style.display='none'; }
+
+async function handleForgotPassword(e) {
+  e.preventDefault();
+  const email  = document.getElementById('forgot-email').value.trim();
+  const errEl  = document.getElementById('forgot-email-err');
+  const apiErr = document.getElementById('forgot-api-err');
+  const btn    = document.getElementById('forgot-btn');
+
+  hideErr('forgot-email-err');
+  if (apiErr) apiErr.style.display = 'none';
+
+  if (!emailValid(email)) { showErr('forgot-email-err', translations[currentLang]?.err_invalid_email || 'Please enter a valid email.'); return; }
+
+  btn.disabled = true;
+  try {
+    const res  = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      const sentEl = document.getElementById('sent-to-email');
+      if (sentEl) sentEl.textContent = email;
+      showScreen('email-sent');
+      document.getElementById('forgot-email').value = '';
+    } else {
+      if (apiErr) { apiErr.textContent = json.message || 'Something went wrong.'; apiErr.style.display = 'block'; }
+    }
+  } catch (_) {
+    if (apiErr) { apiErr.textContent = translations[currentLang]?.err_server_connect || 'Could not connect to server.'; apiErr.style.display = 'block'; }
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 async function handleLogin(e) {
   e.preventDefault();
@@ -143,7 +181,7 @@ async function handleLogin(e) {
     const res  = await fetch(`${API_BASE}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pass }) });
     const json = await res.json();
     if (!res.ok) { showErr('login-pass-err', json.message || 'Login failed. Please check your credentials.'); }
-    else         { enterDashboard(json.data.name, email, json.data.role, json.data.id, json.data.avatarData, json.data.status); }
+    else         { enterDashboard(json.data.name, email, json.data.role, json.data.id, json.data.avatarData, json.data.status, json.data.permissionGroupId); }
   } catch (err) {
     showErr('login-pass-err', 'Could not connect to server. Make sure the backend is running.');
   } finally {
@@ -185,7 +223,7 @@ function _parseAvatarData(avatarData) {
   return { avatarCustom: avatarData, avatarIdx: null };
 }
 
-function enterDashboard(name, email, role, id, avatarData, status) {
+function enterDashboard(name, email, role, id, avatarData, status, permissionGroupId) {
   let { avatarCustom, avatarIdx } = _parseAvatarData(avatarData);
 
   // If the DB has no avatar, check whether a previous local session for this
@@ -205,7 +243,7 @@ function enterDashboard(name, email, role, id, avatarData, status) {
   }
 
   const resolvedStatus = status || 'pending';
-  currentUser = { id: id ?? null, name, email, role: role || 'agent', status: resolvedStatus, avatarCustom, avatarIdx, shift: currentUser.shift || 'day' };
+  currentUser = { id: id ?? null, name, email, role: role || 'agent', status: resolvedStatus, avatarCustom, avatarIdx, shift: currentUser.shift || 'day', permissionGroupId: permissionGroupId || null };
   localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
   saveSession();
 
@@ -240,20 +278,8 @@ function _getLangLocale() {
 }
 
 function _applyRolePermissions() {
-  const isAgent = currentUser.role === 'agent';
-  const isAdmin = currentUser.role === 'admin';
-  // Agents cannot see Reports or Agent Management
-  ['agents', 'reports'].forEach(page => {
-    const el = document.querySelector(`.nav-item[data-page="${page}"]`);
-    if (el) el.style.display = isAgent ? 'none' : '';
-  });
-  // Users page — admin only
-  const usersNav = document.querySelector('.nav-item[data-page="users"]');
-  if (usersNav) usersNav.style.display = isAdmin ? '' : 'none';
-  // Admin-only elements (Create User button, etc.)
-  document.querySelectorAll('.admin-only').forEach(el => {
-    el.style.display = isAdmin ? '' : 'none';
-  });
+  // Delegated to the full permission system
+  _applyPermissions();
 }
 
 function _applyUserToDOM() {
@@ -272,8 +298,8 @@ function _applyUserToDOM() {
   if (currentUser.avatarCustom) updateHeaderAvatarImage();
   else if (currentUser.avatarIdx != null) updateHeaderAvatarSVG();
   _applyRolePermissions();
-  const savedPage = localStorage.getItem('forexdesk_page') || 'dashboard';
-  showPage(savedPage);
+  loadAccessGroups(); // load permission groups then re-apply
+  showPage('dashboard');
   updateNotifDot();
   _startIdleTimers();
 }
@@ -340,16 +366,24 @@ function handleLogout() {
 // ────────────────────────────────────────────────────────
 //  PAGE SWITCHING
 // ────────────────────────────────────────────────────────
-const PAGE_TITLES = { dashboard:'Dashboard', agents:'Agent Management', livechats:'Live Chats', issues:'Platform Issues', tickets:'Tickets', reports:'Reports', settings:'Settings', notifications:'Notifications', profile:'My Profile', users:'User Management' };
+const PAGE_TITLES = { dashboard:'Dashboard', agents:'Agent Management', livechats:'Live Chats', issues:'Platform Issues', tickets:'Tickets', reports:'Reports', settings:'Settings', notifications:'Notifications', profile:'My Profile', users:'User Management', access:'Access Management' };
 
 function showPage(pageId) {
-  const AGENT_RESTRICTED = ['agents', 'reports'];
-  if (currentUser.role === 'agent' && AGENT_RESTRICTED.includes(pageId)) {
-    pageId = 'dashboard';
-  }
-  if (currentUser.role !== 'admin' && pageId === 'users') {
-    pageId = 'dashboard';
-  }
+  const p = getEffectivePermissions();
+  const isAdmin = currentUser.role === 'admin';
+
+  // Redirect if user lacks permission for the requested page
+  const permGate = {
+    agents:    p.viewAgents,
+    reports:   p.viewReports,
+    livechats: p.viewLivechats,
+    tickets:   p.viewTickets,
+    issues:    p.viewIssues,
+    dashboard: p.viewDashboard,
+  };
+  if (pageId in permGate && !permGate[pageId]) pageId = 'dashboard';
+  if ((pageId === 'users' || pageId === 'access') && !isAdmin) pageId = 'dashboard';
+
   document.querySelectorAll('.page-section').forEach(s => s.classList.add('hidden'));
   const target = document.getElementById('page-' + pageId);
   if (target) target.classList.remove('hidden');
@@ -368,6 +402,7 @@ function showPage(pageId) {
   if (pageId === 'notifications') renderNotifPage();
   if (pageId === 'dashboard')     initDashboardOverview();
   if (pageId === 'users')         loadUsersFromAPI();
+  if (pageId === 'access')        renderAccessPage();
   // Persist the current page so refresh restores it
   localStorage.setItem('forexdesk_page', pageId);
 }
@@ -497,15 +532,7 @@ function renderAgents(filter) {
           </div>
         </div>
 
-        <div style="display:flex;gap:6px;margin-top:10px;width:100%">
-          <button class="btn-edit" style="flex:1" onclick="openEditModal(${a.id})">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            ${_t.btn_edit_agent}
-          </button>
-          <button class="btn-edit" style="flex:1;background:#fef3c7;color:#92400e;border-color:#fde68a" onclick="archiveAgent(${a.id})">
-            📦 ${_t.btn_archive}
-          </button>
-        </div>
+        ${(()=>{const _p=getEffectivePermissions();const btns=[];if(_p.agentsEdit)btns.push(`<button class="btn-edit" style="flex:1" onclick="openEditModal(${a.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>${_t.btn_edit_agent}</button>`);if(_p.agentsArchive)btns.push(`<button class="btn-edit" style="flex:1;background:#fef3c7;color:#92400e;border-color:#fde68a" onclick="archiveAgent(${a.id})">📦 ${_t.btn_archive}</button>`);return btns.length?`<div style="display:flex;gap:6px;margin-top:10px;width:100%">${btns.join('')}</div>`:'';})()}
       </div>
     </div>`;
   }).join('');
@@ -2960,11 +2987,13 @@ function renderTicketList() {
     const agentHtml = agent
       ? `<div class="tkt-row-agent" style="background:${agent.color}" title="${agent.name}">${agent.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>`
       : `<span class="tkt-row-unassigned">${tr.lbl_unassigned}</span>`;
-    const actionBtns = t._apiId && t.status !== 'archived' ? `
-      <div class="tkt-row-actions" style="display:flex;gap:4px;margin-top:6px">
-        <button class="btn-edit" style="flex:1;font-size:11px;padding:4px 8px" onclick="openAddTicketModal(${t._apiId});event.stopPropagation()">✏ ${tr.btn_edit}</button>
-        <button class="btn-edit" style="flex:1;font-size:11px;padding:4px 8px;background:#fef3c7;color:#92400e;border-color:#fde68a" onclick="archiveTicket(${t._apiId},event)">📦 ${tr.btn_archive}</button>
-      </div>` : '';
+    const _tp = getEffectivePermissions();
+    const _tktBtns = [];
+    if (t._apiId && t.status !== 'archived') {
+      if (_tp.ticketsEdit) _tktBtns.push(`<button class="btn-edit" style="flex:1;font-size:11px;padding:4px 8px" onclick="openAddTicketModal(${t._apiId});event.stopPropagation()">✏ ${tr.btn_edit}</button>`);
+      if (_tp.ticketsDelete) _tktBtns.push(`<button class="btn-edit" style="flex:1;font-size:11px;padding:4px 8px;background:#fef3c7;color:#92400e;border-color:#fde68a" onclick="archiveTicket(${t._apiId},event)">📦 ${tr.btn_archive}</button>`);
+    }
+    const actionBtns = _tktBtns.length ? `<div class="tkt-row-actions" style="display:flex;gap:4px;margin-top:6px">${_tktBtns.join('')}</div>` : '';
     return `
     <div class="tkt-row${selectedTicketId===t.id?' active':''}" onclick="selectTicket('${t.id}')">
       ${t.unread ? '<div class="tkt-unread-dot"></div>' : ''}
@@ -3806,6 +3835,14 @@ const translations = {
     auth_login_btn:'Sign In',
     auth_no_account:"Don't have an account?",
     auth_create_link:'Create one',
+    auth_forgot_link:'Forgot password?',
+    auth_forgot_title:'Reset Password',
+    auth_forgot_sub:"Enter your email and we'll send you a reset link.",
+    auth_forgot_btn:'Send Reset Link',
+    auth_email_sent_title:'Check your email',
+    auth_email_sent_sub:"If an account exists for that email, we've sent a reset link. It expires in 1 hour.",
+    auth_back_login:'← Back to Sign In',
+    auth_back_login_btn:'Back to Sign In',
     auth_signup_title:'Create account',
     auth_signup_sub:'Join the OpoSupportDesk support team',
     auth_signup_btn:'Create Account',
@@ -3943,6 +3980,42 @@ const translations = {
     btn_logout:'Log Out',
     pending_joined:'Joined',
     btn_edit:'Edit',
+    btn_delete:'Delete',
+    btn_create:'Create',
+    loading:'Loading…',
+    // Access Management
+    nav_access:'Access Management',
+    page_access:'Access Management',
+    access_sub:'Define permissions for each role group',
+    access_btn_new_group:'New Group',
+    access_modal_title:'Create New Group',
+    access_group_name_lbl:'Group Name',
+    access_group_name_ph:'e.g. Supervisor',
+    access_err_name:'Please enter a group name.',
+    access_confirm_delete:'Delete group',
+    access_badge_admin:'Admin',
+    access_badge_system:'System',
+    access_badge_custom:'Custom',
+    access_admin_note:'The Admin group has full access to all features and cannot be modified.',
+    access_section_pages:'Page Access',
+    access_section_tickets:'Tickets',
+    access_section_issues:'Platform Issues',
+    access_section_agents:'Agent Management',
+    access_section_reports:'Reports',
+    access_perm_create:'Create',
+    access_perm_edit:'Edit',
+    access_perm_delete:'Delete',
+    access_perm_archive:'Archive',
+    access_perm_export:'Export',
+    access_perm_view:'View',
+    access_summary_all:'All Access',
+    access_summary_none:'No Access',
+    access_edit_permissions:'Edit Permissions',
+    lbl_type:'Type',
+    lbl_permissions:'Permissions',
+    lbl_access_group:'Access Group',
+    access_group_default:'— Default for role —',
+    access_group_admin_hint:'Admin users always have full access regardless of group.',
   },
   ar: {
     nav_overview:'نظرة عامة', nav_operations:'العمليات',
@@ -4109,6 +4182,14 @@ const translations = {
     auth_login_btn:'تسجيل الدخول',
     auth_no_account:'ليس لديك حساب؟',
     auth_create_link:'أنشئ حساباً',
+    auth_forgot_link:'نسيت كلمة المرور؟',
+    auth_forgot_title:'إعادة تعيين كلمة المرور',
+    auth_forgot_sub:'أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين.',
+    auth_forgot_btn:'إرسال رابط الإعادة',
+    auth_email_sent_title:'تحقق من بريدك الإلكتروني',
+    auth_email_sent_sub:'إذا كان هناك حساب بهذا البريد، فقد أرسلنا رابط إعادة التعيين. ينتهي خلال ساعة.',
+    auth_back_login:'→ العودة إلى تسجيل الدخول',
+    auth_back_login_btn:'العودة إلى تسجيل الدخول',
     auth_signup_title:'إنشاء حساب',
     auth_signup_sub:'انضم إلى فريق دعم OpoSupportDesk',
     auth_signup_btn:'إنشاء حساب',
@@ -4242,6 +4323,42 @@ const translations = {
     btn_logout:'تسجيل الخروج',
     pending_joined:'تاريخ الانضمام',
     btn_edit:'تعديل',
+    btn_delete:'حذف',
+    btn_create:'إنشاء',
+    loading:'جارٍ التحميل…',
+    // Access Management
+    nav_access:'إدارة الصلاحيات',
+    page_access:'إدارة الصلاحيات',
+    access_sub:'تحديد صلاحيات كل مجموعة أدوار',
+    access_btn_new_group:'مجموعة جديدة',
+    access_modal_title:'إنشاء مجموعة جديدة',
+    access_group_name_lbl:'اسم المجموعة',
+    access_group_name_ph:'مثل: مشرف',
+    access_err_name:'يرجى إدخال اسم للمجموعة.',
+    access_confirm_delete:'حذف المجموعة',
+    access_badge_admin:'مسؤول',
+    access_badge_system:'نظام',
+    access_badge_custom:'مخصص',
+    access_admin_note:'مجموعة المسؤول تمتلك وصولاً كاملاً لجميع الميزات ولا يمكن تعديلها.',
+    access_section_pages:'الوصول إلى الصفحات',
+    access_section_tickets:'التذاكر',
+    access_section_issues:'مشكلات المنصة',
+    access_section_agents:'إدارة الوكلاء',
+    access_section_reports:'التقارير',
+    access_perm_create:'إنشاء',
+    access_perm_edit:'تعديل',
+    access_perm_delete:'حذف',
+    access_perm_archive:'أرشفة',
+    access_perm_export:'تصدير',
+    access_perm_view:'عرض',
+    access_summary_all:'صلاحية كاملة',
+    access_summary_none:'لا صلاحية',
+    access_edit_permissions:'تعديل الصلاحيات',
+    lbl_type:'النوع',
+    lbl_permissions:'الصلاحيات',
+    lbl_access_group:'مجموعة الوصول',
+    access_group_default:'— افتراضي (حسب الدور) —',
+    access_group_admin_hint:'يمتلك المشرفون وصولاً كاملاً بغض النظر عن المجموعة.',
   },
   fa: {
     nav_overview:'نمای کلی', nav_operations:'عملیات',
@@ -4408,6 +4525,14 @@ const translations = {
     auth_login_btn:'ورود',
     auth_no_account:'حساب کاربری ندارید؟',
     auth_create_link:'بسازید',
+    auth_forgot_link:'رمز عبور را فراموش کردید؟',
+    auth_forgot_title:'بازنشانی رمز عبور',
+    auth_forgot_sub:'ایمیل خود را وارد کنید تا لینک بازنشانی برایتان ارسال شود.',
+    auth_forgot_btn:'ارسال لینک بازنشانی',
+    auth_email_sent_title:'ایمیل خود را بررسی کنید',
+    auth_email_sent_sub:'در صورت وجود حساب با این ایمیل، لینک بازنشانی ارسال شد. این لینک ۱ ساعت اعتبار دارد.',
+    auth_back_login:'→ بازگشت به ورود',
+    auth_back_login_btn:'بازگشت به ورود',
     auth_signup_title:'ایجاد حساب',
     auth_signup_sub:'به تیم پشتیبانی OpoSupportDesk بپیوندید',
     auth_signup_btn:'ایجاد حساب',
@@ -4541,6 +4666,42 @@ const translations = {
     btn_logout:'خروج از سیستم',
     pending_joined:'تاریخ عضویت',
     btn_edit:'ویرایش',
+    btn_delete:'حذف',
+    btn_create:'ایجاد',
+    loading:'در حال بارگذاری…',
+    // Access Management
+    nav_access:'مدیریت دسترسی',
+    page_access:'مدیریت دسترسی',
+    access_sub:'تعریف مجوزها برای هر گروه نقش',
+    access_btn_new_group:'گروه جدید',
+    access_modal_title:'ایجاد گروه جدید',
+    access_group_name_lbl:'نام گروه',
+    access_group_name_ph:'مثلاً: سرپرست',
+    access_err_name:'لطفاً یک نام برای گروه وارد کنید.',
+    access_confirm_delete:'حذف گروه',
+    access_badge_admin:'ادمین',
+    access_badge_system:'سیستمی',
+    access_badge_custom:'سفارشی',
+    access_admin_note:'گروه ادمین دسترسی کامل به تمام ویژگی‌ها دارد و قابل تغییر نیست.',
+    access_section_pages:'دسترسی به صفحات',
+    access_section_tickets:'تیکت‌ها',
+    access_section_issues:'مشکلات پلتفرم',
+    access_section_agents:'مدیریت عوامل',
+    access_section_reports:'گزارش‌ها',
+    access_perm_create:'ایجاد',
+    access_perm_edit:'ویرایش',
+    access_perm_delete:'حذف',
+    access_perm_archive:'بایگانی',
+    access_perm_export:'خروجی',
+    access_perm_view:'مشاهده',
+    access_summary_all:'دسترسی کامل',
+    access_summary_none:'بدون دسترسی',
+    access_edit_permissions:'ویرایش مجوزها',
+    lbl_type:'نوع',
+    lbl_permissions:'مجوزها',
+    lbl_access_group:'گروه دسترسی',
+    access_group_default:'— پیش‌فرض (بر اساس نقش) —',
+    access_group_admin_hint:'کاربران ادمین همیشه دسترسی کامل دارند.',
   }
 };
 
@@ -4650,6 +4811,7 @@ function applyLanguage(lang, btn) {
   }
   if (!document.getElementById('page-notifications')?.classList.contains('hidden')) renderNotifPage();
   if (!document.getElementById('page-users')?.classList.contains('hidden')) renderUsersTable(_usersCache, _usersFilter);
+  if (!document.getElementById('page-access')?.classList.contains('hidden')) renderAccessPage();
   if (!document.getElementById('page-reports')?.classList.contains('hidden')) {
     if (rptActiveSub === 'total-chats') { renderTotalChats(); renderYearlyCharts(tcYearView === 'compare' ? '2026' : tcYearView); }
     if (rptActiveSub === 'satisfaction') renderSatisfaction();
@@ -4688,38 +4850,30 @@ function initProfile() {
   renderProfilePreview();
   syncAvatarSelection();
 
-  // Role card — admins get editable toggle; others get read-only display
+  // Access Group card — show effective group badge for all users
   const role    = currentUser.role || 'agent';
   const isAdmin = role === 'admin';
+  const _t      = translations[currentLang];
 
-  const roleToggle   = document.getElementById('profile-role-toggle');
-  const roleReadonly = document.getElementById('profile-role-readonly');
-  const roleSaveArea = document.getElementById('profile-role-save-area');
-
-  if (roleReadonly) roleReadonly.style.display = 'none';
-  if (roleSaveArea) roleSaveArea.style.display = isAdmin ? 'flex' : 'none';
-
-  // Always show the toggle, but disable buttons for non-admins
-  if (roleToggle) {
-    roleToggle.style.display = '';
-    roleToggle.querySelectorAll('.gender-btn').forEach(btn => {
-      btn.disabled = !isAdmin;
-      btn.style.cursor = isAdmin ? '' : 'not-allowed';
-      // Non-admins: dim inactive buttons, keep active one fully visible in blue
-      if (!isAdmin) {
-        const isActive = btn.dataset.role === role;
-        btn.style.opacity = isActive ? '1' : '0.45';
-      } else {
-        btn.style.opacity = '';
-      }
-    });
+  let groupBadgeLabel, groupBadgeCls;
+  if (isAdmin) {
+    groupBadgeLabel = _t.role_admin || 'Admin';
+    groupBadgeCls   = 'access-badge--admin';
+  } else if (currentUser.permissionGroupId) {
+    const g = _accessGroupsCache.find(x => x.id === currentUser.permissionGroupId);
+    groupBadgeLabel = g ? g.name : (currentUser.permissionGroupId);
+    groupBadgeCls   = 'access-badge--custom';
+  } else {
+    const sysG = _accessGroupsCache.find(g => g.isSystem && !g.isAdmin &&
+      g.name.toLowerCase() === role.toLowerCase());
+    groupBadgeLabel = sysG ? sysG.name : (_t['role_' + role] || role);
+    groupBadgeCls   = 'access-badge--system';
   }
 
-  // Pre-select active role button
-  ['agent', 'manager', 'admin'].forEach(r => {
-    const btn = document.getElementById('profile-role-' + r);
-    if (btn) btn.classList.toggle('active', role === r);
-  });
+  const roleReadonly = document.getElementById('profile-role-readonly');
+  if (roleReadonly) {
+    roleReadonly.innerHTML = `<span class="access-badge ${groupBadgeCls}" style="font-size:13px;padding:5px 14px">${_esc(groupBadgeLabel)}</span>`;
+  }
 }
 
 function avatarOptionHTML(gender, color, idx) {
@@ -4951,6 +5105,19 @@ function _updateUsersTabCounts() {
   });
 }
 
+function _userGroupLabel(u) {
+  // Admin users always show Admin badge
+  if (u.role === 'admin') return { label: translations[currentLang].role_admin || 'Admin', cls: 'ag-role-badge--admin' };
+  // If the user has a named group attached, show that
+  if (u.permissionGroup) return { label: u.permissionGroup.name, cls: 'ag-role-badge--group' };
+  // Fall back to system group name matching role, or role label
+  const sysGroup = _accessGroupsCache.find(g => g.isSystem && !g.isAdmin &&
+    g.name.toLowerCase() === u.role.toLowerCase());
+  if (sysGroup) return { label: sysGroup.name, cls: 'ag-role-badge--system' };
+  const t = translations[currentLang];
+  return { label: (u.role === 'manager' ? t.role_manager : t.role_agent) || u.role, cls: 'ag-role-badge--system' };
+}
+
 function renderUsersTable(users, filter) {
   _usersFilter = filter;
   const tbody = document.getElementById('users-table-body');
@@ -4961,12 +5128,11 @@ function renderUsersTable(users, filter) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)">${t.no_agents_match || 'No users found.'}</td></tr>`;
     return;
   }
-  const roleMap   = { agent: t.role_agent, manager: t.role_manager, admin: t.role_admin };
   const statusMap = { approved: t.status_approved, pending: t.status_pending, rejected: t.status_rejected };
   tbody.innerHTML = filtered.map(u => {
     const initials  = u.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
     const joined    = new Date(u.createdAt).toLocaleDateString(_getLangLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
-    const roleLabel = roleMap[u.role]   || u.role;
+    const { label: groupLabel, cls: groupCls } = _userGroupLabel(u);
     const statLabel = statusMap[u.status] || u.status;
     return `<tr>
       <td>
@@ -4976,7 +5142,7 @@ function renderUsersTable(users, filter) {
         </div>
       </td>
       <td>${_esc(u.email)}</td>
-      <td>${_esc(roleLabel)}</td>
+      <td><span class="ag-role-badge ${groupCls}">${_esc(groupLabel)}</span></td>
       <td><span class="user-status-badge ${u.status}">${_esc(statLabel)}</span></td>
       <td>${joined}</td>
       <td><button class="btn-ghost" style="padding:5px 14px;font-size:12px" onclick="openUserEditModal(${u.id})">${_esc(t.btn_edit || 'Edit')}</button></td>
@@ -4990,14 +5156,37 @@ function filterUsers(btn, filter) {
   renderUsersTable(_usersCache, filter);
 }
 
-function openUserEditModal(userId) {
+async function openUserEditModal(userId) {
   const user = _usersCache.find(u => u.id === userId);
   if (!user) return;
-  document.getElementById('ue-id').value    = user.id;
-  document.getElementById('ue-name').value  = user.name;
-  document.getElementById('ue-email').value = user.email;
-  document.getElementById('ue-role').value   = user.role;
+
+  if (_accessGroupsCache.length === 0) await loadAccessGroups();
+
+  const t = translations[currentLang];
+  document.getElementById('ue-id').value     = user.id;
+  document.getElementById('ue-name').value   = user.name;
+  document.getElementById('ue-email').value  = user.email;
   document.getElementById('ue-status').value = user.status;
+
+  // Build and populate the group dropdown (all groups, including admin)
+  const groupSel  = document.getElementById('ue-group');
+  const groupHint = document.getElementById('ue-group-hint');
+  if (groupSel) {
+    groupSel.innerHTML = `<option value="">${_esc(t.access_group_default || '— Unassigned (system default) —')}</option>`
+      + _accessGroupsCache.map(g =>
+          `<option value="${g.id}">${_esc(g.name)}</option>`
+        ).join('');
+    let targetId = user.permissionGroupId || '';
+    if (!targetId) {
+      const sysGroup = _accessGroupsCache.find(g => g.isSystem &&
+        g.name.toLowerCase() === user.role.toLowerCase());
+      if (sysGroup) targetId = sysGroup.id;
+    }
+    Array.from(groupSel.options).forEach(opt => { opt.selected = opt.value === targetId; });
+    groupSel.disabled = false;
+    if (groupHint) groupHint.style.display = 'none';
+  }
+
   const apiErr = document.getElementById('ue-api-err');
   if (apiErr) apiErr.style.display = 'none';
   document.getElementById('user-edit-overlay').classList.remove('hidden');
@@ -5008,12 +5197,12 @@ function closeUserEditModal() {
 }
 
 async function saveUserEdit() {
-  const id     = document.getElementById('ue-id').value;
-  const name   = document.getElementById('ue-name').value.trim();
-  const email  = document.getElementById('ue-email').value.trim();
-  const role   = document.getElementById('ue-role').value;
-  const status = document.getElementById('ue-status').value;
-  const apiErr = document.getElementById('ue-api-err');
+  const id              = document.getElementById('ue-id').value;
+  const name            = document.getElementById('ue-name').value.trim();
+  const email           = document.getElementById('ue-email').value.trim();
+  const status          = document.getElementById('ue-status').value;
+  const permissionGroupId = document.getElementById('ue-group')?.value || '';
+  const apiErr          = document.getElementById('ue-api-err');
   if (apiErr) apiErr.style.display = 'none';
 
   hideErr('ue-name-err'); hideErr('ue-email-err');
@@ -5026,16 +5215,16 @@ async function saveUserEdit() {
     const res  = await fetch(`${API_BASE}/users/edit`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ id, name, email, role, status, requesterEmail: currentUser.email }),
+      body:    JSON.stringify({ id, name, email, status, permissionGroupId, requesterEmail: currentUser.email }),
     });
     const json = await res.json();
     if (!res.ok) {
       if (apiErr) { apiErr.textContent = json.message || 'Could not update user.'; apiErr.style.display = ''; }
       return;
     }
-    // Update cache
+    // Update cache with full response (includes permissionGroup relation)
     const idx = _usersCache.findIndex(u => u.id === Number(id));
-    if (idx !== -1) Object.assign(_usersCache[idx], { name, email, role, status });
+    if (idx !== -1) Object.assign(_usersCache[idx], json.data);
     closeUserEditModal();
     _updateUsersTabCounts();
     renderUsersTable(_usersCache, _usersFilter);
@@ -5452,6 +5641,443 @@ document.addEventListener('click', e => {
 });
 
 // ────────────────────────────────────────────────────────
+//  ACCESS MANAGEMENT
+// ────────────────────────────────────────────────────────
+
+let _accessGroupsCache = [];
+
+const ACCESS_PERM_FIELDS = [
+  'viewDashboard','viewLivechats','viewTickets','viewIssues','viewAgents','viewReports',
+  'ticketsCreate','ticketsEdit','ticketsDelete','ticketsExport',
+  'issuesCreate','issuesEdit','issuesDelete','issuesExport',
+  'agentsCreate','agentsEdit','agentsArchive','agentsExport',
+  'reportsExport',
+];
+
+function _adminPerms() {
+  const p = {};
+  ACCESS_PERM_FIELDS.forEach(f => p[f] = true);
+  return p;
+}
+
+function _defaultPerms(role) {
+  if (role === 'admin') return _adminPerms();
+  if (role === 'manager') return {
+    viewDashboard:true, viewLivechats:true, viewTickets:true, viewIssues:true, viewAgents:true, viewReports:true,
+    ticketsCreate:true, ticketsEdit:true, ticketsDelete:true, ticketsExport:true,
+    issuesCreate:true, issuesEdit:true, issuesDelete:true, issuesExport:true,
+    agentsCreate:true, agentsEdit:true, agentsArchive:true, agentsExport:true,
+    reportsExport:true,
+  };
+  // agent defaults
+  return {
+    viewDashboard:true, viewLivechats:true, viewTickets:true, viewIssues:true, viewAgents:false, viewReports:false,
+    ticketsCreate:true, ticketsEdit:true, ticketsDelete:false, ticketsExport:false,
+    issuesCreate:true, issuesEdit:false, issuesDelete:false, issuesExport:false,
+    agentsCreate:false, agentsEdit:false, agentsArchive:false, agentsExport:false,
+    reportsExport:false,
+  };
+}
+
+function getEffectivePermissions() {
+  if (!currentUser) return _adminPerms();
+  if (currentUser.role === 'admin') return _adminPerms();
+
+  // Custom group assignment overrides role default
+  if (currentUser.permissionGroupId) {
+    const g = _accessGroupsCache.find(x => x.id === currentUser.permissionGroupId);
+    if (g) return g;
+  }
+
+  // Match system group by role name
+  const roleName = currentUser.role === 'manager' ? 'Manager' : 'Agent';
+  const sysGroup = _accessGroupsCache.find(g => g.name === roleName && g.isSystem);
+  if (sysGroup) return sysGroup;
+
+  // Fallback to hardcoded defaults
+  return _defaultPerms(currentUser.role);
+}
+
+async function loadAccessGroups() {
+  try {
+    const res  = await fetch(`${API_BASE}/access-groups`);
+    const json = await res.json();
+    if (json.success) {
+      _accessGroupsCache = json.data || [];
+      _applyPermissions();
+    }
+  } catch (e) {
+    console.error('[access] Failed to load groups', e);
+  }
+}
+
+function _applyPermissions() {
+  if (!currentUser) return;
+  const isAdmin = currentUser.role === 'admin';
+  const p = getEffectivePermissions();
+
+  // Nav items by permission
+  const navMap = {
+    dashboard: p.viewDashboard,
+    livechats: p.viewLivechats,
+    tickets:   p.viewTickets,
+    issues:    p.viewIssues,
+    agents:    p.viewAgents,
+    reports:   p.viewReports,
+  };
+  Object.entries(navMap).forEach(([page, allowed]) => {
+    const el = document.querySelector(`.nav-item[data-page="${page}"]`);
+    if (el) el.style.display = allowed ? '' : 'none';
+  });
+
+  // Admin-only nav items
+  ['users','access'].forEach(page => {
+    const el = document.querySelector(`.nav-item[data-page="${page}"]`);
+    if (el) el.style.display = isAdmin ? '' : 'none';
+  });
+
+  // Admin-only DOM elements
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+
+  // Action buttons (static)
+  const actionMap = {
+    'btn-dashboard-export': p.reportsExport,
+    'btn-issues-export':    p.issuesExport,
+    'btn-issues-create':    p.issuesCreate,
+    'btn-tickets-create':   p.ticketsCreate,
+    'btn-agents-add':       p.agentsCreate,
+  };
+  Object.entries(actionMap).forEach(([id, allowed]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = allowed ? '' : 'none';
+  });
+}
+
+// Module-based permission structure — "View" is the gateway for each module
+function _getPermModules() {
+  const t = translations[currentLang];
+  return [
+    { view: 'viewDashboard', label: t.nav_dashboard || 'Dashboard',       actions: [] },
+    { view: 'viewLivechats', label: t.nav_livechats || 'Live Chats',       actions: [] },
+    { view: 'viewTickets',   label: t.nav_tickets   || 'Tickets',          actions: [
+      { k: 'ticketsCreate', lbl: t.access_perm_create || 'Create' },
+      { k: 'ticketsEdit',   lbl: t.access_perm_edit   || 'Edit' },
+      { k: 'ticketsDelete', lbl: t.access_perm_delete || 'Delete' },
+      { k: 'ticketsExport', lbl: t.access_perm_export || 'Export' },
+    ]},
+    { view: 'viewIssues',    label: t.nav_issues    || 'Platform Issues',  actions: [
+      { k: 'issuesCreate',  lbl: t.access_perm_create || 'Create' },
+      { k: 'issuesEdit',    lbl: t.access_perm_edit   || 'Edit' },
+      { k: 'issuesDelete',  lbl: t.access_perm_delete || 'Delete' },
+      { k: 'issuesExport',  lbl: t.access_perm_export || 'Export' },
+    ]},
+    { view: 'viewAgents',    label: t.nav_agents    || 'Agent Management', actions: [
+      { k: 'agentsCreate',  lbl: t.access_perm_create  || 'Create' },
+      { k: 'agentsEdit',    lbl: t.access_perm_edit    || 'Edit' },
+      { k: 'agentsArchive', lbl: t.access_perm_archive || 'Archive' },
+      { k: 'agentsExport',  lbl: t.access_perm_export  || 'Export' },
+    ]},
+    { view: 'viewReports',   label: t.nav_reports   || 'Reports',          actions: [
+      { k: 'reportsExport', lbl: t.access_perm_export || 'Export' },
+    ]},
+  ];
+}
+
+function _badgeHTML(group) {
+  const t = translations[currentLang];
+  if (group.isAdmin)  return `<span class="access-badge access-badge--admin">${t.access_badge_admin   || 'Admin'}</span>`;
+  if (group.isSystem) return `<span class="access-badge access-badge--system">${t.access_badge_system || 'System'}</span>`;
+  return `<span class="access-badge access-badge--custom">${t.access_badge_custom || 'Custom'}</span>`;
+}
+
+// Render compact permission summary pills for the table row
+function _renderPermSummary(group) {
+  const t = translations[currentLang];
+  if (group.isAdmin) {
+    return `<span class="ag-pill ag-pill--all">${t.access_summary_all || 'All Access'}</span>`;
+  }
+  const modules = _getPermModules();
+  const pills = [];
+  modules.forEach(m => {
+    if (!group[m.view]) return;
+    const enabledCount = m.actions.filter(a => group[a.k]).length;
+    const suffix = m.actions.length > 0 ? ` <span class="ag-pill-count">+${enabledCount}</span>` : '';
+    pills.push(`<span class="ag-pill">${escHtml(m.label)}${suffix}</span>`);
+  });
+  if (pills.length === 0) {
+    return `<span class="ag-pill ag-pill--none">${t.access_summary_none || 'No Access'}</span>`;
+  }
+  return pills.join('');
+}
+
+function renderAccessPage() {
+  const container = document.getElementById('access-groups-list');
+  if (!container) return;
+  const t = translations[currentLang];
+
+  if (_accessGroupsCache.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-muted)">${t.loading || 'Loading…'}</div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="ag-table-wrap">
+      <table class="ag-table">
+        <thead>
+          <tr>
+            <th>${escHtml(t.access_group_name_lbl || 'Group Name')}</th>
+            <th>${escHtml(t.lbl_type             || 'Type')}</th>
+            <th>${escHtml(t.lbl_permissions      || 'Permissions')}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${_accessGroupsCache.map(g => `
+            <tr>
+              <td><span class="ag-table-name">${escHtml(g.name)}</span></td>
+              <td>${_badgeHTML(g)}</td>
+              <td><div class="ag-pills-wrap">${_renderPermSummary(g)}</div></td>
+              <td>
+                <div class="ag-row-actions">
+                  ${!g.isAdmin ? `
+                    <button class="btn-ghost ag-btn-edit" onclick="openGroupEditModal('${g.id}')">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      ${escHtml(t.btn_edit || 'Edit')}
+                    </button>` : ''}
+                  ${!g.isSystem ? `
+                    <button class="btn-ghost ag-btn-delete" onclick="deleteAccessGroup('${g.id}')">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                      ${escHtml(t.btn_delete || 'Delete')}
+                    </button>` : ''}
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── Edit Group Modal ──────────────────────────────────────
+
+function openGroupEditModal(groupId) {
+  const group   = _accessGroupsCache.find(g => g.id === groupId);
+  const overlay = document.getElementById('edit-group-modal-overlay');
+  if (!group || !overlay) return;
+
+  const t = translations[currentLang];
+
+  overlay.dataset.groupId = groupId;
+
+  // Title: show group name
+  const titleEl = document.getElementById('edit-group-modal-title');
+  if (titleEl) titleEl.textContent = `${t.access_edit_permissions || 'Edit Permissions'}: ${group.name}`;
+
+  // Build permission body
+  const bodyEl = document.getElementById('edit-group-modal-body');
+  if (bodyEl) bodyEl.innerHTML = _buildEditModalBody(group);
+
+  overlay.classList.remove('hidden');
+}
+
+function closeGroupEditModal(event) {
+  if (event && event.target !== document.getElementById('edit-group-modal-overlay')) return;
+  document.getElementById('edit-group-modal-overlay')?.classList.add('hidden');
+}
+
+function _closeGroupEditModalForce() {
+  document.getElementById('edit-group-modal-overlay')?.classList.add('hidden');
+}
+
+function _buildEditModalBody(group) {
+  const t       = translations[currentLang];
+  const modules = _getPermModules();
+
+  if (group.isAdmin) {
+    return `<div class="access-locked-note">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      ${t.access_admin_note || 'The Admin group has full access to all features and cannot be modified.'}
+    </div>`;
+  }
+
+  return `<div class="ag-edit-modules">
+    ${modules.map(m => {
+      const viewChecked     = group[m.view] ? 'checked' : '';
+      const actionsDisabled = !group[m.view];
+      const hasActions      = m.actions.length > 0;
+      return `
+        <div class="ag-edit-module">
+          <label class="ag-edit-view-row">
+            <input type="checkbox" id="epa-${m.view}" class="ag-cb" ${viewChecked}
+                   onchange="onViewChange('${m.view}')">
+            <span class="ag-edit-module-name">${escHtml(m.label)}</span>
+            <span class="ag-edit-view-tag">${t.access_perm_view || 'View'}</span>
+          </label>
+          ${hasActions ? `
+            <div class="ag-edit-actions${actionsDisabled ? ' ag-edit-actions--off' : ''}" id="epa-acts-${m.view}">
+              ${m.actions.map(a => `
+                <label class="ag-edit-action-lbl">
+                  <input type="checkbox" id="epa-${a.k}" class="ag-cb" data-view="${m.view}"
+                         ${group[a.k] && group[m.view] ? 'checked' : ''}
+                         ${actionsDisabled ? 'disabled' : ''}
+                         onchange="onActionChange('${m.view}', '${a.k}')">
+                  <span>${escHtml(a.lbl)}</span>
+                </label>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// Disabling View unchecks and disables all sub-actions for that module
+function onViewChange(viewKey) {
+  const viewCb = document.getElementById(`epa-${viewKey}`);
+  const actsEl = document.getElementById(`epa-acts-${viewKey}`);
+  if (!actsEl) return;
+
+  const enabled = viewCb && viewCb.checked;
+  actsEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.disabled = !enabled;
+    if (!enabled) cb.checked = false;
+  });
+  actsEl.classList.toggle('ag-edit-actions--off', !enabled);
+}
+
+// Enabling any action auto-enables View
+function onActionChange(viewKey, actionKey) {
+  const viewCb = document.getElementById(`epa-${viewKey}`);
+  if (viewCb && !viewCb.checked) {
+    viewCb.checked = true;
+    onViewChange(viewKey);
+    // Re-check the action that triggered this
+    const actionCb = document.getElementById(`epa-${actionKey}`);
+    if (actionCb) actionCb.checked = true;
+  }
+}
+
+async function saveGroupFromModal() {
+  const overlay = document.getElementById('edit-group-modal-overlay');
+  if (!overlay) return;
+  const groupId = overlay.dataset.groupId;
+  if (!groupId) return;
+
+  const t       = translations[currentLang];
+  const saveBtn = document.getElementById('edit-group-save-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '…'; }
+
+  const data = { requesterEmail: currentUser.email };
+  ACCESS_PERM_FIELDS.forEach(f => {
+    const cb = document.getElementById(`epa-${f}`);
+    data[f] = cb ? cb.checked : false;
+  });
+
+  try {
+    const res  = await fetch(`${API_BASE}/access-groups/${groupId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!json.success) {
+      alert(json.message || 'Could not save group.');
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = t.btn_save_changes || 'Save Changes'; }
+    } else {
+      const idx = _accessGroupsCache.findIndex(g => g.id === groupId);
+      if (idx !== -1) _accessGroupsCache[idx] = json.data;
+      _applyPermissions();
+      _closeGroupEditModalForce();
+      renderAccessPage();
+    }
+  } catch (e) {
+    alert(t.err_server_connect || 'Could not connect to server.');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = t.btn_save_changes || 'Save Changes'; }
+  }
+}
+
+async function deleteAccessGroup(groupId) {
+  const t     = translations[currentLang];
+  const group = _accessGroupsCache.find(g => g.id === groupId);
+  if (!group) return;
+
+  if (!confirm(`${t.access_confirm_delete || 'Delete group'} "${group.name}"?`)) return;
+
+  try {
+    const res  = await fetch(`${API_BASE}/access-groups/${groupId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requesterEmail: currentUser.email }),
+    });
+    const json = await res.json();
+    if (!json.success) {
+      alert(json.message || 'Could not delete group.');
+    } else {
+      _accessGroupsCache = _accessGroupsCache.filter(g => g.id !== groupId);
+      renderAccessPage();
+    }
+  } catch (e) {
+    alert(t.err_server_connect || 'Could not connect to server.');
+  }
+}
+
+function openNewGroupModal() {
+  const inp = document.getElementById('new-group-name');
+  const err = document.getElementById('new-group-name-err');
+  if (inp) inp.value = '';
+  if (err) err.style.display = 'none';
+  const overlay = document.getElementById('new-group-modal-overlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    setTimeout(() => inp && inp.focus(), 50);
+  }
+}
+
+function closeNewGroupModal(event) {
+  if (event && event.target !== document.getElementById('new-group-modal-overlay')) return;
+  document.getElementById('new-group-modal-overlay')?.classList.add('hidden');
+}
+
+function _closeNewGroupModalForce() {
+  document.getElementById('new-group-modal-overlay')?.classList.add('hidden');
+}
+
+async function saveNewGroup() {
+  const t   = translations[currentLang];
+  const inp = document.getElementById('new-group-name');
+  const err = document.getElementById('new-group-name-err');
+  const name = inp ? inp.value.trim() : '';
+
+  if (!name) {
+    if (err) { err.textContent = t.access_err_name || 'Please enter a group name.'; err.style.display = 'block'; }
+    inp && inp.focus();
+    return;
+  }
+  if (err) err.style.display = 'none';
+
+  try {
+    const res  = await fetch(`${API_BASE}/access-groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requesterEmail: currentUser.email, name }),
+    });
+    const json = await res.json();
+    if (!json.success) {
+      if (err) { err.textContent = json.message || 'Error.'; err.style.display = 'block'; }
+    } else {
+      _accessGroupsCache.push(json.data);
+      _closeNewGroupModalForce();
+      renderAccessPage();
+    }
+  } catch (e) {
+    if (err) { err.textContent = t.err_server_connect || 'Could not connect to server.'; err.style.display = 'block'; }
+  }
+}
+
+// ────────────────────────────────────────────────────────
 //  EXPORT REPORT
 // ────────────────────────────────────────────────────────
 function exportDashboardReport() {
@@ -5784,14 +6410,15 @@ IDLE_EVENTS.forEach(evt =>
   }
 
   currentUser = {
-    id:           saved.id           ?? null,
-    name:         saved.name,
-    email:        saved.email,
-    role:         saved.role         || 'agent',
-    status:       saved.status       || 'pending',
-    avatarCustom: saved.avatarCustom || null,
-    avatarIdx:    saved.avatarIdx    ?? null,
-    shift:        saved.shift        || 'day'
+    id:                saved.id               ?? null,
+    name:              saved.name,
+    email:             saved.email,
+    role:              saved.role             || 'agent',
+    status:            saved.status           || 'pending',
+    avatarCustom:      saved.avatarCustom     || null,
+    avatarIdx:         saved.avatarIdx        ?? null,
+    shift:             saved.shift            || 'day',
+    permissionGroupId: saved.permissionGroupId || null,
   };
 
   if (saved.status === 'pending')  { _showPendingScreen(saved.name, saved.email);  return; }
